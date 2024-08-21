@@ -69,3 +69,32 @@ We aim to estimate the number of LX7 cores required to handle USB High Speed (48
 
 7. **Completion**:
    - Done!
+
+
+### B. Using Emulation (Probably the Best Method)
+
+1. **Compile a Standard Bare (Empty `main()`) Project**:
+   - This project will serve as your baseline for comparison.
+
+2. **Compile with `xt-clang`**:
+   - Use maximum optimization flags: `-O3 -DNDEBUG`.
+   - The output will be an ELF file representing your baseline project.
+
+3. **Run the Baseline in Simulation**:
+   - Use `xt-run` to simulate the execution of the baseline project.
+   - Record the number of cycles used by the baseline project.
+
+4. **Add the Rest of Your Code**:
+   - Integrate the full code into your project.
+
+5. **Compile and Simulate Again**:
+   - Compile the full project and run it through the simulator using `xt-run`.
+
+6. **Calculate the Difference**:
+   - Subtract the number of cycles recorded in Step 3 (baseline) from the cycles recorded in Step 5 (full project).
+
+7. **Conclusion**:
+   - The difference in cycles gives you an estimate of the additional processing required by your code.
+
+   - You're done!
+
