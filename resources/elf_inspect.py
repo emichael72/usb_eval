@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
 """
+Intel Corporation © 2024
+All rights reserved.
+
 Description:
 ------------
 This script processes the output of `xt_objdump` for a compiled LX7 binary,
