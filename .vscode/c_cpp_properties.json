@@ -1,0 +1,26 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/include",
+                "${workspaceFolder}/libmctp",
+                "/opt/Xtensa_Explorer/XtDevTools/install/tools/RI-2022.10-linux/XtensaTools/xtensa-elf/include",
+                "/opt/Xtensa_Explorer/XtDevTools/install/tools/RI-2022.10-linux/XtensaTools/xtensa-elf/include/xtensa",
+                "/opt/Xtensa_Explorer/XtDevTools/install/builds/RI-2022.10-linux/hifmc_core/xtensa-elf/arch/include/",
+                "/opt/Xtensa_Explorer/XtDevTools/install/tools/RI-2022.10-linux/XtensaTools/xtensa-elf/src/xclib/tensilica/include",
+                "/opt/Xtensa_Explorer/XtDevTools/install/builds/RI-2022.10-linux/hifmc_core/xtensa-elf/include/xcc/c++/xtensa-elf",
+                "/opt/Xtensa_Explorer/XtDevTools/install/builds/RI-2022.10-linux/hifmc_core/xtensa-elf/arch/include/xtensa/config",
+                "/opt/Xtensa_Explorer/XtDevTools/install/tools/RI-2022.10-linux/XtensaTools/xtensa-elf/src/xclib/include/c++/c++11/embedded",
+                "/opt/Xtensa_Explorer/XtDevTools/install/tools/RI-2022.10-linux/XtensaTools/llvm/lib/clang/10.0.1/include"
+            ],
+            "defines": [],
+            "compilerPath": "/opt/Xtensa_Explorer/XtDevTools/install/tools/RI-2022.10-linux/XtensaTools/bin/xt-clang",
+            "cStandard": "c11",
+            "cppStandard": "c++11",
+            "intelliSenseMode": "linux-clang-x64"
+        }
+    ],
+    "version": 4
+}

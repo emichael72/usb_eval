@@ -1,0 +1,90 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Simulate Empty Firmware",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "/opt/Xtensa_Explorer/XtDevTools/install/tools/RI-2022.10-linux/XtensaTools/bin/xt-run",
+            "args": ["--summary", "${workspaceFolder}/build/empty/empty.elf"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "logging": {
+                "engineLogging": false,
+                "trace": false,
+                "traceResponse": false,
+                "programOutput": true,
+                "exceptions": false
+            }
+        },
+        {
+            "name": "Simulate Release Firmware",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "/opt/Xtensa_Explorer/XtDevTools/install/tools/RI-2022.10-linux/XtensaTools/bin/xt-run",
+            "args": ["--summary", "${workspaceFolder}/build/release/firmware.elf"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "logging": {
+                "engineLogging": false,
+                "trace": false,
+                "traceResponse": false,
+                "programOutput": true,
+                "exceptions": false
+            }
+        },
+        {
+            "name": "LX7 Debug Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/debug/firmware.elf",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                {
+                    "name": "XTENSA_SYSTEM",
+                    "value": "/opt/Xtensa_Explorer/XtDevTools/XtensaRegistry/RI-2022.10-linux"
+                }
+            ],
+            "externalConsole": false,
+            "symbolLoadInfo": {
+                "loadAll": true,
+                "exceptionList": ""
+            },
+            "MIMode": "gdb",
+            "miDebuggerPath": "/opt/Xtensa_Explorer/XtDevTools/install/tools/RI-2022.10-linux/XtensaTools/bin/xt-gdb",
+            "miDebuggerArgs": "-q",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set target architecture to Xtensa",
+                    "text": "set architecture xtensa",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Load symbols",
+                    "text": "symbol-file ${workspaceFolder}/build/debug/firmware.elf",
+                    "ignoreFailures": false
+                }
+            ],
+            "logging": {
+                "engineLogging": false,
+                "trace": false,
+                "traceResponse": false,
+                "programOutput": true,
+                "exceptions": false
+            }
+        },
+   ]
+}

@@ -1,0 +1,682 @@
+{
+   "addi.n":{
+      "cycles":1,
+      "description":"Add immediate to a register, narrow form. Typically takes 1 cycle."
+   },
+   "addi":{
+      "cycles":1,
+      "description":"Add immediate to a register. Typically takes 1 cycle."
+   },
+   "l32r":{
+      "cycles":2,
+      "description":"Load a 32-bit value from memory into a register. Typically takes 2 cycles."
+   },
+   "movi.n":{
+      "cycles":1,
+      "description":"Move an immediate value to a register, narrow form. Typically takes 1 cycle."
+   },
+   "retw.n":{
+      "cycles":2,
+      "description":"Return from subroutine, narrow form. Typically takes 2 cycles."
+   },
+   "s32i.n":{
+      "cycles":2,
+      "description":"Store a 32-bit value from a register to memory, narrow form. Typically takes 2 cycles."
+   },
+   "beqz.n":{
+      "cycles":2,
+      "description":"Branch if equal to zero, narrow form. Typically takes 2 cycles."
+   },
+   "beqz":{
+      "cycles":2,
+      "description":"Branch if equal to zero. Typically takes 2 cycles."
+   },
+   "callx":{
+      "cycles":3,
+      "description":"Call subroutine with address in a register. Typically takes 3 cycles."
+   },
+   "jx":{
+      "cycles":3,
+      "description":"Jump to address in a register. Typically takes 3 cycles due to control transfer."
+   },
+   "wsr.intenable":{
+      "cycles":1,
+      "description":"Write to the INTENABLE special register, enabling interrupts. Typically takes 1 cycle."
+   },
+   "wsr.atomctl":{
+      "cycles":1,
+      "description":"Write to the ATOMCTL special register, controlling atomic operations. Typically takes 1 cycle."
+   },
+   "rsil":{
+      "cycles":1,
+      "description":"Set interrupt level and save old level. Typically takes 1 cycle."
+   },
+   "mov.n":{
+      "cycles":1,
+      "description":"Move value from one register to another, narrow form. Typically takes 1 cycle."
+   },
+   "and":{
+      "cycles":1,
+      "description":"Bitwise AND between two registers. Typically takes 1 cycle."
+   },
+   "witlb":{
+      "cycles":2,
+      "description":"Write to ITLB. Typically takes 2 cycles."
+   },
+   "isync":{
+      "cycles":2,
+      "description":"Instruction synchronization. Typically takes 2 cycles."
+   },
+   "rsync":{
+      "cycles":2,
+      "description":"Register synchronization. Typically takes 2 cycles."
+   },
+   "nop.n":{
+      "cycles":1,
+      "description":"No operation, narrow form. Typically takes 1 cycle."
+   },
+   "nop":{
+      "cycles":1,
+      "description":"No operation. Typically takes 1 cycle."
+   },
+   "sub":{
+      "cycles":1,
+      "description":"Subtract one register from another. Typically takes 1 cycle."
+   },
+   "bltui":{
+      "cycles":2,
+      "description":"Branch if less than unsigned immediate. Typically takes 2 cycles."
+   },
+   "srli":{
+      "cycles":1,
+      "description":"Shift a register right logically by an immediate value. Typically takes 1 cycle."
+   },
+   "beq":{
+      "cycles":2,
+      "description":"Branch if equal. Typically takes 2 cycles."
+   },
+   "bgeui":{
+      "cycles":2,
+      "description":"Branch if greater than or equal unsigned immediate. Typically takes 2 cycles."
+   },
+   "wdtlb":{
+      "cycles":2,
+      "description":"Write to DTLB. Typically takes 2 cycles."
+   },
+   "dsync":{
+      "cycles":2,
+      "description":"Data synchronization. Typically takes 2 cycles."
+   },
+   "rsr.memctl":{
+      "cycles":1,
+      "description":"Read from the MEMCTL special register. Typically takes 1 cycle."
+   },
+   "rsr.mesr":{
+      "cycles":1,
+      "description":"Read from the MESR special register. Typically takes 1 cycle."
+   },
+   "or":{
+      "cycles":1,
+      "description":"Bitwise OR between two registers. Typically takes 1 cycle."
+   },
+   "xor":{
+      "cycles":1,
+      "description":"Bitwise XOR between two registers. Typically takes 1 cycle."
+   },
+   "wsr.memctl":{
+      "cycles":1,
+      "description":"Write to the MEMCTL special register. Typically takes 1 cycle."
+   },
+   "wsr.excsave":{
+      "cycles":1,
+      "description":"Write to the EXCSAVE special register. Typically takes 1 cycle."
+   },
+   "wsr.mesave":{
+      "cycles":1,
+      "description":"Write to the MESAVE special register. Typically takes 1 cycle."
+   },
+   "wsr.ps":{
+      "cycles":1,
+      "description":"Write to the PS special register. Typically takes 1 cycle."
+   },
+   "wsr.windowstart":{
+      "cycles":1,
+      "description":"Write to the WINDOWSTART special register. Typically takes 1 cycle."
+   },
+   "wsr.windowbase":{
+      "cycles":1,
+      "description":"Write to the WINDOWBASE special register. Typically takes 1 cycle."
+   },
+   "rsr.excsave":{
+      "cycles":1,
+      "description":"Read from the EXCSAVE special register. Typically takes 1 cycle."
+   },
+   "rsr.windowbase":{
+      "cycles":1,
+      "description":"Read from the WINDOWBASE special register. Typically takes 1 cycle."
+   },
+   "rsr.ps":{
+      "cycles":1,
+      "description":"Read from the PS special register. Typically takes 1 cycle."
+   },
+   "bbsi":{
+      "cycles":1,
+      "description":"Bit set instruction. Typically takes 1 cycle."
+   },
+   "bbci":{
+      "cycles":1,
+      "description":"Bit clear instruction. Typically takes 1 cycle."
+   },
+   "extui":{
+      "cycles":1,
+      "description":"Extract bits from a register. Typically takes 1 cycle."
+   },
+   "rotw":{
+      "cycles":2,
+      "description":"Rotate word instruction. Typically takes 2 cycles."
+   },
+   "slli":{
+      "cycles":1,
+      "description":"Shift a register left logically by an immediate value. Typically takes 1 cycle."
+   },
+   "rfwo":{
+      "cycles":2,
+      "description":"Register file windowed register write-out. Typically takes 2 cycles."
+   },
+   "rfwu":{
+      "cycles":2,
+      "description":"Register file windowed register write-up. Typically takes 2 cycles."
+   },
+   "xsr.excsave":{
+      "cycles":1,
+      "description":"Exchange special register EXCSAVE. Typically takes 1 cycle."
+   },
+   "bnez":{
+      "cycles":2,
+      "description":"Branch if Not Equal to Zero."
+   },
+   "simcall":{
+      "cycles":4,
+      "description":"System call instruction."
+   },
+   "rfi":{
+      "cycles":2,
+      "description":"Return from interrupt."
+   },
+   "break":{
+      "cycles":1,
+      "description":"Break instruction for debugging."
+   },
+   "entry":{
+      "cycles":2,
+      "description":"Set up the stack frame and adjust stack pointer."
+   },
+   "movi":{
+      "cycles":1,
+      "description":"Move immediate value to register."
+   },
+   "bgeu":{
+      "cycles":2,
+      "description":"Branch if Greater or Equal Unsigned."
+   },
+   "bltu":{
+      "cycles":2,
+      "description":"Branch if Less Than Unsigned."
+   },
+   "rsr.prid":{
+      "cycles":1,
+      "description":"Read the processor ID register."
+   },
+   "call":{
+      "cycles":3,
+      "description":"Call a subroutine."
+   },
+   "bnez.n":{
+      "cycles":2,
+      "description":"Branch if Not Equal to Zero (narrow encoding)."
+   },
+   "moveqz":{
+      "cycles":2,
+      "description":"Move if Equal to Zero."
+   },
+   "bnei":{
+      "cycles":2,
+      "description":"Branch if Not Equal to Immediate."
+   },
+   "bne":{
+      "cycles":2,
+      "description":"Branch if Not Equal."
+   },
+   "addx":{
+      "cycles":1,
+      "description":"Add with Carry."
+   },
+   "depbits":{
+      "cycles":1,
+      "description":"Deposit bits into a register."
+   },
+   "add.n":{
+      "cycles":1,
+      "description":"Add (narrow encoding)."
+   },
+   "rsr.exccause":{
+      "cycles":1,
+      "description":"Read the Exception Cause register."
+   },
+   "rsr.epc":{
+      "cycles":1,
+      "description":"Read the Exception Program Counter register."
+   },
+   "xsr.ps":{
+      "cycles":1,
+      "description":"Exchange Special Registers (Program Status)."
+   },
+   "rsr.interrupt":{
+      "cycles":1,
+      "description":"Read the Interrupt register."
+   },
+   "rsr.intenable":{
+      "cycles":1,
+      "description":"Read the Interrupt Enable register."
+   },
+   "rsr.sar":{
+      "cycles":1,
+      "description":"Read the Shift Amount register."
+   },
+   "nsau":{
+      "cycles":1,
+      "description":"Count leading zeros."
+   },
+   "ssr":{
+      "cycles":1,
+      "description":"Shift source register."
+   },
+   "srl":{
+      "cycles":1,
+      "description":"Shift right logical."
+   },
+   "wsr.intclear":{
+      "cycles":1,
+      "description":"Write to the interrupt clear register."
+   },
+   "rsr.lcount":{
+      "cycles":1,
+      "description":"Read from the loop count register."
+   },
+   "rsr.lbeg":{
+      "cycles":1,
+      "description":"Read from the loop begin register."
+   },
+   "rsr.lend":{
+      "cycles":1,
+      "description":"Read from the loop end register."
+   },
+   "wsr.lcount":{
+      "cycles":1,
+      "description":"Write to the loop count register."
+   },
+   "wsr.lbeg":{
+      "cycles":1,
+      "description":"Write to the loop begin register."
+   },
+   "wsr.lend":{
+      "cycles":1,
+      "description":"Write to the loop end register."
+   },
+   "wsr.sar":{
+      "cycles":1,
+      "description":"Write to the shift amount register."
+   },
+   "neg":{
+      "cycles":1,
+      "description":"Negate register."
+   },
+   "rsr.excvaddr":{
+      "cycles":1,
+      "description":"Read from the exception virtual address register."
+   },
+   "rsr.windowstart":{
+      "cycles":1,
+      "description":"Read from the window start register."
+   },
+   "wsr.epc":{
+      "cycles":1,
+      "description":"Write to the exception program counter register."
+   },
+   "wsr.exccause":{
+      "cycles":1,
+      "description":"Write to the exception cause register."
+   },
+   "wsr.excvaddr":{
+      "cycles":1,
+      "description":"Write to the exception virtual address register."
+   },
+   "rfe":{
+      "cycles":2,
+      "description":"Return from exception."
+   },
+   "xsr.mevaddr":{
+      "cycles":1,
+      "description":"Exchange special register: memory exception virtual address."
+   },
+   "addmi":{
+      "cycles":1,
+      "description":"Add immediate value to a register with condition."
+   },
+   "bgei":{
+      "cycles":1,
+      "description":"Branch if greater than or equal to immediate."
+   },
+   "rsr.scompare":{
+      "cycles":1,
+      "description":"Read from the special compare register."
+   },
+   "wsr.scompare":{
+      "cycles":1,
+      "description":"Write to the special compare register."
+   },
+   "rsr.mesave":{
+      "cycles":1,
+      "description":"Read from the memory exception save register."
+   },
+   "rfme":{
+      "cycles":2,
+      "description":"Return from memory exception."
+   },
+   "beqi":{
+      "cycles":1,
+      "description":"Branch if equal to immediate."
+   },
+   "loopnez":{
+      "cycles":1,
+      "description":"Loop if not equal to zero."
+   },
+   "extw":{
+      "cycles":1,
+      "description":"Extract word from a register."
+   },
+   "s16i":{
+      "cycles":2,
+      "description":"Store 16-bit value from register to memory."
+   },
+   "j":{
+      "cycles":2,
+      "description":"Unconditional jump to target address."
+   },
+   "l8ui":{
+      "cycles":2,
+      "description":"Load unsigned 8-bit value from memory to register."
+   },
+   "call8":{
+      "cycles":3,
+      "description":"Call subroutine with 8-bit offset."
+   },
+   "s32i":{
+      "cycles":2,
+      "description":"Store 32-bit value from register to memory."
+   },
+   "s8i":{
+      "cycles":2,
+      "description":"Store 8-bit value from register to memory."
+   },
+   "l32i.n":{
+      "cycles":2,
+      "description":"Load 32-bit value from memory to register (narrow encoding)."
+   },
+   "l16ui":{
+      "cycles":2,
+      "description":"Load unsigned 16-bit value from memory to register."
+   },
+   "l32i":{
+      "cycles":2,
+      "description":"Load 32-bit value from memory to register."
+   },
+   "addx4":{
+      "cycles":1,
+      "description":"Add registers and shift left by 2 bits (multiply by 4)."
+   },
+   "l16si":{
+      "cycles":2,
+      "description":"Load signed 16-bit value from memory to register."
+   },
+   "call0":{
+      "cycles":3,
+      "description":"Call subroutine with zero overhead."
+   },
+   "callx0":{
+      "cycles":3,
+      "description":"Call subroutine with a zero overhead, variant X."
+   },
+   "wsr.excsave2":{
+      "cycles":2,
+      "description":"Write to Special Register EXCSAVE2."
+   },
+   "wsr.excsave3":{
+      "cycles":2,
+      "description":"Write to Special Register EXCSAVE3."
+   },
+   "s32e":{
+      "cycles":2,
+      "description":"Store 32-bit value with error correction."
+   },
+   "wsr.excsave1":{
+      "cycles":2,
+      "description":"Write to Special Register EXCSAVE1."
+   },
+   "l32e":{
+      "cycles":2,
+      "description":"Load 32-bit value with error correction."
+   },
+   "rsr.excsave1":{
+      "cycles":2,
+      "description":"Read from Special Register EXCSAVE1."
+   },
+   "xsr.excsave2":{
+      "cycles":2,
+      "description":"Exchange Special Register EXCSAVE2."
+   },
+   "xsr.excsave3":{
+      "cycles":2,
+      "description":"Exchange Special Register EXCSAVE3."
+   },
+   "wsr.excsave4":{
+      "cycles":2,
+      "description":"Write to Special Register EXCSAVE4."
+   },
+   "callx8":{
+      "cycles":3,
+      "description":"Call subroutine with an 8-bit offset, variant X."
+   },
+   "callx4":{
+      "cycles":3,
+      "description":"Call subroutine with a 4-bit offset, variant X."
+   },
+   "call4":{
+      "cycles":3,
+      "description":"Call subroutine with a 4-bit offset."
+   },
+   "rsr.epc1":{
+      "cycles":2,
+      "description":"Read from EPC1 register."
+   },
+   "addx2":{
+      "cycles":1,
+      "description":"Add registers and shift left by 1 bit (multiply by 2)."
+   },
+   "addx8":{
+      "cycles":1,
+      "description":"Add registers and shift left by 3 bits (multiply by 8)."
+   },
+   "callx12":{
+      "cycles":3,
+      "description":"Call subroutine with a 12-bit offset, variant X."
+   },
+   "rsr.epc2":{
+      "cycles":2,
+      "description":"Read from EPC2 register."
+   },
+   "wsr.epc1":{
+      "cycles":2,
+      "description":"Write to EPC1 register."
+   },
+   "call12":{
+      "cycles":3,
+      "description":"Call subroutine with a 12-bit offset."
+   },
+   "rsr.scompare1":{
+      "cycles":2,
+      "description":"Read from SCOMPARE1 register."
+   },
+   "wsr.scompare1":{
+      "cycles":2,
+      "description":"Write to SCOMPARE1 register."
+   },
+   "s32c1i":{
+      "cycles":2,
+      "description":"Store 32-bit value to memory with indexed addressing."
+   },
+   "movnez":{
+      "cycles":2,
+      "description":"Move if not equal to zero"
+   },
+   "saltu":{
+      "cycles":2,
+      "description":"Set on alternative less than unsigned"
+   },
+   "blti":{
+      "cycles":3,
+      "description":"Branch if less than immediate"
+   },
+   "blt":{
+      "cycles":3,
+      "description":"Branch if less than"
+   },
+   "bgez":{
+      "cycles":3,
+      "description":"Branch if greater than or equal to zero"
+   },
+   "bltz":{
+      "cycles":3,
+      "description":"Branch if less than zero"
+   },
+   "loop":{
+      "cycles":1,
+      "description":"Loop instruction"
+   },
+   "srai":{
+      "cycles":1,
+      "description":"Shift right arithmetic immediate"
+   },
+   "sext":{
+      "cycles":1,
+      "description":"Sign extend"
+   },
+   "bge":{
+      "cycles":3,
+      "description":"Branch if greater than or equal"
+   },
+   "add":{
+      "cycles":1,
+      "description":"Add two values"
+   },
+   "retw":{
+      "cycles":2,
+      "description":"Return with value"
+   },
+   "minu":{
+      "cycles":2,
+      "description":"Minimum of unsigned values"
+   },
+   "min":{
+      "cycles":2,
+      "description":"Minimum of signed values"
+   },
+   "bnone":{
+      "cycles":3,
+      "description":"Branch if none of the conditions are met"
+   },
+   "bany":{
+      "cycles":3,
+      "description":"Branch if any condition is met"
+   },
+   "mull":{
+      "cycles":4,
+      "description":"Multiply long"
+   },
+   "quou":{
+      "cycles":4,
+      "description":"Unsigned quotient"
+   },
+   "maxu":{
+      "cycles":2,
+      "description":"Maximum of unsigned values"
+   },
+   "bnall":{
+      "cycles":3,
+      "description":"Branch if none/all conditions are true"
+   },
+   "movgez":{
+      "cycles":2,
+      "description":"Move if greater than or equal to zero"
+   },
+   "salt":{
+      "cycles":2,
+      "description":"Set if less than"
+   },
+   "mul16s":{
+      "cycles":4,
+      "description":"Multiply 16-bit signed values"
+   },
+   "quos":{
+      "cycles":4,
+      "description":"Signed quotient"
+   },
+   "movltz":{
+      "cycles":2,
+      "description":"Move if less than zero"
+   },
+   "ssa8l":{
+      "cycles":3,
+      "description":"Shift and accumulate"
+   },
+   "src":{
+      "cycles":2,
+      "description":"Shift right combined"
+   },
+   "ssl":{
+      "cycles":2,
+      "description":"Shift left combined"
+   },
+   "sll":{
+      "cycles":1,
+      "description":"Shift left logical"
+   },
+   "abs":{
+      "cycles":1,
+      "description":"Absolute value"
+   },
+   "mul16u":{
+      "cycles":4,
+      "description":"Multiply 16-bit unsigned values"
+   },
+   "ssai":{
+      "cycles":3,
+      "description":"Shift and accumulate immediate"
+   },
+   "max":{
+      "cycles":1,
+      "description":"Maximum of two values"
+   },
+   "ball":{
+      "cycles":2,
+      "description":"Branch if all bits are set"
+   },
+   "max":{
+      "cycles":1,
+      "description":"Maximum of two values"
+   },
+   "ball":{
+      "cycles":2,
+      "description":"Branch if all bits are set"
+   }
+}
