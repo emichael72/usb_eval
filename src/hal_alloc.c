@@ -2,7 +2,7 @@
  ******************************************************************************
  * @file    hal_alloc.c
  * @author  IMCv2 Team
- * @brief   Basic one-way 'brk' sttyle allocator. By "one-way," we mean that 
+ * @brief   Basic one-way 'brk' style allocator. By "one-way," we mean that 
  *          there is no support for freeing allocated memory (i.e., 
  *          no `free()` function).
  * @ref     https://en.wikipedia.org/wiki/Sbrk    
@@ -121,13 +121,12 @@ uintptr_t hal_brk_alloc_init(void) {
     pCtx->p_mem_end   = (uint8_t *)mem_end;
 
     addr = (uintptr_t)pCtx->p_mem_start + ctxSize;
-    pCtx->p_data_start = (uint8_t *)addr;
-
-    pCtx->brk        = pCtx->p_data_start; /* Initialize the allocation pointer just after this context header */
-    pCtx->tot_size   = tot_size;
-    pCtx->cur_size   = tot_size - ctxSize; /* Net size after reserving bytes for this context header */
-    pCtx->ptr        = NULL;
-    pCtx->mem_marker = HAL_BRK_MEM_MARKER_32;
+    pCtx->p_data_start  = (uint8_t *)addr;
+    pCtx->brk           = pCtx->p_data_start; /* Initialize the allocation pointer just after this context header */
+    pCtx->tot_size      = tot_size;
+    pCtx->cur_size      = tot_size - ctxSize; /* Net size after reserving bytes for this context header */
+    pCtx->ptr           = NULL;
+    pCtx->mem_marker    = HAL_BRK_MEM_MARKER_32;
 
     return (uintptr_t)pCtx;
 
