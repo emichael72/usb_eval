@@ -34,7 +34,6 @@
 
 #include <hal.h>
 
-
 /**
  * @brief HAL session structure for managing emulator and system context.
  * 
@@ -274,7 +273,7 @@ __attribute__((noreturn)) void hal_sys_init(XosThreadFunc startThread, int _argc
   assert(ret == XOS_OK);
 
   /* Allocate stack for the initial thread */
-  p_hal->initial_thread_stack = (uint8_t *)malloc(HAL_DEFAULT_STACK_SIZE);
+  p_hal->initial_thread_stack = (uint8_t *)hal_brk_alloc(pool_ctx,HAL_DEFAULT_STACK_SIZE);
   assert(p_hal->initial_thread_stack != NULL);  /* Memory allocation error */
 
   /* Create initial thread */

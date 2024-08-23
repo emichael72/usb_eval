@@ -60,7 +60,8 @@
             },
             "MIMode": "gdb",
             "miDebuggerPath": "/opt/Xtensa_Explorer/XtDevTools/install/tools/RI-2022.10-linux/XtensaTools/bin/xt-gdb",
-            "miDebuggerArgs": "-q",
+            "miDebuggerArgs": "-q ",
+            "stopAtConnect": true,
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",
