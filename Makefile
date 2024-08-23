@@ -41,7 +41,6 @@ $(error XTENSA_TOOLS or XTENSA_HOME is not defined. The Xtensa SDK is required f
 endif
 endif
 
-
 # Common include paths
 INCLUDE_PATHS = -Ilibmctp -Iinclude
 
@@ -133,7 +132,7 @@ release:
 .PHONY: run
 run: release
 	@echo -e "$(COLOR_YELLOW)Running Xtensa emulator for: $(COLOR_CYAN)$(BUILD_TYPE) $@$(COLOR_RESET)"
-	@xt-run $(BUILD_DIR)/$(TARGET)
+	@xt-run --summary $(BUILD_DIR)/$(TARGET)
 
 # Clean up
 .PHONY: clean

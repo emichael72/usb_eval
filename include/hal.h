@@ -67,6 +67,38 @@
 #define HAL_CCOUNT_HACKVAL       0xFC000000  /**< CCOUNT forward hack value */
 #define HAL_DEFAULT_STACK_SIZE   (1 * 1024)  /**< Default stack size in bytes for threads */
 #define HAL_POOL_SIZE            (8 * 1024)  /**< Bytes avilable for the inner pool */
+#define HAL_AUTO_TERMINATE       (60000)     /**< Auto exit emulator after n milliseonds */
+
+/******************************************************************************
+  * 
+  * The `HAL_OVERHEAD_CYCLES` macro defines the number of overhead cycles 
+  * incurred during cycle measurement in the emulator. This overhead stems 
+  * from the function prologue and epilogue, which are sequences of 
+  * instructions that the compiler inserts at the beginning and end of a 
+  * function.
+  * 
+  * - **Prologue**: Saves the state of registers, sets up the stack frame, 
+  *   and performs initializations. In debug mode, the prologue is larger 
+  *   due to extra debug code, like saving additional registers.
+  * 
+  * - **Epilogue**: Restores registers, cleans up the stack, and prepares 
+  *   the CPU to return to the caller. In debug mode, it may include extra 
+  *   operations, such as stack checks.
+  * 
+  * The overhead varies by build mode:
+  * - **Debug mode**: 13 cycles, due to more extensive prologue/epilogue.
+  * - **Release mode**: 10 cycles, with optimized prologue/epilogue.
+  * 
+  * These values help adjust measured cycles to reflect the actual execution 
+  * time, excluding entry and exit overhead.
+  * 
+  *******************************************************************************/
+
+#ifdef DEBUG
+#define HAL_OVERHEAD_CYCLES  (13)
+#else
+#define HAL_OVERHEAD_CYCLES  (10)
+#endif
 
 /** @addtogroup Exported_HAL_Functions HAL Exported Functions
  * @{
@@ -166,6 +198,21 @@ uint64_t hal_measure_cycles(hal_sim_func func);
  */
 
 uint64_t hal_get_ticks(void);
+
+/**
+ * @brief Delay execution for a specified number of milliseconds.
+ *
+ * This function converts the given milliseconds into CPU cycles and 
+ * makes the current thread sleep for that duration using XOS API.
+ *
+ * @param[in] ms  Number of milliseconds to delay the execution.
+ *
+ * @note This function uses the XOS API to achieve the delay.
+ *       The delay is not exact and depends on the system's tick rate 
+ *       and CPU clock accuracy.
+ */
+
+void hal_delay_ms(uint32_t ms);
 
 /**
  * @brief Initialize the system and start the main application thread.

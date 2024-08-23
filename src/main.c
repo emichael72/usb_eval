@@ -36,8 +36,9 @@
 
 int start_thread(void *arg, int32_t unused) {
 
-    uint64_t ticks, seconds = 0;
     struct mctp *p_mctp = NULL;
+    uint64_t useless_cycles;
+    int iters = 0;
 
     HAL_UNUSED(arg);
     HAL_UNUSED(unused);
@@ -50,11 +51,12 @@ int start_thread(void *arg, int32_t unused) {
     
     while (1) {
         
-        ticks = hal_get_ticks();
-        if (ticks % 1000 == 0) {
-            printf("Seconds: %llu\r", seconds++);
-            fflush(stdout);            
-        }
+        useless_cycles = hal_measure_cycles(hal_useless_function);
+        printf("%02d Usless cycles: %llu   \r", iters++, useless_cycles);
+        fflush(stdout); 
+
+        hal_delay_ms(1000);         
+        
     }
 
     return 0; 

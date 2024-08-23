@@ -36,22 +36,22 @@
 
 /**
  * @brief HAL session structure for managing emulator and system context.
- * 
- * This structure encapsulates various aspects of the HAL session, including 
- * external input arguments, thread management, memory allocation context, 
+ *
+ * This structure encapsulates various aspects of the HAL session, including
+ * external input arguments, thread management, memory allocation context,
  * and system tick management.
  */
 
 typedef struct _hal_session_t
 {
-    char **argv;                   /**< Array of input arguments passed to the emulator */
-    uint8_t *initial_thread_stack; /**< Pointer to the stack of the initial thread */
-    uintptr_t pool_ctx;            /**< Context for the global memory pool */
-    uint64_t ticks;                /**< System ticks since the epoch */
-    uint32_t tick_period;          /**< Period for the ticks timer */
-    int argc;                      /**< Count of arguments passed at startup */
-    XosTimer ticks_timer;          /**< Handle for the XOS ticks timer */
-    XosThread initial_thread;      /**< Handle for the initial XOS thread */
+  char **argv;                   /**< Array of input arguments passed to the emulator */
+  uint8_t *initial_thread_stack; /**< Pointer to the stack of the initial thread */
+  uintptr_t pool_ctx;            /**< Context for the global memory pool */
+  uint64_t ticks;                /**< System ticks since the epoch */
+  uint64_t overhead_cycles;
+  int argc;                      /**< Count of arguments passed at startup */
+  XosTimer ticks_timer;          /**< Handle for the XOS ticks timer */
+  XosThread initial_thread;      /**< Handle for the initial XOS thread */
 
 } hal_session;
 
@@ -75,6 +75,14 @@ static void hal_systick_timer(void *arg)
   HAL_UNUSED(arg);
   p_hal->ticks++;
 
+/* Auito terminate ?*/
+#if defined(HAL_AUTO_TERMINATE) && (HAL_AUTO_TERMINATE > 0)
+  if (p_hal->ticks >= HAL_AUTO_TERMINATE)
+  {
+    hal_terminate_simulation(1);
+  }
+
+#endif
 }
 
 /**
@@ -110,18 +118,19 @@ static uint64_t hal_get_sim_overhead_cycles(void)
 /**
  * @brief Terminates the simulation and exits the program.
  *
- * This function is a simple wrapper around the standard C library's `exit()` 
- * function. It is used to terminate the simulation and exit the program with 
- * the specified status code. This can be particularly useful when running 
+ * This function is a simple wrapper around the standard C library's `exit()`
+ * function. It is used to terminate the simulation and exit the program with
+ * the specified status code. This can be particularly useful when running
  * simulations in an emulated environment where a clean exit is required.
  *
  * @param status The exit status code to be returned to the operating system.
- *               A status of 0 typically indicates successful completion, while 
+ *               A status of 0 typically indicates successful completion, while
  *               any non-zero value indicates an error or abnormal termination.
  */
 
-void hal_terminate_simulation(int status) {
-    exit(status);  /* Standard C library exit */
+void inline hal_terminate_simulation(int status)
+{
+  exit(status); /* Standard C library exit */
 }
 
 /**
@@ -135,14 +144,14 @@ void hal_terminate_simulation(int status) {
  * @return None (void function).
  */
 
-void hal_useless_function(void) {
-    __asm__ __volatile__ (
-        "nop\n"
-        "nop\n"
-        "nop\n"
-        "nop\n"
-        "nop\n"
-    );
+void inline hal_useless_function(void)
+{
+  __asm__ __volatile__(
+      "nop\n"
+      "nop\n"
+      "nop\n"
+      "nop\n"
+      "nop\n");
 }
 
 /**
@@ -154,25 +163,47 @@ void hal_useless_function(void) {
  * @return The current system tick count in milliseconds.
  */
 
-uint64_t hal_get_ticks(void) {
-  return p_hal->ticks;
+uint64_t inline hal_get_ticks(void)
+{
+  return xos_get_system_ticks();
 }
 
 /**
- * @brief HAL wrapper around the underlying 'brk' style allocator to 
- *        provide a malloc() style API. Note that memory cannot be 
+ * @brief HAL wrapper around the underlying 'brk' style allocator to
+ *        provide a malloc() style API. Note that memory cannot be
  *        freed in this platform.
- * 
+ *
  * @param size The size in bytes to allocate.
  * @return Pointer to the allocated memory, or NULL if allocation fails.
  */
 
-void *hal_alloc(size_t size) {
-    if (p_hal && p_hal->pool_ctx) {
-        return hal_brk_alloc(p_hal->pool_ctx, size);
-    }
+void *hal_alloc(size_t size)
+{
+  if (p_hal && p_hal->pool_ctx)
+  {
+    return hal_brk_alloc(p_hal->pool_ctx, size);
+  }
 
-    return NULL;
+  return NULL;
+}
+
+/**
+ * @brief Delay execution for a specified number of milliseconds.
+ *
+ * This function converts the given milliseconds into CPU cycles and 
+ * makes the current thread sleep for that duration using XOS API.
+ *
+ * @param[in] ms  Number of milliseconds to delay the execution.
+ *
+ * @note This function uses the XOS API to achieve the delay.
+ *       The delay is not exact and depends on the system's tick rate 
+ *       and CPU clock accuracy.
+ */
+
+void inline hal_delay_ms(uint32_t ms)
+{
+    uint64_t cycles = xos_msecs_to_cycles(ms);
+    xos_thread_sleep(cycles);
 }
 
 /**
@@ -186,12 +217,11 @@ void *hal_alloc(size_t size) {
  * @return The number of cycles taken by the function, or 0 if `func` is NULL.
  */
 
-uint64_t hal_measure_cycles(hal_sim_func func)
+uint64_t inline hal_measure_cycles(hal_sim_func func)
 {
   uint64_t cycles_before = 0;
   uint64_t cycles_after = 0;
   uint64_t calculated_cycles = 0;
-  uint64_t overhead = 0;
   unsigned int old_int_level = 0;
 
   /* Make sure we have something to work with */
@@ -200,12 +230,9 @@ uint64_t hal_measure_cycles(hal_sim_func func)
     return 0;
   }
 
-  /* Get the simulator overhead cycles for precise measurements. */
-  overhead = hal_get_sim_overhead_cycles();
-
   /* Disable interrupts */
   old_int_level = xos_disable_interrupts();
-
+ 
   /* Read initial cycles count */
   cycles_before = xt_iss_cycle_count();
 
@@ -219,9 +246,9 @@ uint64_t hal_measure_cycles(hal_sim_func func)
   xos_restore_interrupts(old_int_level);
 
   /* Calculate the actual cycles taken by the function */
-  calculated_cycles = (cycles_after - cycles_before) - overhead;
+  calculated_cycles = (cycles_after - cycles_before) - p_hal->overhead_cycles;
 
-  return calculated_cycles;
+  return calculated_cycles - HAL_OVERHEAD_CYCLES;
 }
 
 /**
@@ -239,7 +266,7 @@ uint64_t hal_measure_cycles(hal_sim_func func)
 __attribute__((noreturn)) void hal_sys_init(XosThreadFunc startThread, int _argc, char **_argv)
 {
 
-  uint64_t useless_cycles;
+  uint32_t tick_period;
   uintptr_t pool_ctx = 0;
   int ret;
 
@@ -251,30 +278,33 @@ __attribute__((noreturn)) void hal_sys_init(XosThreadFunc startThread, int _argc
   xos_start_system_timer(-1, 0);
 
   /* Initilizaes hal basic memory allocator */
-  pool_ctx = hal_brk_alloc_init(); 
-  assert(pool_ctx != 0);  /* Pool allocation error */
+  pool_ctx = hal_brk_alloc_init();
+  assert(pool_ctx != 0); /* Pool allocation error */
 
   /* Allocate memory for the hal session variables */
-  p_hal = (hal_session*)hal_brk_alloc(pool_ctx, sizeof(hal_session));
-  assert(p_hal != NULL);  /* Memory allocation error */
+  p_hal = (hal_session *)hal_brk_alloc(pool_ctx, sizeof(hal_session));
+  assert(p_hal != NULL); /* Memory allocation error */
 
   /* Populate our fresh session */
   p_hal->argc = _argc;
   p_hal->argv = _argv;
   p_hal->pool_ctx = pool_ctx;
 
+  /* Get the simulator overhead cycles for precise measurements. */
+  p_hal->overhead_cycles = hal_get_sim_overhead_cycles();
+
   /* Initialize the tick timer to fire every 1 ms */
-  p_hal->tick_period = xos_msecs_to_cycles(1);
+  tick_period = xos_msecs_to_cycles(1);
   xos_timer_init(&p_hal->ticks_timer);
 
-  ret = xos_timer_start(&p_hal->ticks_timer, p_hal->tick_period, XOS_TIMER_PERIODIC,
+  ret = xos_timer_start(&p_hal->ticks_timer, tick_period, XOS_TIMER_PERIODIC,
                         hal_systick_timer, NULL);
   /* System ticks timer could not be initialized */
   assert(ret == XOS_OK);
 
   /* Allocate stack for the initial thread */
-  p_hal->initial_thread_stack = (uint8_t *)hal_brk_alloc(pool_ctx,HAL_DEFAULT_STACK_SIZE);
-  assert(p_hal->initial_thread_stack != NULL);  /* Memory allocation error */
+  p_hal->initial_thread_stack = (uint8_t *)hal_brk_alloc(pool_ctx, HAL_DEFAULT_STACK_SIZE);
+  assert(p_hal->initial_thread_stack != NULL); /* Memory allocation error */
 
   /* Create initial thread */
   ret = xos_thread_create(&p_hal->initial_thread, NULL, startThread, NULL,
@@ -284,21 +314,11 @@ __attribute__((noreturn)) void hal_sys_init(XosThreadFunc startThread, int _argc
   /* Initial thread creation error */
   assert(ret == XOS_OK);
 
-  /* Cycle measurement accuracy test: The following code will
-   * execute and measure the cycles performed by 'hal_useless_function'.
-   * The function body contains 5 nops, which yields 5 instructions; 
-   * however, the return value will vary between 6 and 18 depending on
-   * optimization level. The extra cycles are attributed to the function 
-   * prologue and epilogue overhead.
-   */
-
-  useless_cycles = hal_measure_cycles(hal_useless_function);
-
-  printf("\nXOS Starting kernel, usless cycles: %llu\n",useless_cycles); 
+  printf("\nXOS Starting kernel..\n");
 
   /* Start Kernel which will block. */
   xos_start(0);
 
-  while(1);
-
+  while (1)
+    ;
 }
