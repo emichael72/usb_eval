@@ -1,31 +1,13 @@
+
 # ****************************************************************************
 # *                                                                          *
 # *  Intel Corporation                                                       *
-# *  Copyright (c) 2024 Intel Corporation                                    *
-# *                                                                          *
-# *  Permission is hereby granted, free of charge, to any person obtaining   *
-# *  a copy of this software and associated documentation files (the         *
-# *  "Software"), to deal in the Software without restriction, including     *
-# *  without limitation the rights to use, copy, modify, merge, publish,     *
-# *  distribute, sublicense, and/or sell copies of the Software, and to      *
-# *  permit persons to whom the Software is furnished to do so, subject to   *
-# *  the following conditions:                                               *
-# *                                                                          *
-# *  The above copyright notice and this permission notice shall be included *
-# *  in all copies or substantial portions of the Software.                  *
-# *                                                                          *
-# *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS *
-# *  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF              *
-# *  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  *
-# *  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY    *
-# *  CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,    *
-# *  TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE       *
-# *  SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                  *
+# *  Copyright (c) 2024 Intel Corporation.                                   *
 # *                                                                          *
 # ****************************************************************************
 
 # Project name
-TARGET_PROJECT_NAME := Xtensa LX7
+TARGET_PROJECT_NAME := "Xtensa LX7 MCTP/USB"
 COUNT_INSTRUCTIONS ?= 0  # Default is to not run the Python script
 
 # SpecialFX
@@ -42,7 +24,7 @@ endif
 endif
 
 # Common include paths
-INCLUDE_PATHS = -Ilibmctp -Iinclude
+INCLUDE_PATHS = -Ilibmctp -Isrc/include
 
 # Compiler and flags
 CC = xt-clang
@@ -51,41 +33,38 @@ LD = xt-clang
 
 # For all targets
 COMMON_CFLAGS = -c -save-temps=obj -DHAVE_CONFIG_H $(INCLUDE_PATHS)
+COMMON_LDFLAGS = -Wl,--gc-sections -lxos -lsim
 
 # Target specific flags
 DEBUG_CFLAGS = -ggdb3 -Wall -Werror -mlongcalls -ffunction-sections -O0 -DDEBUG
 RELEASE_CFLAGS = -O3 -DNDEBUG
 
-CFLAGS = $(COMMON_CFLAGS)
-LDFLAGS = -Wl,--gc-sections -lxos -lsim
-
 # Default build type
 BUILD_TYPE ?= release
+BUILD_DIR = build/$(BUILD_TYPE)
+START_MESSAGE = "$(TARGET_PROJECT_NAME): \'$(BUILD_TYPE)\'."
 
 # Simplified conditional checks
 ifeq ($(BUILD_TYPE),debug)
-    CFLAGS += $(DEBUG_CFLAGS)
-    BUILD_DIR = build/debug
-    START_MESSAGE = "Starting $(TARGET_PROJECT_NAME) 'debug' build"
+    CFLAGS = $(COMMON_CFLAGS) $(DEBUG_CFLAGS)
 else ifeq ($(BUILD_TYPE),release)
-    CFLAGS += $(RELEASE_CFLAGS)
-    BUILD_DIR = build/release
-    START_MESSAGE = "Starting $(TARGET_PROJECT_NAME) 'release' build"
+    CFLAGS = $(COMMON_CFLAGS) $(RELEASE_CFLAGS)
 else
     $(error Invalid BUILD_TYPE specified: $(BUILD_TYPE))
 endif
 
 # Compiled sources
 SRCS =	src/main.c \
-		src/hal.c \
-		src/hal_alloc.c \
+		src/mctp_usb.c \
+		src/hal/hal.c \
+		src/hal/hal_alloc.c \
 		libmctp/core.c \
 		libmctp/alloc.c \
 		libmctp/log.c \
 		libmctp/crc-16-ccitt.c
 	
 # Object files
-OBJS = $(patsubst %.c,$(BUILD_DIR)/%.o,$(filter %.c,$(SRCS))) \
+OBJS = $(patsubst %.c,$(BUILD_DIR)/%.o,$(SRCS)) \
        $(patsubst %.S,$(BUILD_DIR)/%.o,$(filter %.S,$(SRCS)))
 
 # Compiled output
@@ -115,8 +94,8 @@ $(BUILD_DIR)/%.o: %.S
 # Linking rule
 $(BUILD_DIR)/$(TARGET): $(OBJS)
 	@mkdir -p $(BUILD_DIR)
-	@echo -e "$(COLOR_YELLOW)Linking target:$(COLOR_RESET) $(COLOR_CYAN)$@$(COLOR_RESET)\n"
-	@$(LD) $(LDFLAGS) -o $@ $^
+	@echo -e "$(COLOR_YELLOW)Linking:$(COLOR_RESET) $(COLOR_CYAN)$@$(COLOR_RESET)\n"
+	@$(LD) $(COMMON_LDFLAGS) -o $@ $^
 	@if [ $(COUNT_INSTRUCTIONS) -eq 1 ]; then \
 		python3 resources/elf_inspect.py $@ $(BUILD_DIR); \
 	fi
@@ -124,9 +103,9 @@ $(BUILD_DIR)/$(TARGET): $(OBJS)
 # Build type-specific targets
 .PHONY: debug release
 debug:
-	@$(MAKE) -s BUILD_TYPE=debug
+	@$(MAKE) -s -j$(nproc) BUILD_TYPE=debug
 release:
-	@$(MAKE) -s BUILD_TYPE=release
+	@$(MAKE) -s -j$(nproc) BUILD_TYPE=release
 
 # Run target to execute the firmware in the emulator
 .PHONY: run
