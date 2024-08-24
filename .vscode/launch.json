@@ -2,26 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Simulate Empty Firmware",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "/opt/Xtensa_Explorer/XtDevTools/install/tools/RI-2022.10-linux/XtensaTools/bin/xt-run",
-            "args": ["--summary", "${workspaceFolder}/build/empty/empty.elf"],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "gdb",
-            "logging": {
-                "engineLogging": false,
-                "trace": false,
-                "traceResponse": false,
-                "programOutput": true,
-                "exceptions": false
-            }
-        },
-        {
-            "name": "Simulate Release Firmware",
+            "name": "Simulate",
             "type": "cppdbg",
             "request": "launch",
             "program": "/opt/Xtensa_Explorer/XtDevTools/install/tools/RI-2022.10-linux/XtensaTools/bin/xt-run",
@@ -40,7 +21,7 @@
             }
         },
         {
-            "name": "LX7 Debug Launch",
+            "name": "Debug",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/debug/firmware.elf",
