@@ -4,7 +4,7 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${workspaceFolder}/include",
+                "${workspaceFolder}/src/include",
                 "${workspaceFolder}/libmctp",
                 "/opt/Xtensa_Explorer/XtDevTools/install/tools/RI-2022.10-linux/XtensaTools/xtensa-elf/include",
                 "/opt/Xtensa_Explorer/XtDevTools/install/tools/RI-2022.10-linux/XtensaTools/xtensa-elf/include/xtensa",

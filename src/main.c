@@ -24,17 +24,12 @@
 
 /**
  * @brief Main startup thread.
- *
- * This function is called by the HAL initialization routine at the start of
- * the system. Its current role is to print the number of seconds that have 
- * passed since the system started.
- *
- * @param arg   Pointer to the XOS thread arguments.
+ * @param arg Pointer to the XOS thread arguments.
  * @param unused Unused parameter.
  * @return Always returns 0.
  */
 
-int start_thread(void *arg, int32_t unused) {
+int init_thread(void *arg, int32_t unused) {
 
     struct mctp *p_mctp = NULL;
     uint64_t useless_cycles;
@@ -65,11 +60,11 @@ int start_thread(void *arg, int32_t unused) {
 /**
  * @brief System initialization and startup.
  *
- * This is the primary entry point for the application, responsible for 
- * initializing the emulated LX7 environment, starting the background 
- * tick timer interrupt, spawning the initial main thread, and launching 
- * the XOS scheduler. Once this function is called, the system will be 
- * up and running, and control will be handed over to the XOS kernel.
+ * This is the entry point for initializing the emulated LX7 environment, 
+ * starting the background tick timer interrupt, spawning the initial 
+ * main thread, and launching  the XOS scheduler. Once this function is 
+ * called, the system will be up and running, and control will be handed 
+ * over to the XOS kernel.
  *
  * @return This function does not return under normal circumstances, 
  *         as `hal_sys_init` starts the XOS kernel, which takes over 
@@ -78,8 +73,10 @@ int start_thread(void *arg, int32_t unused) {
  */
 int main(int argc, char **argv) {
 
-    /* Initialize the system and start the XOS kernel. This function will block. */
-    hal_sys_init(start_thread,argc,argv);
+    /* Initialize the system and start the XOS kernel. 
+     * This function will block. */
+
+    hal_sys_init(init_thread,argc,argv);
 
     /* If we reach here, something went wrong */
     return 1;
