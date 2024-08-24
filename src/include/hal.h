@@ -1,17 +1,8 @@
 
 /**
   ******************************************************************************
-  * @file    hal.c
+  * @file    hal.h
   * @brief   Basic system routines for XOS RTOS on the Xtensa LX7 emulator.
-  * 
-  ******************************************************************************
-  * 
-  * XOS is a lightweight, real-time operating system (RTOS) specifically designed 
-  * for the Xtensa processor architecture. It provides essential multitasking 
-  * capabilities, including thread management, timers, and synchronization 
-  * mechanisms, making it ideal for embedded systems requiring efficient and 
-  * deterministic operation. This file contains the hardware abstraction layer 
-  * (HAL) routines tailored for the XOS RTOS running on the Xtensa LX7 emulator.
   * 
   ******************************************************************************
   * 

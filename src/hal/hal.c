@@ -48,7 +48,7 @@ typedef struct _hal_session_t
   uint8_t *initial_thread_stack; /**< Pointer to the stack of the initial thread */
   uintptr_t pool_ctx;            /**< Context for the global memory pool */
   uint64_t ticks;                /**< System ticks since the epoch */
-  uint64_t overhead_cycles;
+  uint64_t overhead_cycles;      /**< Pre calculated overhead cycles related to the ISS */
   int argc;                      /**< Count of arguments passed at startup */
   XosTimer ticks_timer;          /**< Handle for the XOS ticks timer */
   XosThread initial_thread;      /**< Handle for the initial XOS thread */
@@ -104,7 +104,7 @@ static uint64_t hal_get_sim_overhead_cycles(void)
   /* Disable interrupts */
   old_int_level = xos_disable_interrupts();
 
-  /* Measure the overhead of the entire operation including assignment */
+  /* Measure the overhead of the operation */
   cycles_before = xt_iss_cycle_count();
   cycles_after = xt_iss_cycle_count();
 
@@ -230,7 +230,7 @@ uint64_t inline hal_measure_cycles(hal_sim_func func)
     return 0;
   }
 
-  /* Disable interrupts */
+  /* Enter critical section by disabling interrupts*/
   old_int_level = xos_disable_interrupts();
  
   /* Read initial cycles count */
@@ -248,7 +248,8 @@ uint64_t inline hal_measure_cycles(hal_sim_func func)
   /* Calculate the actual cycles taken by the function */
   calculated_cycles = (cycles_after - cycles_before) - p_hal->overhead_cycles;
 
-  return calculated_cycles - HAL_OVERHEAD_CYCLES;
+  /* Prevents negative or wrapped-around values from being returned */
+  return (calculated_cycles > HAL_OVERHEAD_CYCLES) ? (calculated_cycles - HAL_OVERHEAD_CYCLES) : 0;
 }
 
 /**
