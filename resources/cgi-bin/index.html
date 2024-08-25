@@ -14,15 +14,12 @@
 
       .terminal {
         background-color: black;
-        color: #00FF00;
-        /* Brighter green */
+        color: #00FF00; /* Brighter green */
         padding: 10px;
         border-radius: 5px;
         font-family: 'Courier New', Courier, monospace;
-        font-size: 14px;
-        /* Increase font size if needed */
-        font-weight: bold;
-        /* Make the text bolder */
+        font-size: 14px; /* Increase font size if needed */
+        font-weight: bold; /* Make the text bolder */
         height: 300px;
         overflow-y: scroll;
         white-space: pre-wrap;
@@ -31,25 +28,45 @@
       #execute-button {
         margin-top: 10px;
       }
+
+      .form-group {
+        margin-bottom: 10px;
+      }
     </style>
   </head>
   <body>
     <form id="run-form">
-      <label for="argument">Enter Argument:</label>
-      <input type="text" id="argument" name="argument">
+      <div class="form-group">
+        <label for="argument">Enter Argument:</label>
+        <input type="text" id="argument" name="argument">
+      </div>
+      
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="include-summary" name="include-summary" checked>
+          Include summary
+        </label>
+      </div>
+      
       <button type="submit" id="execute-button">Execute</button>
     </form>
     <h3>Output:</h3>
     <div class="terminal" id="output"></div>
+    
     <script>
       document.getElementById('run-form').addEventListener('submit', function(event) {
         event.preventDefault();
         const argument = document.getElementById('argument').value;
-        fetch(`/cgi-bin/runemu.cgi?arg=${encodeURIComponent(argument)}`).then(response => response.text()).then(data => {
-          document.getElementById('output').textContent = data;
-        }).catch(error => {
-          document.getElementById('output').textContent = 'Error: ' + error;
-        });
+        const includeSummary = document.getElementById('include-summary').checked ? 'yes' : 'no';
+        
+        fetch(`/cgi-bin/runemu.cgi?arg=${encodeURIComponent(argument)}&summary=${includeSummary}`)
+          .then(response => response.text())
+          .then(data => {
+            document.getElementById('output').textContent = data;
+          })
+          .catch(error => {
+            document.getElementById('output').textContent = 'Error: ' + error;
+          });
       });
     </script>
   </body>

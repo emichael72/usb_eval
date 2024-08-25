@@ -25,7 +25,14 @@ export HOME="/home/lighttpd"
 source /home/lighttpd/.bashrc
 
 # Extract the argument from the query string
-ARG=$(echo "$QUERY_STRING" | sed -n 's/^arg=\(.*\)$/\1/p')
+ARG=$(echo "$QUERY_STRING" | sed -n 's/^.*arg=\([^&]*\).*$/\1/p')
 
-# Execute 'xt-run' with the provided argument and capture its output
-/opt/Xtensa_Explorer/XtDevTools/install/tools/RI-2022.10-linux/XtensaTools/bin/xt-run firmware.elf "$ARG"
+# Extract the summary parameter from the query string
+SUMMARY=$(echo "$QUERY_STRING" | sed -n 's/^.*summary=\([^&]*\).*$/\1/p')
+
+# Build the command with or without the --summary option
+if [ "$SUMMARY" == "yes" ]; then
+    /opt/Xtensa_Explorer/XtDevTools/install/tools/RI-2022.10-linux/XtensaTools/bin/xt-run --summary firmware.elf "$ARG"
+else
+    /opt/Xtensa_Explorer/XtDevTools/install/tools/RI-2022.10-linux/XtensaTools/bin/xt-run firmware.elf "$ARG"
+fi

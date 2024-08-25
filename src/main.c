@@ -29,9 +29,9 @@
 
 static struct cag_option options[] =
 {
-    {.identifier = 'u', .access_letters = "u", .access_name = "useless",    .value_name = NULL, .description = "Execute usless cycles test and exit."},
-    {.identifier = 'v', .access_letters = "v", .access_name = "version",    .value_name = NULL, .description = "Show version and exit."},
-    {.identifier = 'h', .access_letters = "h", .access_name = "help",       .value_name = NULL, .description = "Show usage."},
+    {.identifier = 'u', .access_letters = "u", .access_name = "useless",    .value_name = NULL, .description = "Execute usless cycles test."},
+    {.identifier = 'v', .access_letters = "v", .access_name = "version",    .value_name = NULL, .description = "Print version and exit."},
+    {.identifier = 'h', .access_letters = "h", .access_name = "help",       .value_name = NULL, .description = "Print usage."},
 };
 
 /* clang-format on */
@@ -61,6 +61,7 @@ static int init_thread(void *arg, int32_t unused)
     char **            argv            = NULL; /* Arguments array passed to main() */
     char               identifier      = 0;    /* libcargs identifier */
     bool               run_and_exit    = true; /* Specify to terminate immediately */
+    bool               break_cag_fetch = false;
 
     HAL_UNUSED(arg);
     HAL_UNUSED(unused);
@@ -90,18 +91,24 @@ static int init_thread(void *arg, int32_t unused)
                     measured_cycles = run_cycles_test(CYCLES_EVAL_USELESS, 1);
                     printf("Useless cycles: %llu\n", measured_cycles);
                     break;
+
                 case 'v': /* Version */
                     printf("%s version %s\r\n", MCTP_USB_APP_NAME, MCTP_USB_APP_VERSION);
                     break;
-                case 'h':
+
+                case 'h': /* Help */
                     printf("Usage: %s [OPTION]...\r\n", argv[0]);
                     cag_option_print(options, CAG_ARRAY_SIZE(options), stdout);
                     break;
-                default:
-                    printf("Error: did not get valid argumnet.\n");
-                    hal_terminate_simulation(EXIT_FAILURE);
+
+                default: /* Unrecognized token */
+                    printf("Error: '%c' is not a recognized argument.\n", identifier);
+                    break_cag_fetch = true;
                     break;
             }
+
+            if ( break_cag_fetch == true )
+                break;
         }
     }
 
