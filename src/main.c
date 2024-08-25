@@ -40,23 +40,28 @@ static int init_thread(void *arg, int32_t unused)
 {
 
     uint64_t measured_cycles = 0;
-    int      iters           = 0;
+    int argc = 0;
+    char **argv = NULL;
 
     HAL_UNUSED(arg);
     HAL_UNUSED(unused);
+
+    /* Retrieve argc and argv passed to main */
+    hal_get_argcv(&argc, &argv);
 
     /* Initiliozes the transport layrt, this call will asser opn any error*/
     mctp_usb_init();
     printf("MCTP library initialized!\n");
 
+    /* Performs the basic 'usless clock test */
+    measured_cycles = run_cycles_test(CYCLES_EVAL_USELESS, 1);
+    printf("Usless cycles: %llu\n", measured_cycles);
+
+    hal_terminate_simulation(10);
+    
     while ( 1 )
-    {
-
-        measured_cycles = run_cycles_test(CYCLES_EVAL_MSGQ, 1);
-
-        printf("%02d Cycles: %llu   \r", iters++, measured_cycles);
-        fflush(stdout);
-
+    {   
+        /* Loop indefinitely */
         hal_delay_ms(1000);
     }
 

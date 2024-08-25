@@ -274,6 +274,18 @@ uint64_t hal_get_ticks(void);
 void hal_delay_ms(uint32_t ms);
 
 /**
+ * @brief Retrieves the stored argc and argv values from the module session.
+ *
+ * @param argc Pointer to store the retrieved argc value.
+ * @param argv Pointer to store the retrieved argv array.
+ * 
+ * @return 1 if the values are successfully retrieved, 0 if the session is 
+ *         not initialized.
+ */
+
+int hal_get_argcv(int *argc, char ***argv);
+
+/**
  * @brief Initialize the system and start the main application thread.
  *
  * This function performs the initial system setup, including setting up

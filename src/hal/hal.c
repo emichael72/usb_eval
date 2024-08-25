@@ -382,6 +382,29 @@ uint64_t hal_measure_cycles(hal_sim_func func, uintptr_t arg)
 }
 
 /**
+ * @brief Retrieves the stored argc and argv values from the module session.
+ *
+ * @param argc Pointer to store the retrieved argc value.
+ * @param argv Pointer to store the retrieved argv array.
+ * @return 1 if the values are successfully retrieved, 0 if the session is 
+ *         not initialized.
+ */
+
+int hal_get_argcv(int *argc, char ***argv) {
+
+    if(p_hal == NULL)
+        return 0;
+
+    if (argc != NULL && argv != NULL)
+    {
+        *argc = p_hal->argc;
+        *argv =  p_hal->argv;
+    }
+
+    return 1;
+}
+
+/**
  * @brief Initialize the system and start the main application thread.
  *
  * This function performs the initial system setup, including setting up
