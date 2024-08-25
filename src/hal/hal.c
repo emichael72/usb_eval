@@ -144,7 +144,7 @@ void inline hal_terminate_simulation(int status)
  * @return None (void function).
  */
 
-void inline hal_useless_function(void)
+void inline hal_useless_function(uintptr_t xthal_async_L2_region_unlock)
 {
   __asm__ __volatile__(
       "nop\n"
@@ -197,9 +197,17 @@ uint64_t inline hal_get_ticks(void)
 
 void *hal_memcpy(void *dest, const void *src, size_t n)
 {
-#if HAL_MEMCPY_SANITY_CHECKS
+    size_t word_size = sizeof(uintptr_t);
+
+#if (HAL_MEM_SANITY_CHECKS == 1)
     if (dest == NULL || src == NULL || n == 0)
         return NULL;
+
+    /* Check if dest and src are aligned to the machine's word size */
+    if (((uintptr_t)dest % word_size != 0) || ((uintptr_t)src % word_size != 0))
+    {
+        return NULL; /**< Return NULL if pointers are not properly aligned */
+    }
 #endif
 
     /* Pointer to track destination and source */
@@ -207,7 +215,6 @@ void *hal_memcpy(void *dest, const void *src, size_t n)
     const uint8_t *s = (const uint8_t *)src;
 
     /* Calculate how many bytes can be copied in word-size chunks */
-    size_t word_size = sizeof(uintptr_t);
     size_t num_words = n / word_size;
     size_t remaining_bytes = n % word_size;
 
@@ -256,27 +263,31 @@ void *hal_memcpy(void *dest, const void *src, size_t n)
 
 void *hal_zero_buf(void *dest, size_t n)
 {
-    uintptr_t *word_ptr;
-    uint8_t *byte_ptr;
     size_t word_size = sizeof(uintptr_t);
-    size_t num_words;
-    size_t remaining_bytes;
 
-    // Cast the destination pointer to uintptr_t for word-sized operations
-    word_ptr = (uintptr_t *)dest;
+#if (HAL_MEM_SANITY_CHECKS == 1)
+    if (dest == NULL || n == 0)
+        return NULL;
 
-    // Calculate the number of whole words to zero out
-    num_words = n / word_size;
+    /* Check if dest is aligned to the machine's word size */
+    if ((uintptr_t)dest % word_size != 0)
+    {
+        return NULL; /**< Return NULL if the pointer is not properly aligned */
+    }
+#endif
 
-    // Zero out the memory in word-sized chunks
+    uintptr_t *word_ptr = (uintptr_t *)dest;
+    uint8_t *byte_ptr;
+    size_t num_words = n / word_size;
+    size_t remaining_bytes = n % word_size;
+
+    /* Zero out the memory in word-sized chunks */
     for (size_t i = 0; i < num_words; i++) {
         *word_ptr++ = 0;
     }
 
-    // Handle any remaining bytes after the word-sized operations
-    remaining_bytes = n % word_size;
+    /* Handle any remaining bytes after the word-sized operations */
     byte_ptr = (uint8_t *)word_ptr;
-
     for (size_t i = 0; i < remaining_bytes; i++) {
         *byte_ptr++ = 0;
     }
@@ -330,10 +341,11 @@ void inline hal_delay_ms(uint32_t ms)
  * measured by `hal_get_sim_overhead_cycles()`.
  *
  * @param func The function whose execution cycles are to be measured.
+ * @param arg Parameter that can be passed to the measured function.
  * @return The number of cycles taken by the function, or 0 if `func` is NULL.
  */
 
-uint64_t inline hal_measure_cycles(hal_sim_func func)
+uint64_t hal_measure_cycles(hal_sim_func func,uintptr_t arg)
 {
   uint64_t cycles_before = 0;
   uint64_t cycles_after = 0;
@@ -353,7 +365,7 @@ uint64_t inline hal_measure_cycles(hal_sim_func func)
   cycles_before = xt_iss_cycle_count();
 
   /* Invoke measured function */
-  func();
+  func(arg);
 
   /* Get the cycle count after execution */
   cycles_after = xt_iss_cycle_count();

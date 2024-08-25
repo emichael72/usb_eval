@@ -20,7 +20,41 @@
 
 #include <stdio.h>
 #include <hal.h>
+#include <hal_msgq.h>
 #include <libmctp.h>
+
+#define HAL_MCTP_POOL_MAX_FRAME_SIZE        128
+#define HAL_MCTP_POOL_ALLOCATED_FRAMES      64
+
+/**
+ * @brief Main startup thread.
+ * @param arg Pointer to the XOS thread arguments.
+ * @param unused Unused parameter.
+ * @return Always returns 0.
+ */
+
+void execute_msgq_cycles(uintptr_t msgq_handle)
+{
+
+    const int frmaes_count = 1;
+
+    msgq_buf *p_buf[HAL_MCTP_POOL_ALLOCATED_FRAMES];
+    int ret_val;
+
+    /* Request all the frames */
+    for(int i = 0; i < frmaes_count; i++)
+    {
+        p_buf[i] = msgq_request(msgq_handle,NULL,0,false);   
+        assert(p_buf[i] != NULL);   
+    }
+
+    /* Release all the frames */
+    for(int i = 0; i < frmaes_count; i++)
+    {
+        ret_val = msgq_release(msgq_handle, p_buf[i]);
+        assert(ret_val == 0);   
+    }
+}
 
 /**
  * @brief Main startup thread.
@@ -32,11 +66,20 @@
 int init_thread(void *arg, int32_t unused) {
 
     struct mctp *p_mctp = NULL;
+    uintptr_t msgq_handle = 0;
     uint64_t useless_cycles;
     int iters = 0;
 
     HAL_UNUSED(arg);
     HAL_UNUSED(unused);
+
+    /* Create mesgq pool to be used with libmctp, later we could use msgq_request() and
+    * and msgq_release() to get / returns buffer to the free-bussy list being manageg 
+    * by the 'msgq' module.
+    */
+
+    msgq_handle = msgq_create(HAL_MCTP_POOL_MAX_FRAME_SIZE,HAL_MCTP_POOL_ALLOCATED_FRAMES);
+    assert(msgq_handle != 0);
 
     /* Initilizae libmctp, assert on error. */
     p_mctp = mctp_init();
@@ -46,8 +89,8 @@ int init_thread(void *arg, int32_t unused) {
     
     while (1) {
         
-        useless_cycles = hal_measure_cycles(hal_useless_function);
-        printf("%02d Usless cycles: %llu   \r", iters++, useless_cycles);
+        useless_cycles = hal_measure_cycles(execute_msgq_cycles,msgq_handle);
+        printf("%02d MsgQ cycles: %llu   \r", iters++, useless_cycles);
         fflush(stdout); 
 
         hal_delay_ms(1000);         
@@ -71,6 +114,7 @@ int init_thread(void *arg, int32_t unused) {
  *         system control. If it returns, an error has occurred, 
  *         and the return value is 1.
  */
+
 int main(int argc, char **argv) {
 
     /* Initialize the system and start the XOS kernel. 

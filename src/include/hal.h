@@ -65,17 +65,19 @@
 
 #define HAL_CCOUNT_HACKVAL        (0xFC000000)  /**< CCOUNT forward hack value */
 #define HAL_DEFAULT_STACK_SIZE    (1 * 1024)    /**< Default stack size in bytes for threads */
-#define HAL_POOL_SIZE             (8 * 1024)    /**< Bytes available for the inner pool */
+#define HAL_POOL_SIZE             (16 * 1024)   /**< Bytes available for the inner pool */
 #define HAL_AUTO_TERMINATE        (60000)       /**< Auto exit emulator after n 
                                                      milliseconds */
-#define HAL_MEMCPY_SANITY_CHECKS  1             /**< Enable sanity checks in 
+#define HAL_MEM_SANITY_CHECKS     1             /**< Enable sanity checks in 
                                                      hal_memcpy() */
 #define HAL_BRK_ALLOC_ZERO_MEM    1             /**< Initialize allocated memory 
                                                      to zero */
-#define HAL_MSGQ_USE_CRITICAL     1             /**< Enables critical sections 
+#define HAL_MSGQ_USE_CRITICAL     0             /**< Enables critical sections 
                                                      in the message queue to 
                                                      ensure thread-safe operation 
                                                      across multiple contexts */
+#define HAL_MSGQ_SANITY_CHECKS    0             /**< Enable sanity checks when requesting
+                                                     and releasing messages */
 
 
 /******************************************************************************
@@ -104,11 +106,10 @@
   *******************************************************************************/
 
 #ifdef DEBUG
-#define HAL_OVERHEAD_CYCLES  (13)
+#define HAL_OVERHEAD_CYCLES  (14)
 #else
-#define HAL_OVERHEAD_CYCLES  (10)
+#define HAL_OVERHEAD_CYCLES  (11)
 #endif
-
 
 /**
   * @}
@@ -124,7 +125,7 @@
  * @brief Defines a prototype for a function whose execution cycles are measured.
  */
 
-typedef void (*hal_sim_func)(void);
+typedef void (*hal_sim_func)(uintptr_t);
 
 /**
  * @brief Initialize an allocation context for managing memory.
@@ -216,7 +217,7 @@ void *hal_alloc(size_t size);
  * @return None (void function).
  */
 
-void hal_useless_function(void);
+void hal_useless_function(uintptr_t arg);
 
 /**
  * @brief Terminates the simulation and exits the program.
@@ -241,10 +242,11 @@ void hal_terminate_simulation(int status);
  * measured by `hal_get_sim_overhead_cycles()`.
  *
  * @param func The function whose execution cycles are to be measured.
- * @return The number of cycles taken by the function.
+ * @param arg Parameter that can be passed to the measured function.
+ * @return The number of cycles taken by the function, or 0 if `func` is NULL.
  */
 
-uint64_t hal_measure_cycles(hal_sim_func func);
+uint64_t hal_measure_cycles(hal_sim_func func,uintptr_t arg);
 
 /**
  * @brief Retrieve the current system tick count.
