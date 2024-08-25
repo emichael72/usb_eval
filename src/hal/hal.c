@@ -44,14 +44,14 @@
 
 typedef struct _hal_session_t
 {
-  char **argv;                   /**< Array of input arguments passed to the emulator */
-  uint8_t *initial_thread_stack; /**< Pointer to the stack of the initial thread */
-  uintptr_t pool_ctx;            /**< Context for the global memory pool */
-  uint64_t ticks;                /**< System ticks since the epoch */
-  uint64_t overhead_cycles;      /**< Pre calculated overhead cycles related to the ISS */
-  int argc;                      /**< Count of arguments passed at startup */
-  XosTimer ticks_timer;          /**< Handle for the XOS ticks timer */
-  XosThread initial_thread;      /**< Handle for the initial XOS thread */
+    char **   argv;                 /**< Array of input arguments passed to the emulator */
+    uint8_t * initial_thread_stack; /**< Pointer to the stack of the initial thread */
+    uintptr_t pool_ctx;             /**< Context for the global memory pool */
+    uint64_t  ticks;                /**< System ticks since the epoch */
+    uint64_t  overhead_cycles;      /**< Pre calculated overhead cycles related to the ISS */
+    int       argc;                 /**< Count of arguments passed at startup */
+    XosTimer  ticks_timer;          /**< Handle for the XOS ticks timer */
+    XosThread initial_thread;       /**< Handle for the initial XOS thread */
 
 } hal_session;
 
@@ -72,15 +72,15 @@ hal_session *p_hal = NULL;
 
 static void hal_systick_timer(void *arg)
 {
-  HAL_UNUSED(arg);
-  p_hal->ticks++;
+    HAL_UNUSED(arg);
+    p_hal->ticks++;
 
 /* Auito terminate ?*/
 #if defined(HAL_AUTO_TERMINATE) && (HAL_AUTO_TERMINATE > 0)
-  if (p_hal->ticks >= HAL_AUTO_TERMINATE)
-  {
-    hal_terminate_simulation(1);
-  }
+    if ( p_hal->ticks >= HAL_AUTO_TERMINATE )
+    {
+        hal_terminate_simulation(1);
+    }
 
 #endif
 }
@@ -97,22 +97,22 @@ static void hal_systick_timer(void *arg)
 
 static uint64_t hal_get_sim_overhead_cycles(void)
 {
-  uint64_t cycles_before = 0;
-  uint64_t cycles_after = 0;
-  unsigned int old_int_level;
+    uint64_t     cycles_before = 0;
+    uint64_t     cycles_after  = 0;
+    unsigned int old_int_level;
 
-  /* Disable interrupts */
-  old_int_level = xos_disable_interrupts();
+    /* Disable interrupts */
+    old_int_level = xos_disable_interrupts();
 
-  /* Measure the overhead of the operation */
-  cycles_before = xt_iss_cycle_count();
-  cycles_after = xt_iss_cycle_count();
+    /* Measure the overhead of the operation */
+    cycles_before = xt_iss_cycle_count();
+    cycles_after  = xt_iss_cycle_count();
 
-  /* Restore the previous interrupt level to re-enable interrupts */
-  xos_restore_interrupts(old_int_level);
+    /* Restore the previous interrupt level to re-enable interrupts */
+    xos_restore_interrupts(old_int_level);
 
-  /* Subtract 1 to account for simulator discrepancy */
-  return (cycles_after - cycles_before - 1);
+    /* Subtract 1 to account for simulator discrepancy */
+    return (cycles_after - cycles_before - 1);
 }
 
 /**
@@ -130,7 +130,7 @@ static uint64_t hal_get_sim_overhead_cycles(void)
 
 void inline hal_terminate_simulation(int status)
 {
-  exit(status); /* Standard C library exit */
+    exit(status); /* Standard C library exit */
 }
 
 /**
@@ -146,12 +146,11 @@ void inline hal_terminate_simulation(int status)
 
 void inline hal_useless_function(uintptr_t xthal_async_L2_region_unlock)
 {
-  __asm__ __volatile__(
-      "nop\n"
-      "nop\n"
-      "nop\n"
-      "nop\n"
-      "nop\n");
+    __asm__ __volatile__("nop\n"
+                         "nop\n"
+                         "nop\n"
+                         "nop\n"
+                         "nop\n");
 }
 
 /**
@@ -165,7 +164,7 @@ void inline hal_useless_function(uintptr_t xthal_async_L2_region_unlock)
 
 uint64_t inline hal_get_ticks(void)
 {
-  return xos_get_system_ticks();
+    return xos_get_system_ticks();
 }
 
 /**
@@ -199,39 +198,39 @@ void *hal_memcpy(void *dest, const void *src, size_t n)
 {
     size_t word_size = sizeof(uintptr_t);
 
-#if (HAL_MEM_SANITY_CHECKS == 1)
-    if (dest == NULL || src == NULL || n == 0)
+#if ( HAL_MEM_SANITY_CHECKS == 1 )
+    if ( dest == NULL || src == NULL || n == 0 )
         return NULL;
 
     /* Check if dest and src are aligned to the machine's word size */
-    if (((uintptr_t)dest % word_size != 0) || ((uintptr_t)src % word_size != 0))
+    if ( ((uintptr_t) dest % word_size != 0) || ((uintptr_t) src % word_size != 0) )
     {
         return NULL; /**< Return NULL if pointers are not properly aligned */
     }
 #endif
 
     /* Pointer to track destination and source */
-    uint8_t *d = (uint8_t *)dest;
-    const uint8_t *s = (const uint8_t *)src;
+    uint8_t *      d = (uint8_t *) dest;
+    const uint8_t *s = (const uint8_t *) src;
 
     /* Calculate how many bytes can be copied in word-size chunks */
-    size_t num_words = n / word_size;
+    size_t num_words       = n / word_size;
     size_t remaining_bytes = n % word_size;
 
     /* Copy in word-size chunks */
-    uintptr_t *dw = (uintptr_t *)d;
-    const uintptr_t *sw = (const uintptr_t *)s;
+    uintptr_t *      dw = (uintptr_t *) d;
+    const uintptr_t *sw = (const uintptr_t *) s;
 
-    while (num_words--)
+    while ( num_words-- )
     {
         *dw++ = *sw++;
     }
 
     /* Copy any remaining bytes one by one */
-    d = (uint8_t *)dw;
-    s = (const uint8_t *)sw;
+    d = (uint8_t *) dw;
+    s = (const uint8_t *) sw;
 
-    while (remaining_bytes--)
+    while ( remaining_bytes-- )
     {
         *d++ = *s++;
     }
@@ -265,30 +264,32 @@ void *hal_zero_buf(void *dest, size_t n)
 {
     size_t word_size = sizeof(uintptr_t);
 
-#if (HAL_MEM_SANITY_CHECKS == 1)
-    if (dest == NULL || n == 0)
+#if ( HAL_MEM_SANITY_CHECKS == 1 )
+    if ( dest == NULL || n == 0 )
         return NULL;
 
     /* Check if dest is aligned to the machine's word size */
-    if ((uintptr_t)dest % word_size != 0)
+    if ( (uintptr_t) dest % word_size != 0 )
     {
         return NULL; /**< Return NULL if the pointer is not properly aligned */
     }
 #endif
 
-    uintptr_t *word_ptr = (uintptr_t *)dest;
-    uint8_t *byte_ptr;
-    size_t num_words = n / word_size;
-    size_t remaining_bytes = n % word_size;
+    uintptr_t *word_ptr = (uintptr_t *) dest;
+    uint8_t *  byte_ptr;
+    size_t     num_words       = n / word_size;
+    size_t     remaining_bytes = n % word_size;
 
     /* Zero out the memory in word-sized chunks */
-    for (size_t i = 0; i < num_words; i++) {
+    for ( size_t i = 0; i < num_words; i++ )
+    {
         *word_ptr++ = 0;
     }
 
     /* Handle any remaining bytes after the word-sized operations */
-    byte_ptr = (uint8_t *)word_ptr;
-    for (size_t i = 0; i < remaining_bytes; i++) {
+    byte_ptr = (uint8_t *) word_ptr;
+    for ( size_t i = 0; i < remaining_bytes; i++ )
+    {
         *byte_ptr++ = 0;
     }
 
@@ -306,12 +307,12 @@ void *hal_zero_buf(void *dest, size_t n)
 
 void *hal_alloc(size_t size)
 {
-  if (p_hal && p_hal->pool_ctx)
-  {
-    return hal_brk_alloc(p_hal->pool_ctx, size);
-  }
+    if ( p_hal && p_hal->pool_ctx )
+    {
+        return hal_brk_alloc(p_hal->pool_ctx, size);
+    }
 
-  return NULL;
+    return NULL;
 }
 
 /**
@@ -345,39 +346,39 @@ void inline hal_delay_ms(uint32_t ms)
  * @return The number of cycles taken by the function, or 0 if `func` is NULL.
  */
 
-uint64_t hal_measure_cycles(hal_sim_func func,uintptr_t arg)
+uint64_t hal_measure_cycles(hal_sim_func func, uintptr_t arg)
 {
-  uint64_t cycles_before = 0;
-  uint64_t cycles_after = 0;
-  uint64_t calculated_cycles = 0;
-  unsigned int old_int_level = 0;
+    uint64_t     cycles_before     = 0;
+    uint64_t     cycles_after      = 0;
+    uint64_t     calculated_cycles = 0;
+    unsigned int old_int_level     = 0;
 
-  /* Make sure we have something to work with */
-  if (func == NULL)
-  {
-    return 0;
-  }
+    /* Make sure we have something to work with */
+    if ( func == NULL )
+    {
+        return 0;
+    }
 
-  /* Enter critical section by disabling interrupts*/
-  old_int_level = xos_disable_interrupts();
- 
-  /* Read initial cycles count */
-  cycles_before = xt_iss_cycle_count();
+    /* Enter critical section by disabling interrupts*/
+    old_int_level = xos_disable_interrupts();
 
-  /* Invoke measured function */
-  func(arg);
+    /* Read initial cycles count */
+    cycles_before = xt_iss_cycle_count();
 
-  /* Get the cycle count after execution */
-  cycles_after = xt_iss_cycle_count();
+    /* Invoke measured function */
+    func(arg);
 
-  /* Restore the previous interrupt level to re-enable interrupts */
-  xos_restore_interrupts(old_int_level);
+    /* Get the cycle count after execution */
+    cycles_after = xt_iss_cycle_count();
 
-  /* Calculate the actual cycles taken by the function */
-  calculated_cycles = (cycles_after - cycles_before) - p_hal->overhead_cycles;
+    /* Restore the previous interrupt level to re-enable interrupts */
+    xos_restore_interrupts(old_int_level);
 
-  /* Prevents negative or wrapped-around values from being returned */
-  return (calculated_cycles > HAL_OVERHEAD_CYCLES) ? (calculated_cycles - HAL_OVERHEAD_CYCLES) : 0;
+    /* Calculate the actual cycles taken by the function */
+    calculated_cycles = (cycles_after - cycles_before) - p_hal->overhead_cycles;
+
+    /* Prevents negative or wrapped-around values from being returned */
+    return (calculated_cycles > HAL_OVERHEAD_CYCLES) ? (calculated_cycles - HAL_OVERHEAD_CYCLES) : 0;
 }
 
 /**
@@ -395,59 +396,56 @@ uint64_t hal_measure_cycles(hal_sim_func func,uintptr_t arg)
 __attribute__((noreturn)) void hal_sys_init(XosThreadFunc startThread, int _argc, char **_argv)
 {
 
-  uint32_t tick_period;
-  uintptr_t pool_ctx = 0;
-  int ret;
+    uint32_t  tick_period;
+    uintptr_t pool_ctx = 0;
+    int       ret;
 
-  /* Set the system clock frequency */
-  xos_set_clock_freq(XOS_CLOCK_FREQ);
+    /* Set the system clock frequency */
+    xos_set_clock_freq(XOS_CLOCK_FREQ);
 
-  /* Push CCOUNT forward so rollover happens sooner */
-  XT_WSR_CCOUNT(HAL_CCOUNT_HACKVAL);
-  xos_start_system_timer(-1, 0);
+    /* Push CCOUNT forward so rollover happens sooner */
+    XT_WSR_CCOUNT(HAL_CCOUNT_HACKVAL);
+    xos_start_system_timer(-1, 0);
 
-  /* Initilizaes hal basic memory allocator */
-  pool_ctx = hal_brk_alloc_init();
-  assert(pool_ctx != 0); /* Pool allocation error */
+    /* Initilizaes hal basic memory allocator */
+    pool_ctx = hal_brk_alloc_init();
+    assert(pool_ctx != 0); /* Pool allocation error */
 
-  /* Allocate memory for the hal session variables */
-  p_hal = (hal_session *)hal_brk_alloc(pool_ctx, sizeof(hal_session));
-  assert(p_hal != NULL); /* Memory allocation error */
+    /* Allocate memory for the hal session variables */
+    p_hal = (hal_session *) hal_brk_alloc(pool_ctx, sizeof(hal_session));
+    assert(p_hal != NULL); /* Memory allocation error */
 
-  /* Populate our fresh session */
-  p_hal->argc = _argc;
-  p_hal->argv = _argv;
-  p_hal->pool_ctx = pool_ctx;
+    /* Populate our fresh session */
+    p_hal->argc     = _argc;
+    p_hal->argv     = _argv;
+    p_hal->pool_ctx = pool_ctx;
 
-  /* Get the simulator overhead cycles for precise measurements. */
-  p_hal->overhead_cycles = hal_get_sim_overhead_cycles();
+    /* Get the simulator overhead cycles for precise measurements. */
+    p_hal->overhead_cycles = hal_get_sim_overhead_cycles();
 
-  /* Initialize the tick timer to fire every 1 ms */
-  tick_period = xos_msecs_to_cycles(1);
-  xos_timer_init(&p_hal->ticks_timer);
+    /* Initialize the tick timer to fire every 1 ms */
+    tick_period = xos_msecs_to_cycles(1);
+    xos_timer_init(&p_hal->ticks_timer);
 
-  ret = xos_timer_start(&p_hal->ticks_timer, tick_period, XOS_TIMER_PERIODIC,
-                        hal_systick_timer, NULL);
-  /* System ticks timer could not be initialized */
-  assert(ret == XOS_OK);
+    ret = xos_timer_start(&p_hal->ticks_timer, tick_period, XOS_TIMER_PERIODIC, hal_systick_timer, NULL);
+    /* System ticks timer could not be initialized */
+    assert(ret == XOS_OK);
 
-  /* Allocate stack for the initial thread */
-  p_hal->initial_thread_stack = (uint8_t *)hal_brk_alloc(pool_ctx, HAL_DEFAULT_STACK_SIZE);
-  assert(p_hal->initial_thread_stack != NULL); /* Memory allocation error */
+    /* Allocate stack for the initial thread */
+    p_hal->initial_thread_stack = (uint8_t *) hal_brk_alloc(pool_ctx, HAL_DEFAULT_STACK_SIZE);
+    assert(p_hal->initial_thread_stack != NULL); /* Memory allocation error */
 
-  /* Create initial thread */
-  ret = xos_thread_create(&p_hal->initial_thread, NULL, startThread, NULL,
-                          "initThread", p_hal->initial_thread_stack,
-                          HAL_DEFAULT_STACK_SIZE, 1, NULL, 0);
+    /* Create initial thread */
+    ret = xos_thread_create(&p_hal->initial_thread, NULL, startThread, NULL, "initThread", p_hal->initial_thread_stack, HAL_DEFAULT_STACK_SIZE, 1, NULL, 0);
 
-  /* Initial thread creation error */
-  assert(ret == XOS_OK);
+    /* Initial thread creation error */
+    assert(ret == XOS_OK);
 
-  printf("\nXOS Starting kernel..\n");
+    printf("\nXOS Starting kernel..\n");
 
-  /* Start Kernel which will block. */
-  xos_start(0);
+    /* Start Kernel which will block. */
+    xos_start(0);
 
-  while (1)
-    ;
+    while ( 1 )
+        ;
 }

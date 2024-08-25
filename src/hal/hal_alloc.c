@@ -23,10 +23,10 @@
 
 /* Define a pool when it's in the hal base include */
 #if defined(HAL_POOL_SIZE) && (HAL_POOL_SIZE > 0)
-    uint8_t hal_mem_pool[HAL_POOL_SIZE];
+uint8_t hal_mem_pool[HAL_POOL_SIZE];
 #endif
 
-#define HAL_BRK_MEM_MARKER_32  (0xa55aa55a)
+#define HAL_BRK_MEM_MARKER_32 (0xa55aa55a)
 
 /* Generic type to manage 'brk, sbrk' style allocations */
 typedef struct __hal_brk_ctx
@@ -49,13 +49,16 @@ typedef struct __hal_brk_ctx
  * @retval Aligned value.
  */
 
-static size_t hal_brk_align_up(size_t size, size_t alignment) {
-    if (size == 0) {
+static size_t hal_brk_align_up(size_t size, size_t alignment)
+{
+    if ( size == 0 )
+    {
         return 0;
     }
 
     size_t remainder = size % alignment;
-    if (remainder == 0) {
+    if ( remainder == 0 )
+    {
         return size;
     }
 
@@ -72,54 +75,57 @@ static size_t hal_brk_align_up(size_t size, size_t alignment) {
  * @retval Pointer to an initialized memory context or 0 on error.
  */
 
-uintptr_t hal_brk_alloc_init(void) {
+uintptr_t hal_brk_alloc_init(void)
+{
 
 #if defined(HAL_POOL_SIZE) && (HAL_POOL_SIZE > 0)
 
-    const void *mem_start = hal_mem_pool;
-    hal_brk_ctx *pCtx = (hal_brk_ctx *)mem_start;
-    uint8_t ctxSize = hal_brk_align_up(sizeof(hal_brk_ctx), 8);
-    uintptr_t addr;
+    const void * mem_start = hal_mem_pool;
+    hal_brk_ctx *pCtx      = (hal_brk_ctx *) mem_start;
+    uint8_t      ctxSize   = hal_brk_align_up(sizeof(hal_brk_ctx), 8);
+    uintptr_t    addr;
     const size_t tot_size = HAL_POOL_SIZE;
-    uint8_t *mem_end = NULL;
+    uint8_t *    mem_end  = NULL;
 
-    if (!pCtx || tot_size == 0) {
+    if ( ! pCtx || tot_size == 0 )
+    {
         return 0;
     }
 
     /* Address must be 32-bit aligned, which could be critical for some platforms */
-    if (((uintptr_t)mem_start & 0x3) != 0) {
+    if ( ((uintptr_t) mem_start & 0x3) != 0 )
+    {
         return 0;
     }
 
-    mem_end = ((uint8_t *)(mem_start) + tot_size);
+    mem_end = ((uint8_t *) (mem_start) + tot_size);
 
     /* Ensure the memory pool is large enough to include the brk context */
-    if (tot_size <= sizeof(hal_brk_ctx)) {
+    if ( tot_size <= sizeof(hal_brk_ctx) )
+    {
         return 0;
     }
 
-    #if(HAL_BRK_ALLOC_ZERO_MEM == 1)
-        hal_zero_buf((char *)mem_start, tot_size);
-    #endif
-    
-    pCtx->p_mem_start = (uint8_t *)mem_start;
-    pCtx->p_mem_end   = (uint8_t *)mem_end;
+#if ( HAL_BRK_ALLOC_ZERO_MEM == 1 )
+    hal_zero_buf((char *) mem_start, tot_size);
+#endif
 
-    addr = (uintptr_t)pCtx->p_mem_start + ctxSize;
-    pCtx->p_data_start  = (uint8_t *)addr;
-    pCtx->brk           = pCtx->p_data_start; /* Initialize the allocation pointer just after this context header */
-    pCtx->tot_size      = tot_size;
-    pCtx->cur_size      = tot_size - ctxSize; /* Net size after reserving bytes for this context header */
-    pCtx->ptr           = NULL;
-    pCtx->mem_marker    = HAL_BRK_MEM_MARKER_32;
+    pCtx->p_mem_start = (uint8_t *) mem_start;
+    pCtx->p_mem_end   = (uint8_t *) mem_end;
 
-    return (uintptr_t)pCtx;
+    addr               = (uintptr_t) pCtx->p_mem_start + ctxSize;
+    pCtx->p_data_start = (uint8_t *) addr;
+    pCtx->brk          = pCtx->p_data_start; /* Initialize the allocation pointer just after this context header */
+    pCtx->tot_size     = tot_size;
+    pCtx->cur_size     = tot_size - ctxSize; /* Net size after reserving bytes for this context header */
+    pCtx->ptr          = NULL;
+    pCtx->mem_marker   = HAL_BRK_MEM_MARKER_32;
+
+    return (uintptr_t) pCtx;
 
 #else
     return 0; /* Pool size not defined */
 #endif
-
 }
 
 /**
@@ -133,23 +139,26 @@ uintptr_t hal_brk_alloc_init(void) {
  * @retval Valid pointer or NULL on error.
  */
 
-void *hal_brk_alloc(__IO uintptr_t ctx, size_t size) {
+void *hal_brk_alloc(__IO uintptr_t ctx, size_t size)
+{
 
 #if defined(HAL_POOL_SIZE) && (HAL_POOL_SIZE > 0)
 
-    hal_brk_ctx *pCtx = (hal_brk_ctx *)ctx; /* Handle to pointer */
+    hal_brk_ctx *pCtx = (hal_brk_ctx *) ctx; /* Handle to pointer */
 
     size_t size_aligned = 0;
 
     /* Note: Memory cannot be freed, negative values are not allowed */
-    if (size == 0) {
+    if ( size == 0 )
+    {
         return NULL;
     }
 
-    size_aligned = hal_brk_align_up(size,8);
+    size_aligned = hal_brk_align_up(size, 8);
 
     /* Validate the context pointer */
-    if (!pCtx || pCtx->mem_marker != HAL_BRK_MEM_MARKER_32 || pCtx->cur_size == 0 || (pCtx->cur_size <= size_aligned)) {
+    if ( ! pCtx || pCtx->mem_marker != HAL_BRK_MEM_MARKER_32 || pCtx->cur_size == 0 || (pCtx->cur_size <= size_aligned) )
+    {
         return NULL;
     }
 
@@ -157,15 +166,14 @@ void *hal_brk_alloc(__IO uintptr_t ctx, size_t size) {
     pCtx->brk += size_aligned;      /* Advance the next allocation pointer */
     pCtx->cur_size -= size_aligned; /* Decrease the total pool bytes */
 
-    #if(HAL_BRK_ALLOC_ZERO_MEM == 1)
-        /* Memory reset. */
-        hal_zero_buf(pCtx->ptr,size_aligned);
-    #endif
+#if ( HAL_BRK_ALLOC_ZERO_MEM == 1 )
+    /* Memory reset. */
+    hal_zero_buf(pCtx->ptr, size_aligned);
+#endif
 
-    return (void *)pCtx->ptr;
+    return (void *) pCtx->ptr;
 #else
 
     return NULL; /* Pool size not defined */
 #endif
-
 }
