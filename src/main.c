@@ -24,7 +24,7 @@
 #include <cargs.h>
 #include <cycles_eval.h>
 
-/* Known console input arguments table */
+/* Known console input arguments table. */
 /* clang-format off */
 
 static struct cag_option options[] =
@@ -33,6 +33,7 @@ static struct cag_option options[] =
     {.identifier = 'v', .access_letters = "v", .access_name = "version",    .value_name = NULL, .description = "Show version and exit."},
     {.identifier = 'h', .access_letters = "h", .access_name = "help",       .value_name = NULL, .description = "Show usage."},
 };
+
 /* clang-format on */
 
 /**
@@ -54,12 +55,12 @@ static struct cag_option options[] =
  */
 static int init_thread(void *arg, int32_t unused)
 {
-    uint64_t           measured_cycles = 0;
-    cag_option_context context         = {0};   /* libcargs context */
-    int                argc            = 0;     /* Arguments count passed to main() */
-    char **            argv            = NULL;  /* Arguments array passed to main() */
-    char               identifier      = 0;     /* libcargs identifier */
-    bool               run_and_exit    = false; /* Specify to terminate immediately */
+    uint64_t           measured_cycles = 0;    /* Cycles related to any of our tests */
+    cag_option_context context         = {0};  /* libcargs context */
+    int                argc            = 0;    /* Arguments count passed to main() */
+    char **            argv            = NULL; /* Arguments array passed to main() */
+    char               identifier      = 0;    /* libcargs identifier */
+    bool               run_and_exit    = true; /* Specify to terminate immediately */
 
     HAL_UNUSED(arg);
     HAL_UNUSED(unused);
@@ -88,16 +89,17 @@ static int init_thread(void *arg, int32_t unused)
                 case 'u': /* Execute our basic 'useless cycles' test */
                     measured_cycles = run_cycles_test(CYCLES_EVAL_USELESS, 1);
                     printf("Useless cycles: %llu\n", measured_cycles);
-                    run_and_exit = true;
                     break;
                 case 'v': /* Version */
                     printf("%s version %s\r\n", MCTP_USB_APP_NAME, MCTP_USB_APP_VERSION);
-                    run_and_exit = true;
                     break;
                 case 'h':
                     printf("Usage: %s [OPTION]...\r\n", argv[0]);
                     cag_option_print(options, CAG_ARRAY_SIZE(options), stdout);
-                    run_and_exit = true;
+                    break;
+                default:
+                    printf("Error: did not get valid argumnet.\n");
+                    hal_terminate_simulation(EXIT_FAILURE);
                     break;
             }
         }
@@ -106,12 +108,15 @@ static int init_thread(void *arg, int32_t unused)
     if ( run_and_exit == true )
         hal_terminate_simulation(EXIT_SUCCESS);
 
-    printf("Starting XOS Kernel..\   n");
+#ifdef HAL_START_XOS_KERNAL
+
+    printf("Starting XOS Kernel..\n");
     while ( 1 )
     {
         /* Loop indefinitely */
         hal_delay_ms(1000);
     }
+#endif
 
     return 0;
 }

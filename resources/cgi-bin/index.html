@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Run Emulator</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        color: #333;
+        padding: 20px;
+      }
+
+      .terminal {
+        background-color: black;
+        color: #00FF00;
+        /* Brighter green */
+        padding: 10px;
+        border-radius: 5px;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 14px;
+        /* Increase font size if needed */
+        font-weight: bold;
+        /* Make the text bolder */
+        height: 300px;
+        overflow-y: scroll;
+        white-space: pre-wrap;
+      }
+
+      #execute-button {
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <form id="run-form">
+      <label for="argument">Enter Argument:</label>
+      <input type="text" id="argument" name="argument">
+      <button type="submit" id="execute-button">Execute</button>
+    </form>
+    <h3>Output:</h3>
+    <div class="terminal" id="output"></div>
+    <script>
+      document.getElementById('run-form').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const argument = document.getElementById('argument').value;
+        fetch(`/cgi-bin/runemu.cgi?arg=${encodeURIComponent(argument)}`).then(response => response.text()).then(data => {
+          document.getElementById('output').textContent = data;
+        }).catch(error => {
+          document.getElementById('output').textContent = 'Error: ' + error;
+        });
+      });
+    </script>
+  </body>
+</html>

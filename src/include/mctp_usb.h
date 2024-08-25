@@ -36,7 +36,7 @@
 
 
 #define MCTP_USB_APP_NAME                   "MCTP over USB efficancy evaluation."
-#define MCTP_USB_APP_VERSION                "1.0"
+#define MCTP_USB_APP_VERSION                "1.1"
 
 #define MCTP_USB_MSGQ_MAX_FRAME_SIZE    128  /**< Maximum size in bytes for each 
                                                  allocated buffer in the message queue */
