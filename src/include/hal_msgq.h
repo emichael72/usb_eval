@@ -23,13 +23,17 @@
   ******************************************************************************
   */
 
+/* Define to prevent recursive inclusion -------------------------------------*/
+#ifndef _HAL_MESSAGE_Q_H
+#define _HAL_MESSAGE_Q_H
+
 #include <stdint.h>
 #include <stdbool.h>
 
 /*! @brief The message queue item structure */
 typedef struct __msgq_buf_t
 {
-    struct __msgq_buf_t *next, *prev; /*!< List next and previous pointers */
+    struct __msgq_buf_t *next, *prev;   /*!< List next and previous pointers */
     uint8_t *          p_data;          /*!< Pointer to the actual memory space containing the message */
     int32_t            state;           /*!< State of the item, application-defined */
     uint32_t           type;            /*!< Type of stored element (free or busy) */
@@ -65,3 +69,5 @@ int msgq_release(uintptr_t msgq_handle, msgq_buf *pdata);
  */
 
 uintptr_t msgq_create(uint32_t elem_size, uint32_t tot_elements);
+
+#endif /* _HAL_MESSAGE_Q_H */

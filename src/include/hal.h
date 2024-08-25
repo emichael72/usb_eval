@@ -17,8 +17,8 @@
   */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef _LIBMCTP_USB_LX7_HAL_H
-#define _LIBMCTP_USB_LX7_HAL_H
+#ifndef _HAL_LX7_H
+#define _HAL_LX7_H
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -54,7 +54,6 @@
                                                                    parameter warnings */
 #define __IO                                volatile          /**< IO operation */
 
-
 /**
   * @}
   */
@@ -72,11 +71,11 @@
                                                      hal_memcpy() */
 #define HAL_BRK_ALLOC_ZERO_MEM    1             /**< Initialize allocated memory 
                                                      to zero */
-#define HAL_MSGQ_USE_CRITICAL     1             /**< Enables critical sections 
+#define HAL_MSGQ_USE_CRITICAL     0             /**< Enables critical sections 
                                                      in the message queue to 
                                                      ensure thread-safe operation 
                                                      across multiple contexts */
-#define HAL_MSGQ_SANITY_CHECKS    1             /**< Enable sanity checks when requesting
+#define HAL_MSGQ_SANITY_CHECKS    0             /**< Enable sanity checks when requesting
                                                      and releasing messages */
 
 
@@ -293,4 +292,4 @@ void hal_sys_init(XosThreadFunc startThread, int _argc, char **argv);
   */
 
 
-#endif /* _LIBMCTP_USB_LX7_HAL_H */
+#endif /* _HAL_LX7_H */

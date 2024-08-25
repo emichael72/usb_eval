@@ -59,6 +59,7 @@ SRCS =	src/main.c \
 		src/hal/hal.c \
 		src/hal/hal_alloc.c \
 		src/hal/hal_msgq.c \
+		src/test/cycles_eval.c \
 		libmctp/core.c \
 		libmctp/alloc.c \
 		libmctp/log.c \

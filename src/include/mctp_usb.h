@@ -1,7 +1,7 @@
 
 /**
   ******************************************************************************
-  * @file    mctp_usb.c
+  * @file    mctp_usb.h
   * @author  IMCv2 Team
   * @brief   A simple implementation for OpenMCTP that creates USB device bindings.
   * 
@@ -21,37 +21,32 @@
   ******************************************************************************
   */
 
-#include <hal.h>
-#include <hal_msgq.h>
-#include <libmctp.h>
-#include <mctp_usb.h>
+#include <stdint.h>
+#include <stdbool.h>
+
+/* Define to prevent recursive inclusion -------------------------------------*/
+
+#ifndef _MCTP_USB_H
+#define _MCTP_USB_H
+
+/* Exported macro ------------------------------------------------------------*/
+/** @defgroup MCTP_USB_Exported_MACRO MCTP over USB Macros
+  * @{
+  */
+
+#define MCTP_USB_MSGQ_MAX_FRAME_SIZE    128  /**< Maximum size in bytes for each 
+                                                 allocated buffer in the message queue */
+#define MCTP_USB_MSGQ_ALLOCATED_FRAMES  64   /**< Total number of allocated frames 
+                                                 in the message queue */
 
 /**
- * @brief Holds all global variables for the module.
- */
-typedef struct mctp_usb_session_t
-{
-    struct mctp *p_mctp;      /*!< Pointer to the libmctp instance */
-    uintptr_t    msgq_handle; /*!< Handle to the message queue */
-} mctp_usb_session;
+  * @}
+  */
 
-/* Pointer to the module's session instance */
-mctp_usb_session *p_mctpusb = NULL;
-
-/**
- * @brief Retrieves the handle to the message queue initialized by this module.
- * @return The message queue handle, or 0 if the module or message queue is not 
- *         initialized.
- */
-
-uintptr_t mctp_usb_get_msgq_handle(void)
-{
-
-    if ( p_mctpusb != NULL )
-        return p_mctpusb->msgq_handle;
-
-    return 0;
-}
+/* Exported API --------------------------------------------------------------*/
+/** @defgroup MCTP_USB_Exported_API MCTP over USB Exported API
+  * @{
+  */
 
 /**
  * @brief Initializes the MTCP over USB transport layer.
@@ -67,20 +62,22 @@ uintptr_t mctp_usb_get_msgq_handle(void)
  * - Initialize libmctp and assert if initialization fails.
  */
 
-void mctp_usb_init(void)
-{
-    /* Request RAM for this module, assert on failure */
-    p_mctpusb = hal_alloc(sizeof(mctp_usb_session));
-    assert(p_mctpusb != NULL);
+void mctp_usb_init(void);
 
-    /* Create message queue pool to be used with libmctp. Later, we can use 
-     * msgq_request() and msgq_release() to manage buffers in the free-busy list 
-     * managed by the 'msgq' module.
-     */
-    p_mctpusb->msgq_handle = msgq_create(MCTP_USB_MSGQ_MAX_FRAME_SIZE, MCTP_USB_MSGQ_ALLOCATED_FRAMES);
-    assert(p_mctpusb->msgq_handle != 0);
 
-    /* Initialize libmctp, assert on error. */
-    p_mctpusb->p_mctp = mctp_init();
-    assert(p_mctpusb->p_mctp != NULL);
-}
+/**
+ * @brief Retrieves the handle to the message queue initialized by this module.
+ *
+ * @return The message queue handle, or 0 if the module or message queue is not 
+ *         initialized.
+ */
+
+uintptr_t mctp_usb_get_msgq_handle(void);
+
+/**
+  * @}
+  */
+
+
+#endif /* _MCTP_USB_H */
+
