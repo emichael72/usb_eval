@@ -42,7 +42,7 @@ static void eval_msgq_cycles(uintptr_t msgq_handle)
 
     const int frmaes_count = 1;
 
-    msgq_buf *p_buf[HAL_MCTP_POOL_ALLOCATED_FRAMES];
+    msgq_buf *p_buf[MCTP_USB_MSGQ_ALLOCATED_FRAMES];
     int       ret_val;
 
     /* Request n frames */
