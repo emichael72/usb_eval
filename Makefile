@@ -59,6 +59,7 @@ SRCS =	src/main.c \
 		src/hal/hal.c \
 		src/hal/hal_alloc.c \
 		src/hal/hal_msgq.c \
+		src/test/cargs.c \
 		src/test/cycles_eval.c \
 		libmctp/core.c \
 		libmctp/alloc.c \
@@ -113,7 +114,7 @@ release:
 .PHONY: run
 run: release
 	@echo -e "$(COLOR_YELLOW)Running Xtensa emulator for: $(COLOR_CYAN)$(BUILD_TYPE) $@$(COLOR_RESET)"
-	@xt-run --summary $(BUILD_DIR)/$(TARGET)
+	@xt-run $(BUILD_DIR)/$(TARGET) $(ARGS)
 
 # Clean up
 .PHONY: clean

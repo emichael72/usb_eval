@@ -21,46 +21,94 @@
 #include <stdio.h>
 #include <hal.h>
 #include <mctp_usb.h>
+#include <cargs.h>
 #include <cycles_eval.h>
 
+/* Known console input arguments table */
+/* clang-format off */
+
+static struct cag_option options[] =
+{
+    {.identifier = 'u', .access_letters = "u", .access_name = "useless",    .value_name = NULL, .description = "Execute usless cycles test and exit."},
+    {.identifier = 'v', .access_letters = "v", .access_name = "version",    .value_name = NULL, .description = "Show version and exit."},
+    {.identifier = 'h', .access_letters = "h", .access_name = "help",       .value_name = NULL, .description = "Show usage."},
+};
+/* clang-format on */
+
 /**
- * @brief Initial startup thread, calls various 'init' functions and sets
- *        the application in motion.
- * This function serves as the initial startup thread, where it calls
- * various initialization functions to set up the application and
- * begin its execution.
+ * @brief Initial startup thread that initializes the system and processes 
+ *        command-line arguments.
  *
- * @param arg    Pointer to the XOS thread arguments.
+ * This function serves as the initial startup thread for the application. It 
+ * initializes the necessary components, such as the transport layer, and then 
+ * processes command-line arguments passed to the application using the libcargs 
+ * library. Based on the provided arguments, it can execute specific tests, 
+ * display version information, or print usage help. If specific arguments are 
+ * provided, the function may terminate the simulation immediately after 
+ * processing them.
+ *
+ * @param arg    Pointer to the XOS thread arguments (unused).
  * @param unused Unused parameter.
  * 
  * @return Always returns 0.
  */
-
 static int init_thread(void *arg, int32_t unused)
 {
-
-    uint64_t measured_cycles = 0;
-    int argc = 0;
-    char **argv = NULL;
+    uint64_t           measured_cycles = 0;
+    cag_option_context context         = {0};   /* libcargs context */
+    int                argc            = 0;     /* Arguments count passed to main() */
+    char **            argv            = NULL;  /* Arguments array passed to main() */
+    char               identifier      = 0;     /* libcargs identifier */
+    bool               run_and_exit    = false; /* Specify to terminate immediately */
 
     HAL_UNUSED(arg);
     HAL_UNUSED(unused);
 
+    /* Initializes the transport layer, this call will assert on any error and
+     * consequently cause the emulator to exit back to the shell. */
+    mctp_usb_init();
+
     /* Retrieve argc and argv passed to main */
     hal_get_argcv(&argc, &argv);
+    if ( argc > 0 )
+    {
+        /* Use libcargs to handle arguments.
+         * Here we're making use of the handy feature that the emulator could be invoked
+         * with command-line arguments, allowing us to execute different paths based 
+         * on external arguments.
+         * Example: Retrieve the version using: xt-run build/release/firmware.elf -v
+         */
 
-    /* Initiliozes the transport layrt, this call will asser opn any error*/
-    mctp_usb_init();
-    printf("MCTP library initialized!\n");
+        cag_option_prepare(&context, options, CAG_ARRAY_SIZE(options), argc, argv);
+        while ( cag_option_fetch(&context) )
+        {
+            identifier = cag_option_get(&context);
+            switch ( identifier )
+            {
+                case 'u': /* Execute our basic 'useless cycles' test */
+                    measured_cycles = run_cycles_test(CYCLES_EVAL_USELESS, 1);
+                    printf("Useless cycles: %llu\n", measured_cycles);
+                    run_and_exit = true;
+                    break;
+                case 'v': /* Version */
+                    printf("%s version %s\r\n", MCTP_USB_APP_NAME, MCTP_USB_APP_VERSION);
+                    run_and_exit = true;
+                    break;
+                case 'h':
+                    printf("Usage: %s [OPTION]...\r\n", argv[0]);
+                    cag_option_print(options, CAG_ARRAY_SIZE(options), stdout);
+                    run_and_exit = true;
+                    break;
+            }
+        }
+    }
 
-    /* Performs the basic 'usless clock test */
-    measured_cycles = run_cycles_test(CYCLES_EVAL_USELESS, 1);
-    printf("Usless cycles: %llu\n", measured_cycles);
+    if ( run_and_exit == true )
+        hal_terminate_simulation(EXIT_SUCCESS);
 
-    hal_terminate_simulation(10);
-    
+    printf("Starting XOS Kernel..\   n");
     while ( 1 )
-    {   
+    {
         /* Loop indefinitely */
         hal_delay_ms(1000);
     }

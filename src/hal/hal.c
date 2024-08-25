@@ -460,11 +460,7 @@ __attribute__((noreturn)) void hal_sys_init(XosThreadFunc startThread, int _argc
 
     /* Create initial thread */
     ret = xos_thread_create(&p_hal->initial_thread, NULL, startThread, NULL, "initThread", p_hal->initial_thread_stack, HAL_DEFAULT_STACK_SIZE, 1, NULL, 0);
-
-    /* Initial thread creation error */
-    assert(ret == XOS_OK);
-
-    printf("\nXOS Starting kernel..\n");
+    assert(ret == XOS_OK);  /* Initial thread creation error */
 
     /* Start Kernel which will block. */
     xos_start(0);
