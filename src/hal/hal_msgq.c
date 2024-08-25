@@ -43,8 +43,8 @@ static uint32_t msgq_old_int_level;
     } while(0)
 
 #else
-#define HAL_MSGQ_ENTER_CRITICAL()   /* No-op */
-#define HAL_MSGQ_EXIT_CRITICAL()     /* No-op */
+    #define HAL_MSGQ_ENTER_CRITICAL()   /* No-op */
+    #define HAL_MSGQ_EXIT_CRITICAL()    /* No-op */
 #endif
 
 /*! Handle validity protection using a known marker. */
