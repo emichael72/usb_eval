@@ -42,22 +42,6 @@ typedef struct __hal_brk_ctx
 } hal_brk_ctx;
 
 /**
- * @brief Zero out a block of memory.
- *
- * This function sets a block of memory to zero using a simple loop.
- *
- * @param mem_start Pointer to the start of the memory block.
- * @param tot_size  Total size of the memory block in bytes.
- */
-
-static void hal_brk_zero_mem(void *mem_start, size_t tot_size) {
-    char *ptr = (char *)mem_start;
-    for (size_t i = 0; i < tot_size; i++) {
-        ptr[i] = 0;
-    }
-}
-
-/**
  * @brief Align (upwards) a decimal value to the specified alignment.
  *
  * @param size      The size to align.
@@ -115,8 +99,10 @@ uintptr_t hal_brk_alloc_init(void) {
         return 0;
     }
 
-    hal_brk_zero_mem((char *)mem_start, tot_size);
-
+    #if(HAL_BRK_ALLOC_ZERO_MEM == 1)
+        hal_zero_buf((char *)mem_start, tot_size);
+    #endif
+    
     pCtx->p_mem_start = (uint8_t *)mem_start;
     pCtx->p_mem_end   = (uint8_t *)mem_end;
 
@@ -171,8 +157,10 @@ void *hal_brk_alloc(__IO uintptr_t ctx, size_t size) {
     pCtx->brk += size_aligned;      /* Advance the next allocation pointer */
     pCtx->cur_size -= size_aligned; /* Decrease the total pool bytes */
 
-    /* Simple memory reset. */
-    hal_brk_zero_mem(pCtx->ptr,size_aligned);
+    #if(HAL_BRK_ALLOC_ZERO_MEM == 1)
+        /* Memory reset. */
+        hal_zero_buf(pCtx->ptr,size_aligned);
+    #endif
 
     return (void *)pCtx->ptr;
 #else

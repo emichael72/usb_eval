@@ -58,6 +58,7 @@ SRCS =	src/main.c \
 		src/mctp_usb.c \
 		src/hal/hal.c \
 		src/hal/hal_alloc.c \
+		src/hal/hal_msgq.c \
 		libmctp/core.c \
 		libmctp/alloc.c \
 		libmctp/log.c \

@@ -169,6 +169,122 @@ uint64_t inline hal_get_ticks(void)
 }
 
 /**
+ * @brief Copies a memory region from source to destination using the machine's native word size.
+ *
+ * This function copies a specified number of bytes (`n`) from a source memory region
+ * to a destination memory region. The copying is optimized by using the machine's
+ * native word size (e.g., 4 bytes on a 32-bit system, 8 bytes on a 64-bit system)
+ * for larger chunks, and then copying any remaining bytes one by one.
+ *
+ * If `HAL_MEMCPY_SANITY_CHECKS` is enabled, the function checks for `NULL` pointers
+ * and ensures that `n` is not zero. If any of these conditions are met, the function
+ * returns `NULL` without performing the copy.
+ *
+ * This function is particularly efficient for large memory regions, as it minimizes
+ * the number of operations by copying in larger chunks where possible.
+ *
+ * @param dest Pointer to the destination memory region where data will be copied.
+ * @param src  Pointer to the source memory region from where data will be copied.
+ * @param n    Number of bytes to copy from the source to the destination.
+ *
+ * @return Pointer to the destination memory region (same as `dest`), or `NULL` if
+ *         sanity checks are enabled and an invalid parameter is detected.
+ *
+ * @note This function assumes that the `dest` and `src` pointers are properly aligned
+ *       according to the machine's word size. Misaligned pointers may result in
+ *       undefined behavior or reduced performance.
+ */
+
+void *hal_memcpy(void *dest, const void *src, size_t n)
+{
+#if HAL_MEMCPY_SANITY_CHECKS
+    if (dest == NULL || src == NULL || n == 0)
+        return NULL;
+#endif
+
+    /* Pointer to track destination and source */
+    uint8_t *d = (uint8_t *)dest;
+    const uint8_t *s = (const uint8_t *)src;
+
+    /* Calculate how many bytes can be copied in word-size chunks */
+    size_t word_size = sizeof(uintptr_t);
+    size_t num_words = n / word_size;
+    size_t remaining_bytes = n % word_size;
+
+    /* Copy in word-size chunks */
+    uintptr_t *dw = (uintptr_t *)d;
+    const uintptr_t *sw = (const uintptr_t *)s;
+
+    while (num_words--)
+    {
+        *dw++ = *sw++;
+    }
+
+    /* Copy any remaining bytes one by one */
+    d = (uint8_t *)dw;
+    s = (const uint8_t *)sw;
+
+    while (remaining_bytes--)
+    {
+        *d++ = *s++;
+    }
+
+    return dest;
+}
+
+/**
+ * @brief Efficiently zeroes out a memory region using the machine's native word size.
+ *
+ * This function zeroes out a memory region by first setting memory in chunks
+ * corresponding to the machine's native word size (e.g., 4 bytes on a 32-bit
+ * system, 8 bytes on a 64-bit system). It then handles any remaining bytes
+ * that do not fit into a full word, ensuring that all `n` bytes are zeroed.
+ *
+ * This approach improves performance by reducing the number of write operations
+ * compared to a byte-by-byte zeroing method, making it particularly effective
+ * for larger memory regions.
+ *
+ * @param dest Pointer to the start of the memory region to be zeroed.
+ * @param n    Number of bytes to zero out in the memory region.
+ *
+ * @return Pointer to the start of the memory region (same as `dest`).
+ *
+ * @note This function assumes that the `dest` pointer is properly aligned
+ *       according to the machine's word size. Misaligned pointers may
+ *       result in undefined behavior.
+ */
+
+void *hal_zero_buf(void *dest, size_t n)
+{
+    uintptr_t *word_ptr;
+    uint8_t *byte_ptr;
+    size_t word_size = sizeof(uintptr_t);
+    size_t num_words;
+    size_t remaining_bytes;
+
+    // Cast the destination pointer to uintptr_t for word-sized operations
+    word_ptr = (uintptr_t *)dest;
+
+    // Calculate the number of whole words to zero out
+    num_words = n / word_size;
+
+    // Zero out the memory in word-sized chunks
+    for (size_t i = 0; i < num_words; i++) {
+        *word_ptr++ = 0;
+    }
+
+    // Handle any remaining bytes after the word-sized operations
+    remaining_bytes = n % word_size;
+    byte_ptr = (uint8_t *)word_ptr;
+
+    for (size_t i = 0; i < remaining_bytes; i++) {
+        *byte_ptr++ = 0;
+    }
+
+    return dest;
+}
+
+/**
  * @brief HAL wrapper around the underlying 'brk' style allocator to
  *        provide a malloc() style API. Note that memory cannot be
  *        freed in this platform.

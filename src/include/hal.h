@@ -39,26 +39,44 @@
   */
 
 /**
- * @brief  HAL definitions misfits junk yard.
+ * @brief  HAL generic definitions and macros.
  */
 
-#define HAL_BIT(x)                          (1 << (x))                      /**!< Bit value */
-#define HAL_IS_BIT_SET(REG, BIT)            (((REG) & (BIT)) == (BIT))      /**!< Bits manipulations */
-#define HAL_IS_BIT_CLR(REG, BIT)            (((REG) & (BIT)) == 0U)         /**!< Bits manipulations */
-#define HAL_SET_BIT(REG, BIT)               ((REG |= BIT))                  /**!< Bits manipulations */
-#define HAL_CLEAR_BIT(REG, BIT)             ((REG &= ~BIT))                 /**!< Bits manipulations */
-#define HAL_READ_BIT(REG, BIT)              ((REG) & (BIT))                 /**!< Bits manipulations */
-#define HAL_UNUSED(x)                       (void)(x)                       /**!< Used to suppress warnings about unused parameters  */
-#define __IO    volatile
+#define HAL_BIT(x)                          (1 << (x))        /**< Bit value */
+#define HAL_IS_BIT_SET(REG, BIT)            (((REG) & (BIT)) == (BIT)) \
+                                                              /**< Bit manipulation */
+#define HAL_IS_BIT_CLR(REG, BIT)            (((REG) & (BIT)) == 0U) \
+                                                              /**< Bit manipulation */
+#define HAL_SET_BIT(REG, BIT)               ((REG |= BIT))    /**< Bit manipulation */
+#define HAL_CLEAR_BIT(REG, BIT)             ((REG &= ~BIT))   /**< Bit manipulation */
+#define HAL_READ_BIT(REG, BIT)              ((REG) & (BIT))   /**< Bit manipulation */
+#define HAL_UNUSED(x)                       (void)(x)         /**< Suppress unused \
+                                                                   parameter warnings */
+#define __IO                                volatile          /**< IO operation */
+
 
 /**
   * @}
   */
 
-#define HAL_CCOUNT_HACKVAL       0xFC000000  /**< CCOUNT forward hack value */
-#define HAL_DEFAULT_STACK_SIZE   (1 * 1024)  /**< Default stack size in bytes for threads */
-#define HAL_POOL_SIZE            (8 * 1024)  /**< Bytes avilable for the inner pool */
-#define HAL_AUTO_TERMINATE       (60000)     /**< Auto exit emulator after n milliseonds */
+ /**
+ * @brief  HAL run-time definitions.
+ */
+
+#define HAL_CCOUNT_HACKVAL        (0xFC000000)  /**< CCOUNT forward hack value */
+#define HAL_DEFAULT_STACK_SIZE    (1 * 1024)    /**< Default stack size in bytes for threads */
+#define HAL_POOL_SIZE             (8 * 1024)    /**< Bytes available for the inner pool */
+#define HAL_AUTO_TERMINATE        (60000)       /**< Auto exit emulator after n 
+                                                     milliseconds */
+#define HAL_MEMCPY_SANITY_CHECKS  1             /**< Enable sanity checks in 
+                                                     hal_memcpy() */
+#define HAL_BRK_ALLOC_ZERO_MEM    1             /**< Initialize allocated memory 
+                                                     to zero */
+#define HAL_MSGQ_USE_CRITICAL     1             /**< Enables critical sections 
+                                                     in the message queue to 
+                                                     ensure thread-safe operation 
+                                                     across multiple contexts */
+
 
 /******************************************************************************
   * 
@@ -91,6 +109,12 @@
 #define HAL_OVERHEAD_CYCLES  (10)
 #endif
 
+
+/**
+  * @}
+  */
+
+
 /** @addtogroup Exported_HAL_Functions HAL Exported Functions
  * @{
  */
@@ -113,6 +137,49 @@ typedef void (*hal_sim_func)(void);
  */
 
 uintptr_t hal_brk_alloc_init(void);
+
+/**
+ * @brief Copies a memory region from source to destination using the machine's native word size.
+ *
+ * This function copies a specified number of bytes (`n`) from a source memory region
+ * to a destination memory region. The copying is optimized by using the machine's
+ * native word size (e.g., 4 bytes on a 32-bit system, 8 bytes on a 64-bit system)
+ * for larger chunks, and then copying any remaining bytes one by one.
+ *
+ * @param dest Pointer to the destination memory region where data will be copied.
+ * @param src  Pointer to the source memory region from where data will be copied.
+ * @param n    Number of bytes to copy from the source to the destination.
+ *
+ * @return Pointer to the destination memory region (same as `dest`), or `NULL` if
+ *         sanity checks are enabled and an invalid parameter is detected.
+ *
+ * @note This function assumes that the `dest` and `src` pointers are properly aligned
+ *       according to the machine's word size. Misaligned pointers may result in
+ *       undefined behavior or reduced performance.
+ */
+
+void *hal_memcpy(void *dest, const void *src, size_t n);
+
+
+/**
+ * @brief Efficiently zeroes out a memory region using the machine's native word size.
+ *
+ * This function zeroes out a memory region by first setting memory in chunks
+ * corresponding to the machine's native word size (e.g., 4 bytes on a 32-bit
+ * system, 8 bytes on a 64-bit system). It then handles any remaining bytes
+ * that do not fit into a full word, ensuring that all `n` bytes are zeroed.
+ *
+ * @param dest Pointer to the start of the memory region to be zeroed.
+ * @param n    Number of bytes to zero out in the memory region.
+ *
+ * @return Pointer to the start of the memory region (same as `dest`).
+ *
+ * @note This function assumes that the `dest` pointer is properly aligned
+ *       according to the machine's word size. Misaligned pointers may
+ *       result in undefined behavior.
+ */
+
+void *hal_zero_buf(void *dest, size_t n);
 
 /**
  * @brief Allocate a memory chunk from a pre-initialized region.
