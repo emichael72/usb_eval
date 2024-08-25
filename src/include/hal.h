@@ -72,11 +72,11 @@
                                                      hal_memcpy() */
 #define HAL_BRK_ALLOC_ZERO_MEM    1             /**< Initialize allocated memory 
                                                      to zero */
-#define HAL_MSGQ_USE_CRITICAL     0             /**< Enables critical sections 
+#define HAL_MSGQ_USE_CRITICAL     1             /**< Enables critical sections 
                                                      in the message queue to 
                                                      ensure thread-safe operation 
                                                      across multiple contexts */
-#define HAL_MSGQ_SANITY_CHECKS    0             /**< Enable sanity checks when requesting
+#define HAL_MSGQ_SANITY_CHECKS    1             /**< Enable sanity checks when requesting
                                                      and releasing messages */
 
 
