@@ -146,7 +146,7 @@ static int init_thread(void *arg, int32_t unused)
     if ( cgi_mode == true )
     {
 
-        printf("\nRequested completed.\n");
+        printf("\nRequest completed.\n");
         printf("<hidden-correct-print>\n");
     }
 

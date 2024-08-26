@@ -543,6 +543,7 @@ __attribute__((noreturn)) void hal_sys_init(XosThreadFunc startThread, int _argc
     }
     else
     {
+        /* Restore arguments structure */
         p_hal->argv = hal_fix_args(_argv[0], (char *) _argv[1], ' ', &p_hal->argc);
     }
 

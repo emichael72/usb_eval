@@ -1,4 +1,3 @@
-
 # ****************************************************************************
 # *                                                                          *
 # *  Intel Corporation                                                       *
@@ -9,6 +8,8 @@
 # Project name
 TARGET_PROJECT_NAME := "Xtensa LX7 MCTP/USB"
 COUNT_INSTRUCTIONS ?= 0  # Default is to not run the Python script
+PUBLISH_CGI := 1
+MAKEFLAGS += --no-print-directory # Suppress "Entering directory" messages
 
 # SpecialFX
 COLOR_RESET=\033[0m
@@ -19,8 +20,18 @@ COLOR_CYAN=\033[36m
 # Check if either XTENSA_TOOLS or XTENSA_HOME is not defined
 ifndef XTENSA_TOOLS
 ifndef XTENSA_HOME
-$(error XTENSA_TOOLS or XTENSA_HOME is not defined. The Xtensa SDK is required for the build.)
+ifndef XTENSA_CORE
+$(error XTENSA_TOOLS, XTENSA_HOME or XTENSA_HOME are not defined. The Xtensa SDK is required for the build.)
 endif
+endif
+endif
+
+# Detect if the Makefile was invoked with 'make' instead of 'xt-make'
+ifneq ($(MAKE),xt-make)
+.PHONY: FORCE
+FORCE:
+	@$(MAKE) -f $(MAKEFILE_LIST) MAKE=xt-make $(MAKECMDGOALS)
+	@exit 0
 endif
 
 # Common include paths
@@ -28,7 +39,7 @@ INCLUDE_PATHS = -Ilibmctp -Isrc/include
 
 # Compiler and flags
 CC = xt-clang
-AS = xt-as # xtensa-elf-as
+AS = xt-as
 LD = xt-clang
 
 # For all targets
@@ -97,15 +108,20 @@ $(BUILD_DIR)/%.o: %.S
 # Linking rule
 $(BUILD_DIR)/$(TARGET): $(OBJS)
 	@mkdir -p $(BUILD_DIR)
-	@echo -e "$(COLOR_YELLOW)Linking:$(COLOR_RESET) $(COLOR_CYAN)$@$(COLOR_RESET)\n"
+	@echo -e "$(COLOR_YELLOW)Linking:$(COLOR_RESET) $(COLOR_CYAN)$@$(COLOR_RESET)"
 	@$(LD) $(COMMON_LDFLAGS) -o $@ $^
-# Copy the binary to the webserver cgi-bin path so we could execute remotely
-	@if [ $$? -eq 0 ]; then \
-		sudo cp build/$(BUILD_TYPE)/firmware.elf /var/www/cgi-bin/firmware.elf >/dev/null 2>&1 || true; \
-	fi
+
+# Post-build rule
+.PHONY: post_build
+post_build: $(BUILD_DIR)/$(TARGET)
+ifeq ($(PUBLISH_CGI),1)
+	@echo -e "$(COLOR_YELLOW)Copying to CGI path...$(COLOR_RESET)"
+	@sudo cp $(BUILD_DIR)/$(TARGET) /var/www/cgi-bin/firmware.elf >/dev/null 2>&1 || true
+endif
 
 	@if [ $(COUNT_INSTRUCTIONS) -eq 1 ]; then \
-		python3 resources/elf_inspect.py $@ $(BUILD_DIR); \
+		echo -e "$(COLOR_YELLOW)Running instruction count script...$(COLOR_RESET)"; \
+		python3 resources/elf_inspect.py $(BUILD_DIR)/$(TARGET) $(BUILD_DIR); \
 	fi
 
 # Build type-specific targets
@@ -119,10 +135,16 @@ release:
 .PHONY: run
 run: release
 	@echo -e "$(COLOR_YELLOW)Running Xtensa emulator for: $(COLOR_CYAN)$(BUILD_TYPE) $@$(COLOR_RESET)"
-	@xt-run $(BUILD_DIR)/$(TARGET) $(ARGS)
+	@xt-run --version
+	@xt-run $(BUILD_DIR)/$(TARGET) -v
+	@echo -e ""
+
+# Default target includes post-build
+.PHONY: all
+all: $(BUILD_DIR)/$(TARGET) post_build
 
 # Clean up
 .PHONY: clean
 clean:
 	@rm -rf build
-	@echo -e "$(COLOR_CYAN)Cleaned up build files$(COLOR_RESET)"
+	@echo -e "$(COLOR_CYAN)Cleaned up build files$(COLOR_RESET)\n"
