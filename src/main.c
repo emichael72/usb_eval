@@ -29,8 +29,10 @@
 
 static struct cag_option options[] =
 {
-    {.identifier = 'u', .access_letters = "u", .access_name = "useless",    .value_name = NULL, .description = "Execute usless cycles test."},
+    {.identifier = 't', .access_letters = "t", .access_name = "test",       .value_name = "VALUE",  .description = "Execute a cycles test."},
+    {.identifier = 'r', .access_letters = "r", .access_name = "rept",       .value_name = "VALUE",  .description = "Set test repetitions."},
     {.identifier = 'v', .access_letters = "v", .access_name = "version",    .value_name = NULL, .description = "Print version and exit."},
+    {.identifier = 'c', .access_letters = "c", .access_name = "cgi",        .value_name = NULL, .description = "Web CGI mode."},
     {.identifier = 'h', .access_letters = "h", .access_name = "help",       .value_name = NULL, .description = "Print usage."},
 };
 
@@ -55,13 +57,16 @@ static struct cag_option options[] =
  */
 static int init_thread(void *arg, int32_t unused)
 {
-    uint64_t           measured_cycles = 0;    /* Cycles related to any of our tests */
-    cag_option_context context         = {0};  /* libcargs context */
-    int                argc            = 0;    /* Arguments count passed to main() */
-    char **            argv            = NULL; /* Arguments array passed to main() */
-    char               identifier      = 0;    /* libcargs identifier */
-    bool               run_and_exit    = true; /* Specify to terminate immediately */
-    bool               break_cag_fetch = false;
+    uint64_t           measured_cycles  = 0;     /* Cycles related to any of our tests */
+    cag_option_context context          = {0};   /* libcargs context */
+    int                argc             = 0;     /* Arguments count passed to main() */
+    char **            argv             = NULL;  /* Arguments array passed to main() */
+    char               identifier       = 0;     /* libcargs identifier */
+    bool               run_and_exit     = true;  /* Specify to terminate immediately */
+    const char *       value            = NULL;  /* Points to an extrcated argumnet */
+    int                test_repetitions = 1;     /* Local argumnet */
+    int                test_type        = -1;    /* Local argumnet */
+    bool               cgi_mode         = false; /* Local argumnet */
 
     HAL_UNUSED(arg);
     HAL_UNUSED(unused);
@@ -72,7 +77,8 @@ static int init_thread(void *arg, int32_t unused)
 
     /* Retrieve argc and argv passed to main */
     hal_get_argcv(&argc, &argv);
-    if ( argc > 0 )
+
+    if ( argc > 1 )
     {
         /* Use libcargs to handle arguments.
          * Here we're making use of the handy feature that the emulator could be invoked
@@ -87,9 +93,21 @@ static int init_thread(void *arg, int32_t unused)
             identifier = cag_option_get(&context);
             switch ( identifier )
             {
-                case 'u': /* Execute our basic 'useless cycles' test */
-                    measured_cycles = run_cycles_test(CYCLES_EVAL_USELESS, 1);
-                    printf("Useless cycles: %llu\n", measured_cycles);
+
+                case 'r': /* Sets test repetiotions */
+                    value = cag_option_get_value(&context);
+                    if ( value != NULL )
+                        test_repetitions = atol(value);
+                    break;
+
+                case 't': /* Execute our basic 'useless cycles' test */
+                    value = cag_option_get_value(&context);
+                    if ( value != NULL )
+                        test_type = atol(value);
+                    break;
+
+                case 'c': /* Assume running as CGI - allow for some additional html related prinouts. */
+                    cgi_mode = true;
                     break;
 
                 case 'v': /* Version */
@@ -100,16 +118,22 @@ static int init_thread(void *arg, int32_t unused)
                     printf("Usage: %s [OPTION]...\r\n", argv[0]);
                     cag_option_print(options, CAG_ARRAY_SIZE(options), stdout);
                     break;
-
-                default: /* Unrecognized token */
-                    printf("Error: '%c' is not a recognized argument.\n", identifier);
-                    break_cag_fetch = true;
-                    break;
             }
-
-            if ( break_cag_fetch == true )
-                break;
         }
+
+        /* Execute the action specified by the input flgas */
+        if ( test_type > 0 )
+            measured_cycles = run_cycles_test(test_type, test_repetitions);
+    }
+
+    /*  Running as a CGI: this will turn the text color to white to better differentiate 
+    * our printouts from the xt-run summary. 
+    */
+    if ( cgi_mode == true )
+    {
+
+        printf("\nRequested completed.\n");
+        printf("<hidden-correct-print>\n");
     }
 
     if ( run_and_exit == true )
@@ -145,7 +169,6 @@ static int init_thread(void *arg, int32_t unused)
 
 int main(int argc, char **argv)
 {
-
     /* Initialize the system and start the XOS kernel. 
      * This function will block. */
 

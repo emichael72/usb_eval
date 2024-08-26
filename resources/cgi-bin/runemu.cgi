@@ -19,16 +19,25 @@ echo ""
 #    environment variable to point to your Xtensa installation:
 #    sudo -u lighttpd bash -c 'echo "export XTENSA_SYSTEM=/path/to/xtensa" > /home/lighttpd/.bashrc'
 
+# Set HOME environment variable
 export HOME="/home/lighttpd"
 
 # Source .bashrc to load environment variables
 source /home/lighttpd/.bashrc
 
-# Extract the argument from the query string
-ARG=$(echo "$QUERY_STRING" | sed -n 's/^.*arg=\([^&]*\).*$/\1/p')
+# Function to decode URL-encoded strings
+url_decode() {
+    local encoded="$1"
+    printf '%b' "${encoded//%/\\x}"
+}
 
-# Extract the summary parameter from the query string
-SUMMARY=$(echo "$QUERY_STRING" | sed -n 's/^.*summary=\([^&]*\).*$/\1/p')
+# Extract and decode the argument from the query string
+RAW_ARG=$(echo "$QUERY_STRING" | sed -n 's/^.*arg=\([^&]*\).*$/\1/p')
+ARG=$(url_decode "$RAW_ARG")
+
+# Extract and decode the summary parameter from the query string
+RAW_SUMMARY=$(echo "$QUERY_STRING" | sed -n 's/^.*summary=\([^&]*\).*$/\1/p')
+SUMMARY=$(url_decode "$RAW_SUMMARY")
 
 # Build the command with or without the --summary option
 if [ "$SUMMARY" == "yes" ]; then

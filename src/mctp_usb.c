@@ -46,7 +46,6 @@ mctp_usb_session *p_mctpusb = NULL;
 
 uintptr_t mctp_usb_get_msgq_handle(void)
 {
-
     if ( p_mctpusb != NULL )
         return p_mctpusb->msgq_handle;
 

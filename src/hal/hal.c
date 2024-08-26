@@ -33,6 +33,7 @@
  */
 
 #include <hal.h>
+#include <string.h>
 
 /**
  * @brief HAL session structure for managing emulator and system context.
@@ -83,6 +84,76 @@ static void hal_systick_timer(void *arg)
     }
 
 #endif
+}
+
+/**
+ * @brief Parse a single text line into an array of arguments.
+ *
+ * This function takes a single line of text with arguments separated
+ * by a specified separator character (typically a space) and splits
+ * it into an array of individual arguments. It also inserts the 
+ * program name at index 0 of the argument array and returns the 
+ * number of arguments parsed.
+ *
+ * @param prog_name The program name to be inserted at index 0.
+ * @param argv The input string containing the arguments.
+ * @param sep The separator character used to delimit arguments.
+ * @param argc Pointer to an integer where the argument count will 
+ *             be stored.
+ * @return A dynamically allocated array of strings representing the 
+ *         arguments, or NULL if an error occurs.
+ */
+
+char **hal_fix_args(const char *prog_name, const char *argv, char sep, 
+                    int *argc) {
+    if (argv == NULL || prog_name == NULL || argc == NULL) return NULL;
+
+    /* Initialize argc */
+    *argc = 1;
+
+    /* Count the number of arguments */
+    const char *ptr = argv;
+    while (*ptr) {
+        while (*ptr && *ptr == sep) ptr++;  /* Skip separators */
+        if (*ptr && *ptr != sep) {
+            (*argc)++;
+            while (*ptr && *ptr != sep) ptr++;  /* Skip current arg */
+        }
+    }
+
+    /* Allocate memory for the arguments array */
+    char **args = (char **)hal_alloc((*argc + 1) * sizeof(char *));
+    if (args == NULL) return NULL;
+
+    /* Insert program name at index 0 */
+    args[0] = strdup(prog_name);
+    if (args[0] == NULL) {
+        return NULL;
+    }
+
+    /* Extract arguments */
+    int i = 1;
+    ptr = argv;
+    while (*ptr) {
+        while (*ptr && *ptr == sep) ptr++;  /* Skip separators */
+        if (*ptr && *ptr != sep) {
+            const char *start = ptr;
+            while (*ptr && *ptr != sep) ptr++;  /* Find end of arg */
+
+            int len = ptr - start;
+            args[i] = (char *)hal_alloc((len + 1) * sizeof(char));
+            if (args[i] == NULL) {
+                return NULL;
+            }
+
+            strncpy(args[i], start, len);
+            args[i][len] = '\0';  /* Null-terminate the string */
+            i++;
+        }
+    }
+    args[*argc] = NULL;  /* Null-terminate the array */
+
+    return args;
 }
 
 /**
@@ -194,45 +265,53 @@ uint64_t inline hal_get_ticks(void)
  *       undefined behavior or reduced performance.
  */
 
-void *hal_memcpy(void *dest, const void *src, size_t n)
-{
-    size_t word_size = sizeof(uintptr_t);
+void inline __attribute__((always_inline)) __attribute__((optimize("-Os"))) 
+*hal_memcpy(void *dest, const void *src, size_t n) {
 
-#if ( HAL_MEM_SANITY_CHECKS == 1 )
-    if ( dest == NULL || src == NULL || n == 0 )
+#if (HAL_MEMCPY_SANITY_CHECKS == 1)
+    if (dest == NULL || src == NULL || n == 0)
         return NULL;
 
-    /* Check if dest and src are aligned to the machine's word size */
-    if ( ((uintptr_t) dest % word_size != 0) || ((uintptr_t) src % word_size != 0) )
-    {
-        return NULL; /**< Return NULL if pointers are not properly aligned */
+    size_t word_size = sizeof(uintptr_t);
+
+    /* Check if dest and src 
+     * are aligned to the machine's word size */
+    if (((uintptr_t)dest % word_size != 0) || ((uintptr_t)src % word_size != 0)) {
+        return NULL; /* Return NULL if pointers are not properly aligned */
     }
 #endif
 
-    /* Pointer to track destination and source */
-    uint8_t *      d = (uint8_t *) dest;
-    const uint8_t *s = (const uint8_t *) src;
-
-    /* Calculate how many bytes can be copied in word-size chunks */
-    size_t num_words       = n / word_size;
-    size_t remaining_bytes = n % word_size;
-
-    /* Copy in word-size chunks */
-    uintptr_t *      dw = (uintptr_t *) d;
-    const uintptr_t *sw = (const uintptr_t *) s;
-
-    while ( num_words-- )
-    {
-        *dw++ = *sw++;
+    /* Copy 16-byte chunks */
+    while (n >= 16) {
+        *(uint64_t *)dest = *(const uint64_t *)src;
+        *(uint64_t *)((uint8_t *)dest + 8) = *(const uint64_t *)((const uint8_t *)src + 8);
+        dest = (uint8_t *)dest + 16;
+        src = (const uint8_t *)src + 16;
+        n -= 16;
     }
 
-    /* Copy any remaining bytes one by one */
-    d = (uint8_t *) dw;
-    s = (const uint8_t *) sw;
+    /* Copy 8-byte chunks */
+    while (n >= 8) {
+        *(uint64_t *)dest = *(const uint64_t *)src;
+        dest = (uint8_t *)dest + 8;
+        src = (const uint8_t *)src + 8;
+        n -= 8;
+    }
 
-    while ( remaining_bytes-- )
-    {
-        *d++ = *s++;
+    /* Copy 4-byte chunks */
+    while (n >= 4) {
+        *(uint32_t *)dest = *(const uint32_t *)src;
+        dest = (uint8_t *)dest + 4;
+        src = (const uint8_t *)src + 4;
+        n -= 4;
+    }
+
+    /* Copy remaining bytes one by one */
+    while (n > 0) {
+        *(uint8_t *)dest = *(const uint8_t *)src;
+        dest = (uint8_t *)dest + 1;
+        src = (const uint8_t *)src + 1;
+        n--;
     }
 
     return dest;
@@ -438,11 +517,11 @@ __attribute__((noreturn)) void hal_sys_init(XosThreadFunc startThread, int _argc
     p_hal = (hal_session *) hal_brk_alloc(pool_ctx, sizeof(hal_session));
     assert(p_hal != NULL); /* Memory allocation error */
 
-    /* Populate our fresh session */
-    p_hal->argc     = _argc;
-    p_hal->argv     = _argv;
     p_hal->pool_ctx = pool_ctx;
 
+    /* ToDo: figure why argumnets arrives as string rather than array */
+    p_hal->argv     = hal_fix_args(_argv[0],(char*)_argv[1], ' ', &p_hal->argc);
+    
     /* Get the simulator overhead cycles for precise measurements. */
     p_hal->overhead_cycles = hal_get_sim_overhead_cycles();
 

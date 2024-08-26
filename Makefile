@@ -28,7 +28,7 @@ INCLUDE_PATHS = -Ilibmctp -Isrc/include
 
 # Compiler and flags
 CC = xt-clang
-AS = xtensa-elf-as
+AS = xt-as # xtensa-elf-as
 LD = xt-clang
 
 # For all targets
@@ -99,6 +99,11 @@ $(BUILD_DIR)/$(TARGET): $(OBJS)
 	@mkdir -p $(BUILD_DIR)
 	@echo -e "$(COLOR_YELLOW)Linking:$(COLOR_RESET) $(COLOR_CYAN)$@$(COLOR_RESET)\n"
 	@$(LD) $(COMMON_LDFLAGS) -o $@ $^
+# Copy the binary to the webserver cgi-bin path so we could execute remotely
+	@if [ $$? -eq 0 ]; then \
+		sudo cp build/$(BUILD_TYPE)/firmware.elf /var/www/cgi-bin/firmware.elf >/dev/null 2>&1 || true; \
+	fi
+
 	@if [ $(COUNT_INSTRUCTIONS) -eq 1 ]; then \
 		python3 resources/elf_inspect.py $@ $(BUILD_DIR); \
 	fi

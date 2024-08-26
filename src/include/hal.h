@@ -67,7 +67,7 @@
 #define HAL_POOL_SIZE             (16 * 1024)   /**< Bytes available for the inner pool */
 #define HAL_AUTO_TERMINATE        (60000)       /**< Auto exit emulator after n 
                                                      milliseconds */
-#define HAL_MEM_SANITY_CHECKS     1             /**< Enable sanity checks in 
+#define HAL_MEM_SANITY_CHECKS     0             /**< Enable sanity checks in 
                                                      hal_memcpy() */
 #define HAL_BRK_ALLOC_ZERO_MEM    1             /**< Initialize allocated memory 
                                                      to zero */
@@ -158,7 +158,7 @@ uintptr_t hal_brk_alloc_init(void);
  *       undefined behavior or reduced performance.
  */
 
-void *hal_memcpy(void *dest, const void *src, size_t n);
+void *hal_memcpy(void * __restrict dest, const void * __restrict src, size_t n);
 
 
 /**

@@ -3,10 +3,13 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-store" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>Run Emulator</title>
     <style>
       body {
-        font-family: Arial, sans-serif;
+	font-family: Arial, sans-serif;
         background-color: #f4f4f4;
         color: #333;
         padding: 20px;
@@ -14,12 +17,15 @@
 
       .terminal {
         background-color: black;
-        color: #00FF00; /* Brighter green */
+        color: #00FF00;
+        /* Default green text */
         padding: 10px;
         border-radius: 5px;
         font-family: 'Courier New', Courier, monospace;
-        font-size: 14px; /* Increase font size if needed */
-        font-weight: bold; /* Make the text bolder */
+        font-size: 14px;
+        /* Increase font size if needed */
+        font-weight: normal;
+        /* Make the text bolder */
         height: 300px;
         overflow-y: scroll;
         white-space: pre-wrap;
@@ -32,6 +38,11 @@
       .form-group {
         margin-bottom: 10px;
       }
+
+      .terminal.white-text {
+        color: white !important;
+        /* Change terminal text to white */
+      }
     </style>
   </head>
   <body>
@@ -40,34 +51,41 @@
         <label for="argument">Enter Argument:</label>
         <input type="text" id="argument" name="argument">
       </div>
-      
       <div class="form-group">
         <label>
-          <input type="checkbox" id="include-summary" name="include-summary" checked>
-          Include summary
-        </label>
+          <input type="checkbox" id="include-summary" name="include-summary" checked> Include summary </label>
       </div>
-      
       <button type="submit" id="execute-button">Execute</button>
     </form>
     <h3>Output:</h3>
     <div class="terminal" id="output"></div>
-    
     <script>
-      document.getElementById('run-form').addEventListener('submit', function(event) {
+	     window.onload = function() {
+        document.getElementById('run-form').addEventListener('submit', function(event) {
         event.preventDefault();
         const argument = document.getElementById('argument').value;
         const includeSummary = document.getElementById('include-summary').checked ? 'yes' : 'no';
-        
-        fetch(`/cgi-bin/runemu.cgi?arg=${encodeURIComponent(argument)}&summary=${includeSummary}`)
+
+        fetch(`/cgi-bin/runemu.cgi?arg=-c ${encodeURIComponent(argument)}&summary=${includeSummary}`)
           .then(response => response.text())
           .then(data => {
-            document.getElementById('output').textContent = data;
+            if (data.includes("<hidden-correct-print>")) {
+              const parts = data.split("<hidden-correct-print>");
+              const beforeMarker = parts[0];
+              const afterMarker = parts[1];
+
+              document.getElementById('output').innerHTML = `<span style="color: #00FF00;">${beforeMarker}</span>`;
+              document.getElementById('output').innerHTML += `<span style="color: white;">${afterMarker}</span>`;
+            } else {
+              document.getElementById('output').innerHTML = `<span style="color: #00FF00;">${data}</span>`;
+            }
           })
           .catch(error => {
             document.getElementById('output').textContent = 'Error: ' + error;
           });
       });
+    };
     </script>
   </body>
 </html>
+
