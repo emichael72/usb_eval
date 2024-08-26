@@ -46,7 +46,6 @@
 #include <stddef.h>
 #include <stdio.h>
 
-
 /**
  * The following defines CAG_EXPORT and CAG_IMPORT which are required to export
  * shared library functions.
@@ -80,7 +79,7 @@
  * This block defines CAG_DEPRECATED which can be used to deprecate library
  * functions including a comment on the deprecation.
  */
-#if (!__cplusplus && __STDC_VERSION__ >= 202311L) || (__cplusplus >= 201402L)
+#if ( ! __cplusplus && __STDC_VERSION__ >= 202311L ) || (__cplusplus >= 201402L)
 #define CAG_DEPRECATED(comment) [[deprecated(comment)]]
 #else
 #define CAG_DEPRECATED(comment)
@@ -96,11 +95,11 @@ extern "C" {
  */
 typedef struct cag_option
 {
-  const char identifier;
-  const char *access_letters;
-  const char *access_name;
-  const char *value_name;
-  const char *description;
+    const char  identifier;
+    const char *access_letters;
+    const char *access_name;
+    const char *value_name;
+    const char *description;
 } cag_option;
 
 /**
@@ -109,17 +108,17 @@ typedef struct cag_option
  */
 typedef struct cag_option_context
 {
-  const struct cag_option *options;
-  size_t option_count;
-  int argc;
-  char **argv;
-  int index;
-  int inner_index;
-  int error_index;
-  char error_letter;
-  bool forced_end;
-  char identifier;
-  char *value;
+    const struct cag_option *options;
+    size_t                   option_count;
+    int                      argc;
+    char **                  argv;
+    int                      index;
+    int                      inner_index;
+    int                      error_index;
+    char                     error_letter;
+    bool                     forced_end;
+    char                     identifier;
+    char *                   value;
 } cag_option_context;
 
 /**
@@ -147,8 +146,7 @@ typedef int (*cag_printer)(void *ctx, const char *fmt, ...);
  * @param argc The amount of arguments the user supplied in the main function.
  * @param argv A pointer to the arguments of the main function.
  */
-CAG_PUBLIC void cag_option_init(cag_option_context *context,
-  const cag_option *options, size_t option_count, int argc, char **argv);
+CAG_PUBLIC void cag_option_init(cag_option_context *context, const cag_option *options, size_t option_count, int argc, char **argv);
 
 /**
  * @brief Fetches an option from the argument list.
@@ -240,8 +238,7 @@ CAG_PUBLIC char cag_option_get_error_letter(const cag_option_context *context);
  * will be printed.
  */
 #ifndef CAG_NO_FILE
-CAG_PUBLIC void cag_option_print_error(const cag_option_context *context,
-  FILE *destination);
+CAG_PUBLIC void cag_option_print_error(const cag_option_context *context, FILE *destination);
 #endif
 
 /**
@@ -257,8 +254,7 @@ CAG_PUBLIC void cag_option_print_error(const cag_option_context *context,
  * @param printer_ctx The parameter for printer callback. For example fprintf
  * could use parameter stderr.
  */
-CAG_PUBLIC void cag_option_printer_error(const cag_option_context *context,
-  cag_printer printer, void *printer_ctx);
+CAG_PUBLIC void cag_option_printer_error(const cag_option_context *context, cag_printer printer, void *printer_ctx);
 
 /**
  * @brief Prints all options to the terminal.
@@ -271,8 +267,7 @@ CAG_PUBLIC void cag_option_printer_error(const cag_option_context *context,
  * @param destination The destination where the output will be printed.
  */
 #ifndef CAG_NO_FILE
-CAG_PUBLIC void cag_option_print(const cag_option *options, size_t option_count,
-  FILE *destination);
+CAG_PUBLIC void cag_option_print(const cag_option *options, size_t option_count, FILE *destination);
 #endif
 
 /**
@@ -289,16 +284,12 @@ CAG_PUBLIC void cag_option_print(const cag_option *options, size_t option_count,
  * @param printer_ctx The parameter for printer callback. For example fprintf
  * could use parameter stderr.
  */
-CAG_PUBLIC void cag_option_printer(const cag_option *options,
-  size_t option_count, cag_printer printer, void *printer_ctx);
+CAG_PUBLIC void cag_option_printer(const cag_option *options, size_t option_count, cag_printer printer, void *printer_ctx);
 
-CAG_DEPRECATED(
-  "cag_option_prepare has been deprecated. Use cag_option_init instead.")
-CAG_PUBLIC void cag_option_prepare(cag_option_context *context,
-  const cag_option *options, size_t option_count, int argc, char **argv);
+CAG_DEPRECATED("cag_option_prepare has been deprecated. Use cag_option_init instead.")
+CAG_PUBLIC void cag_option_prepare(cag_option_context *context, const cag_option *options, size_t option_count, int argc, char **argv);
 
-CAG_DEPRECATED(
-  "cag_option_get has been deprecated. Use cag_option_get_identifier instead.")
+CAG_DEPRECATED("cag_option_get has been deprecated. Use cag_option_get_identifier instead.")
 CAG_PUBLIC char cag_option_get(const cag_option_context *context);
 
 #ifdef __cplusplus

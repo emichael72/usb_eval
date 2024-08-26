@@ -20,6 +20,7 @@
 
 #include <stdio.h>
 #include <hal.h>
+#include <ctype.h>
 #include <mctp_usb.h>
 #include <cargs.h>
 #include <cycles_eval.h>
@@ -29,11 +30,11 @@
 
 static struct cag_option options[] =
 {
-    {.identifier = 't', .access_letters = "t", .access_name = "test",       .value_name = "VALUE",  .description = "Execute a cycles test."},
-    {.identifier = 'r', .access_letters = "r", .access_name = "rept",       .value_name = "VALUE",  .description = "Set test repetitions."},
-    {.identifier = 'v', .access_letters = "v", .access_name = "version",    .value_name = NULL, .description = "Print version and exit."},
-    {.identifier = 'c', .access_letters = "c", .access_name = "cgi",        .value_name = NULL, .description = "Web CGI mode."},
-    {.identifier = 'h', .access_letters = "h", .access_name = "help",       .value_name = NULL, .description = "Print usage."},
+    {.identifier = 't', .access_letters = "t",  .access_name = "test",  .value_name = "VALUE",  .description = "Execute a cycle test."},
+    {.identifier = 'r', .access_letters = "r",  .access_name = "rept",  .value_name = "VALUE",  .description = "Set the number of test repetitions."},
+    {.identifier = 'v', .access_letters = "v",  .access_name = "ver",   .value_name = NULL,     .description = "Print the version and exit."},
+    {.identifier = 'c', .access_letters = "c",  .access_name = "cgi",   .value_name = NULL,     .description = "Enable web CGI mode."},
+    {.identifier = 'h', .access_letters = "h?", .access_name = "help",  .value_name = NULL,     .description = "Print usage."},
 };
 
 /* clang-format on */
@@ -67,6 +68,7 @@ static int init_thread(void *arg, int32_t unused)
     int                test_repetitions = 1;     /* Local argumnet */
     int                test_type        = -1;    /* Local argumnet */
     bool               cgi_mode         = false; /* Local argumnet */
+    bool               exit_fetch       = false; /* Exit the arguments fearch loop */
 
     HAL_UNUSED(arg);
     HAL_UNUSED(unused);
@@ -80,6 +82,8 @@ static int init_thread(void *arg, int32_t unused)
 
     if ( argc > 1 )
     {
+        printf("\n");
+
         /* Use libcargs to handle arguments.
          * Here we're making use of the handy feature that the emulator could be invoked
          * with command-line arguments, allowing us to execute different paths based 
@@ -101,9 +105,13 @@ static int init_thread(void *arg, int32_t unused)
                     break;
 
                 case 't': /* Execute our basic 'useless cycles' test */
-                    value = cag_option_get_value(&context);
+                    test_type = 0xff;
+                    value     = cag_option_get_value(&context);
                     if ( value != NULL )
-                        test_type = atol(value);
+                    {
+                        if ( isdigit(*value) )
+                            test_type = atol(value);
+                    }
                     break;
 
                 case 'c': /* Assume running as CGI - allow for some additional html related prinouts. */
@@ -112,18 +120,24 @@ static int init_thread(void *arg, int32_t unused)
 
                 case 'v': /* Version */
                     printf("%s version %s\r\n", MCTP_USB_APP_NAME, MCTP_USB_APP_VERSION);
+                    exit_fetch = true;
                     break;
 
                 case 'h': /* Help */
-                    printf("Usage: %s [OPTION]...\r\n", argv[0]);
+                    printf("%s\n", MCTP_USB_APP_NAME);
+                    printf("\nUsage: %s [OPTION]...\r\n", argv[0]);
                     cag_option_print(options, CAG_ARRAY_SIZE(options), stdout);
+                    exit_fetch = true;
                     break;
             }
         }
 
-        /* Execute the action specified by the input flgas */
-        if ( test_type > 0 )
-            measured_cycles = run_cycles_test(test_type, test_repetitions);
+        if ( exit_fetch == false )
+        {
+            /* Execute the action specified by the input flgas */
+            if ( test_type >= 0 )
+                measured_cycles = run_cycles_test(test_type, test_repetitions);
+        }
     }
 
     /*  Running as a CGI: this will turn the text color to white to better differentiate 

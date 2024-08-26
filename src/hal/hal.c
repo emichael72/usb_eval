@@ -104,54 +104,61 @@ static void hal_systick_timer(void *arg)
  *         arguments, or NULL if an error occurs.
  */
 
-char **hal_fix_args(const char *prog_name, const char *argv, char sep, 
-                    int *argc) {
-    if (argv == NULL || prog_name == NULL || argc == NULL) return NULL;
+char **hal_fix_args(const char *prog_name, const char *argv, char sep, int *argc)
+{
+    if ( argv == NULL || prog_name == NULL || argc == NULL )
+        return NULL;
 
-    /* Initialize argc */
     *argc = 1;
 
     /* Count the number of arguments */
     const char *ptr = argv;
-    while (*ptr) {
-        while (*ptr && *ptr == sep) ptr++;  /* Skip separators */
-        if (*ptr && *ptr != sep) {
+    while ( *ptr )
+    {
+        while ( *ptr && *ptr == sep ) ptr++; /* Skip separators */
+        if ( *ptr && *ptr != sep )
+        {
             (*argc)++;
-            while (*ptr && *ptr != sep) ptr++;  /* Skip current arg */
+            while ( *ptr && *ptr != sep ) ptr++; /* Skip current arg */
         }
     }
 
     /* Allocate memory for the arguments array */
-    char **args = (char **)hal_alloc((*argc + 1) * sizeof(char *));
-    if (args == NULL) return NULL;
+    char **args = (char **) hal_alloc((*argc + 1) * sizeof(char *));
+    if ( args == NULL )
+        return NULL;
 
     /* Insert program name at index 0 */
     args[0] = strdup(prog_name);
-    if (args[0] == NULL) {
+    if ( args[0] == NULL )
+    {
         return NULL;
     }
 
     /* Extract arguments */
     int i = 1;
-    ptr = argv;
-    while (*ptr) {
-        while (*ptr && *ptr == sep) ptr++;  /* Skip separators */
-        if (*ptr && *ptr != sep) {
+    ptr   = argv;
+    while ( *ptr )
+    {
+        while ( *ptr && *ptr == sep ) ptr++; /* Skip separators */
+        if ( *ptr && *ptr != sep )
+        {
             const char *start = ptr;
-            while (*ptr && *ptr != sep) ptr++;  /* Find end of arg */
+            while ( *ptr && *ptr != sep ) ptr++; /* Find end of arg */
 
             int len = ptr - start;
-            args[i] = (char *)hal_alloc((len + 1) * sizeof(char));
-            if (args[i] == NULL) {
+            args[i] = (char *) hal_alloc((len + 1) * sizeof(char));
+            if ( args[i] == NULL )
+            {
                 return NULL;
             }
 
             strncpy(args[i], start, len);
-            args[i][len] = '\0';  /* Null-terminate the string */
+            args[i][len] = '\0'; /* Null-terminate the string */
             i++;
         }
     }
-    args[*argc] = NULL;  /* Null-terminate the array */
+    args[*argc] = NULL; /* Null-terminate the array */
 
     return args;
 }
@@ -265,52 +272,57 @@ uint64_t inline hal_get_ticks(void)
  *       undefined behavior or reduced performance.
  */
 
-void inline __attribute__((always_inline)) __attribute__((optimize("-Os"))) 
-*hal_memcpy(void *dest, const void *src, size_t n) {
+void inline __attribute__((always_inline)) __attribute__((optimize("-Os"))) * hal_memcpy(void *dest, const void *src, size_t n)
+{
 
-#if (HAL_MEMCPY_SANITY_CHECKS == 1)
-    if (dest == NULL || src == NULL || n == 0)
+#if ( HAL_MEMCPY_SANITY_CHECKS == 1 )
+    if ( dest == NULL || src == NULL || n == 0 )
         return NULL;
 
     size_t word_size = sizeof(uintptr_t);
 
     /* Check if dest and src 
      * are aligned to the machine's word size */
-    if (((uintptr_t)dest % word_size != 0) || ((uintptr_t)src % word_size != 0)) {
+    if ( ((uintptr_t) dest % word_size != 0) || ((uintptr_t) src % word_size != 0) )
+    {
         return NULL; /* Return NULL if pointers are not properly aligned */
     }
 #endif
 
     /* Copy 16-byte chunks */
-    while (n >= 16) {
-        *(uint64_t *)dest = *(const uint64_t *)src;
-        *(uint64_t *)((uint8_t *)dest + 8) = *(const uint64_t *)((const uint8_t *)src + 8);
-        dest = (uint8_t *)dest + 16;
-        src = (const uint8_t *)src + 16;
+    while ( n >= 16 )
+    {
+        *(uint64_t *) dest                   = *(const uint64_t *) src;
+        *(uint64_t *) ((uint8_t *) dest + 8) = *(const uint64_t *) ((const uint8_t *) src + 8);
+        dest                                 = (uint8_t *) dest + 16;
+        src                                  = (const uint8_t *) src + 16;
         n -= 16;
     }
 
     /* Copy 8-byte chunks */
-    while (n >= 8) {
-        *(uint64_t *)dest = *(const uint64_t *)src;
-        dest = (uint8_t *)dest + 8;
-        src = (const uint8_t *)src + 8;
+    while ( n >= 8 )
+    {
+        *(uint64_t *) dest = *(const uint64_t *) src;
+        dest               = (uint8_t *) dest + 8;
+        src                = (const uint8_t *) src + 8;
         n -= 8;
     }
 
     /* Copy 4-byte chunks */
-    while (n >= 4) {
-        *(uint32_t *)dest = *(const uint32_t *)src;
-        dest = (uint8_t *)dest + 4;
-        src = (const uint8_t *)src + 4;
+    while ( n >= 4 )
+    {
+        *(uint32_t *) dest = *(const uint32_t *) src;
+        dest               = (uint8_t *) dest + 4;
+        src                = (const uint8_t *) src + 4;
         n -= 4;
     }
 
     /* Copy remaining bytes one by one */
-    while (n > 0) {
-        *(uint8_t *)dest = *(const uint8_t *)src;
-        dest = (uint8_t *)dest + 1;
-        src = (const uint8_t *)src + 1;
+    while ( n > 0 )
+    {
+        *(uint8_t *) dest = *(const uint8_t *) src;
+        dest              = (uint8_t *) dest + 1;
+        src               = (const uint8_t *) src + 1;
         n--;
     }
 
@@ -469,15 +481,16 @@ uint64_t hal_measure_cycles(hal_sim_func func, uintptr_t arg)
  *         not initialized.
  */
 
-int hal_get_argcv(int *argc, char ***argv) {
+int hal_get_argcv(int *argc, char ***argv)
+{
 
-    if(p_hal == NULL)
+    if ( p_hal == NULL )
         return 0;
 
-    if (argc != NULL && argv != NULL)
+    if ( argc != NULL && argv != NULL )
     {
         *argc = p_hal->argc;
-        *argv =  p_hal->argv;
+        *argv = p_hal->argv;
     }
 
     return 1;
@@ -517,11 +530,22 @@ __attribute__((noreturn)) void hal_sys_init(XosThreadFunc startThread, int _argc
     p_hal = (hal_session *) hal_brk_alloc(pool_ctx, sizeof(hal_session));
     assert(p_hal != NULL); /* Memory allocation error */
 
+    /* Save allocator context */
     p_hal->pool_ctx = pool_ctx;
 
-    /* ToDo: figure why argumnets arrives as string rather than array */
-    p_hal->argv     = hal_fix_args(_argv[0],(char*)_argv[1], ' ', &p_hal->argc);
-    
+    /* TODO: Investigate why arguments are received as a single string instead of an array */
+    /* Check if argc > 1 and argv is already valid */
+    if ( _argc > 1 && _argv != NULL )
+    {
+        /* Assume that the arguments are already valid and return the original argv */
+        p_hal->argv = _argv;
+        p_hal->argc = _argc;
+    }
+    else
+    {
+        p_hal->argv = hal_fix_args(_argv[0], (char *) _argv[1], ' ', &p_hal->argc);
+    }
+
     /* Get the simulator overhead cycles for precise measurements. */
     p_hal->overhead_cycles = hal_get_sim_overhead_cycles();
 
@@ -539,7 +563,7 @@ __attribute__((noreturn)) void hal_sys_init(XosThreadFunc startThread, int _argc
 
     /* Create initial thread */
     ret = xos_thread_create(&p_hal->initial_thread, NULL, startThread, NULL, "initThread", p_hal->initial_thread_stack, HAL_DEFAULT_STACK_SIZE, 1, NULL, 0);
-    assert(ret == XOS_OK);  /* Initial thread creation error */
+    assert(ret == XOS_OK); /* Initial thread creation error */
 
     /* Start Kernel which will block. */
     xos_start(0);

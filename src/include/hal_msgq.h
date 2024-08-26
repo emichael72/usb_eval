@@ -33,13 +33,12 @@
 /*! @brief The message queue item structure */
 typedef struct __msgq_buf_t
 {
-    struct __msgq_buf_t *next, *prev;   /*!< List next and previous pointers */
-    uint8_t *          p_data;          /*!< Pointer to the actual memory space containing the message */
-    int32_t            state;           /*!< State of the item, application-defined */
-    uint32_t           type;            /*!< Type of stored element (free or busy) */
+    struct __msgq_buf_t *next, *prev; /*!< List next and previous pointers */
+    uint8_t *            p_data;      /*!< Pointer to the actual memory space containing the message */
+    int32_t              state;       /*!< State of the item, application-defined */
+    uint32_t             type;        /*!< Type of stored element (free or busy) */
 
 } msgq_buf;
-
 
 /**
  * @brief Requests a data pointer from the queue, moving the item to the busy list.

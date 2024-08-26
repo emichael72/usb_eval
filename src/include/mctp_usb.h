@@ -34,17 +34,28 @@
   * @{
   */
 
+#define MCTP_USB_APP_NAME "MCTP over USB efficancy evaluation."
 
-#define MCTP_USB_APP_NAME                   "MCTP over USB efficancy evaluation."
+/* Define version components */
+#define MCTP_USB_APP_VERSION_MAJOR 0
+#define MCTP_USB_APP_VERSION_MINOR 1
+#define MCTP_USB_APP_VERSION_BUILD 0
+
+/* Concatenate the version components into a single string */
+#define STR_HELPER(x) #x
+#define STR(x)        STR_HELPER(x)
+
 #ifndef DEBUG
-#define MCTP_USB_APP_VERSION                "1.1"
+#define MCTP_USB_APP_VERSION STR(MCTP_USB_APP_VERSION_MAJOR) "." STR(MCTP_USB_APP_VERSION_MINOR) "." STR(MCTP_USB_APP_VERSION_BUILD)
 #else
-#define MCTP_USB_APP_VERSION                "1.1 Debug"
+#define MCTP_USB_APP_VERSION STR(MCTP_USB_APP_VERSION_MAJOR) "." STR(MCTP_USB_APP_VERSION_MINOR) "." STR(MCTP_USB_APP_VERSION_BUILD) " Debug"
 #endif
 
-#define MCTP_USB_MSGQ_MAX_FRAME_SIZE    128  /**< Maximum size in bytes for each 
+#define MCTP_USB_MSGQ_MAX_FRAME_SIZE \
+    128 /**< Maximum size in bytes for each 
                                                  allocated buffer in the message queue */
-#define MCTP_USB_MSGQ_ALLOCATED_FRAMES  64   /**< Total number of allocated frames 
+#define MCTP_USB_MSGQ_ALLOCATED_FRAMES \
+    64 /**< Total number of allocated frames 
                                                  in the message queue */
 
 /**
@@ -72,7 +83,6 @@
 
 void mctp_usb_init(void);
 
-
 /**
  * @brief Retrieves the handle to the message queue initialized by this module.
  *
@@ -86,6 +96,4 @@ uintptr_t mctp_usb_get_msgq_handle(void);
   * @}
   */
 
-
 #endif /* _MCTP_USB_H */
-

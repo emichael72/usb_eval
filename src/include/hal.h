@@ -42,42 +42,45 @@
  * @brief  HAL generic definitions and macros.
  */
 
-#define HAL_BIT(x)                          (1 << (x))        /**< Bit value */
-#define HAL_IS_BIT_SET(REG, BIT)            (((REG) & (BIT)) == (BIT)) \
-                                                              /**< Bit manipulation */
-#define HAL_IS_BIT_CLR(REG, BIT)            (((REG) & (BIT)) == 0U) \
-                                                              /**< Bit manipulation */
-#define HAL_SET_BIT(REG, BIT)               ((REG |= BIT))    /**< Bit manipulation */
-#define HAL_CLEAR_BIT(REG, BIT)             ((REG &= ~BIT))   /**< Bit manipulation */
-#define HAL_READ_BIT(REG, BIT)              ((REG) & (BIT))   /**< Bit manipulation */
-#define HAL_UNUSED(x)                       (void)(x)         /**< Suppress unused \
+#define HAL_BIT(x)               (1 << (x))                 /**< Bit value */
+#define HAL_IS_BIT_SET(REG, BIT) (((REG) & (BIT)) == (BIT)) /**< Bit manipulation */
+#define HAL_IS_BIT_CLR(REG, BIT) (((REG) & (BIT)) == 0U)    /**< Bit manipulation */
+#define HAL_SET_BIT(REG, BIT)    ((REG |= BIT))             /**< Bit manipulation */
+#define HAL_CLEAR_BIT(REG, BIT)  ((REG &= ~BIT))            /**< Bit manipulation */
+#define HAL_READ_BIT(REG, BIT)   ((REG) & (BIT))            /**< Bit manipulation */
+#define HAL_UNUSED(x) \
+    (void) (x)        /**< Suppress unused \
                                                                    parameter warnings */
-#define __IO                                volatile          /**< IO operation */
+#define __IO volatile /**< IO operation */
 
 /**
   * @}
   */
 
- /**
+/**
  * @brief  HAL run-time definitions.
  */
 
-#define HAL_CCOUNT_HACKVAL        (0xFC000000)  /**< CCOUNT forward hack value */
-#define HAL_DEFAULT_STACK_SIZE    (1 * 1024)    /**< Default stack size in bytes for threads */
-#define HAL_POOL_SIZE             (16 * 1024)   /**< Bytes available for the inner pool */
-#define HAL_AUTO_TERMINATE        (60000)       /**< Auto exit emulator after n 
+#define HAL_CCOUNT_HACKVAL     (0xFC000000) /**< CCOUNT forward hack value */
+#define HAL_DEFAULT_STACK_SIZE (1 * 1024)   /**< Default stack size in bytes for threads */
+#define HAL_POOL_SIZE          (16 * 1024)  /**< Bytes available for the inner pool */
+#define HAL_AUTO_TERMINATE \
+    (60000) /**< Auto exit emulator after n 
                                                      milliseconds */
-#define HAL_MEM_SANITY_CHECKS     0             /**< Enable sanity checks in 
+#define HAL_MEM_SANITY_CHECKS \
+    0 /**< Enable sanity checks in 
                                                      hal_memcpy() */
-#define HAL_BRK_ALLOC_ZERO_MEM    1             /**< Initialize allocated memory 
+#define HAL_BRK_ALLOC_ZERO_MEM \
+    1 /**< Initialize allocated memory 
                                                      to zero */
-#define HAL_MSGQ_USE_CRITICAL     0             /**< Enables critical sections 
+#define HAL_MSGQ_USE_CRITICAL \
+    0 /**< Enables critical sections 
                                                      in the message queue to 
                                                      ensure thread-safe operation 
                                                      across multiple contexts */
-#define HAL_MSGQ_SANITY_CHECKS    0             /**< Enable sanity checks when requesting
+#define HAL_MSGQ_SANITY_CHECKS \
+    0 /**< Enable sanity checks when requesting
                                                      and releasing messages */
-
 
 /******************************************************************************
   * 
@@ -105,20 +108,18 @@
   *******************************************************************************/
 
 #ifdef DEBUG
-#define HAL_OVERHEAD_CYCLES  (14)
+#define HAL_OVERHEAD_CYCLES (14)
 #else
-#define HAL_OVERHEAD_CYCLES  (11)
+#define HAL_OVERHEAD_CYCLES (11)
 #endif
 
 /**
   * @}
   */
 
-
 /** @addtogroup Exported_HAL_Functions HAL Exported Functions
  * @{
  */
-
 
 /**
  * @brief Defines a prototype for a function whose execution cycles are measured.
@@ -158,8 +159,7 @@ uintptr_t hal_brk_alloc_init(void);
  *       undefined behavior or reduced performance.
  */
 
-void *hal_memcpy(void * __restrict dest, const void * __restrict src, size_t n);
-
+void *hal_memcpy(void *__restrict dest, const void *__restrict src, size_t n);
 
 /**
  * @brief Efficiently zeroes out a memory region using the machine's native word size.
@@ -245,7 +245,7 @@ void hal_terminate_simulation(int status);
  * @return The number of cycles taken by the function, or 0 if `func` is NULL.
  */
 
-uint64_t hal_measure_cycles(hal_sim_func func,uintptr_t arg);
+uint64_t hal_measure_cycles(hal_sim_func func, uintptr_t arg);
 
 /**
  * @brief Retrieve the current system tick count.
@@ -302,6 +302,5 @@ void hal_sys_init(XosThreadFunc startThread, int _argc, char **argv);
 /**
   * @}
   */
-
 
 #endif /* _HAL_LX7_H */

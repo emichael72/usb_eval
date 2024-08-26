@@ -37,30 +37,23 @@
  * @return None.
  */
 
-
 static void eval_memcpy_cycles(uintptr_t use_hal)
 {
 
     /* 32 bytes buffwe*/
-static const unsigned char src_arr[] = {
-        0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 
-        0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F, 0x50, 
-        0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 
-        0x59, 0x5A, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
- };
-    
-volatile char dest_arr[sizeof(src_arr)];
+    static const unsigned char src_arr[] = {0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F, 0x50,
+                                            0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
+    volatile char dest_arr[sizeof(src_arr)];
 
-    if(use_hal == 1)
+    if ( use_hal == 1 )
     {
-        hal_memcpy((void*)dest_arr, src_arr, sizeof(dest_arr));
-       
+        hal_memcpy((void *) dest_arr, src_arr, sizeof(dest_arr));
     }
     else
     {
-         memcpy((void*)dest_arr, src_arr, sizeof(dest_arr)); 
-    }  
+        memcpy((void *) dest_arr, src_arr, sizeof(dest_arr));
+    }
 };
 
 /**
@@ -106,19 +99,20 @@ static void eval_msgq_cycles(uintptr_t msgq_handle)
 
 uint64_t run_cycles_test(cycles_test test, int8_t iterations)
 {
-    if (iterations <= 0)
+    if ( iterations <= 0 )
         iterations = 1;
 
-    uint64_t total_cycles = 0, avg_cycles = 0;
-    uintptr_t msgq_handle = mctp_usb_get_msgq_handle();
-    char *test_description = NULL;
+    uint64_t  total_cycles     = 0;
+    uint64_t  avg_cycles       = 0;
+    uintptr_t msgq_handle      = mctp_usb_get_msgq_handle();
+    char *    test_description = NULL;
 
-    if (msgq_handle == 0)
+    if ( msgq_handle == 0 )
         return 0; /* Could not get a valid handle to the MCTP transport */
 
-    for (int i = 0; i < iterations; i++)
+    for ( int i = 0; i < iterations; i++ )
     {
-        switch (test)
+        switch ( test )
         {
             case CYCLES_EVAL_USELESS:
                 total_cycles += hal_measure_cycles(hal_useless_function, 0);
@@ -142,7 +136,7 @@ uint64_t run_cycles_test(cycles_test test, int8_t iterations)
 
             default:
                 /* Unsupported, show help end exit.*/
-                printf("No handler for value '%d'\n", test);
+                printf("Known test types:\n");
                 printf("\t0: Useless cycles.\n");
                 printf("\t1: MessageQ request/release.\n");
                 printf("\t2: Xtensa native memcpy() with 32 bytes.\n");
@@ -153,9 +147,8 @@ uint64_t run_cycles_test(cycles_test test, int8_t iterations)
 
     avg_cycles = (total_cycles / iterations);
     printf("%s (x %d): %llu\n", test_description, iterations, avg_cycles);
-    
+
     return avg_cycles;
 }
-
 
 #endif /* _LIBMCTP_CYCLES_EVAL_H */
