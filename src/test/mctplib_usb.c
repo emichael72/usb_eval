@@ -1,9 +1,10 @@
 
+
 /**
   ******************************************************************************
-  * @file    mctp_usb.c
+  * @file    mctplib_usb.c
   * @author  IMCv2 Team
-  * @brief   A simple implementation for OpenMCTP that creates USB device bindings.
+  * @brief   A simple implementation for libmctp that creates USB device bindings.
   * 
   * This adaptation is purely for performance assessments, so no 'real USB' 
   * driver is involved. The implementation is intended for benchmarking and 
@@ -23,7 +24,7 @@
 
 #include <hal.h>
 #include <hal_msgq.h>
-#include <mctp_usb.h>
+#include <mctplib_usb.h>
 #include <libmctp-log.h>
 #include <string.h>
 
@@ -104,10 +105,10 @@ struct test
  */
 typedef struct mctp_usb_session_t
 {
-    struct mctp *       p_mctp;      /*!< Pointer to the libmctp instance */
+    struct mctp *       p_mctp;      /* Pointer to the libmctp instance */
     struct mctp_binding binding;     /* LibMCTP binding container */
-    mctp_eid_t          eid;         /*Our Endpoint ID */
-    uintptr_t           msgq_handle; /*!< Handle to the message queue */
+    mctp_eid_t          eid;         /* Our Endpoint ID */
+    uintptr_t           msgq_handle; /* Handle to the message queue */
 
 } mctp_usb_session;
 

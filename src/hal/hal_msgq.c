@@ -85,7 +85,7 @@ typedef struct _msgq_storage_t
 /**
  * @brief Requests a data pointer from the queue, moving the item to the busy list.
  * @param msgq_handle Handle to the storage instance.
- * @param size Size in bytes of 'data'.
+ * @param size Size in bytes of 'data', coiuld be 0 sinse it's a preallocated fixed size pool.
  * @retval Pointer biffer or NULL on error.
  */
 
@@ -96,8 +96,13 @@ void *msgq_request(uintptr_t msgq_handle, size_t size)
 
 #if ( HAL_MSGQ_SANITY_CHECKS == 1 )
 
-    if ( pfs == NULL || pfs->magic != HAL_MSGQ_MAGIC_VAL || pfs->item_size < size || pfs->free == NULL )
+    if ( pfs == NULL || pfs->magic != HAL_MSGQ_MAGIC_VAL | pfs->free == NULL )
         assert(0);
+
+    /* If we got size, use it for vliadation */
+    if ( size && pfs->item_size < size )
+        assert(0);
+
 #endif
 
     HAL_MSGQ_ENTER_CRITICAL();

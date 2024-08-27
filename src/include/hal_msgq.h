@@ -34,7 +34,7 @@
 /**
  * @brief Requests a data pointer from the queue, moving the item to the busy list.
  * @param msgq_handle Handle to the storage instance.
- * @param size Size in bytes of 'data'.
+ * @param size Size in bytes of 'data', coiuld be 0 sinse it's a preallocated fixed size pool.
  * @retval Pointer to a message queue item or NULL on error.
  */
 

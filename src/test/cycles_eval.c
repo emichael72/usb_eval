@@ -18,13 +18,9 @@
   ******************************************************************************
   */
 
-/* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef _LIBMCTP_CYCLES_EVAL_H
-#define _LIBMCTP_CYCLES_EVAL_H
-
 #include <hal.h>
 #include <hal_msgq.h>
-#include <mctp_usb.h>
+#include <mctplib_usb.h>
 #include <cycles_eval.h>
 #include <string.h> /* stdlib memcpy() */
 
@@ -164,5 +160,3 @@ uint64_t run_cycles_test(cycles_test test, int8_t iterations)
 
     return avg_cycles;
 }
-
-#endif /* _LIBMCTP_CYCLES_EVAL_H */

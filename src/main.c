@@ -21,7 +21,8 @@
 #include <stdio.h>
 #include <hal.h>
 #include <ctype.h>
-#include <mctp_usb.h>
+#include <mctplib_usb.h>
+#include <frag,h>
 #include <cargs.h>
 #include <cycles_eval.h>
 
@@ -77,6 +78,9 @@ static int init_thread(void *arg, int32_t unused)
      * consequently cause the emulator to exit back to the shell. */
     mctp_usb_init(MCTP_USB__DEST_EID);
 
+    /* Initilizes the 'frag' logic test */
+    frag_test_init();
+
     /* Retrieve argc and argv passed to main */
     hal_get_argcv(&argc, &argv);
 
@@ -120,12 +124,12 @@ static int init_thread(void *arg, int32_t unused)
                     break;
 
                 case 'v': /* Version */
-                    printf("%s version %s\r\n", MCTP_USB_APP_NAME, MCTP_USB_APP_VERSION);
+                    printf("%s version %s\r\n", HAL_APP_NAME, HAL_APP_VERSION);
                     exit_fetch = true;
                     break;
 
                 case 'h': /* Help */
-                    printf("%s\n", MCTP_USB_APP_NAME);
+                    printf("%s\n", HAL_APP_NAME);
                     printf("\nUsage: %s [OPTION]...\r\n", argv[0]);
                     cag_option_print(options, CAG_ARRAY_SIZE(options), stdout);
                     exit_fetch = true;

@@ -1,0 +1,77 @@
+/**
+  ******************************************************************************
+  * @file    frag.h
+  * @author  IMCv2 Team
+  * @brief   Module for handling NC-SI Ethernet packet fragmentation and 
+  *          transmission via MCTP and USB.
+  * 
+  * This module is responsible for receiving NC-SI Ethernet packets, 
+  * fragmenting them into MCTP-compliant messages, and transmitting these 
+  * fragments over USB. The process involves adjusting fragment pointers, 
+  * managing payload sizes, and ensuring that the fragments are correctly 
+  * structured with MCTP headers. The module is optimized for high-frequency 
+  * execution and minimal overhead.
+  * 
+  * The typical flow of this module includes:
+  * - Receiving an NC-SI Ethernet packet.
+  * - Adjusting fragment pointers to align with the packet data.
+  * - Preparing MCTP headers and payloads for each fragment.
+  * - Transmitting the fragments in batches over USB, respecting the 
+  *   hardware's ability to handle up to 4 fragments at a time.
+  * 
+  ******************************************************************************
+  * @attention
+  * 
+  * @copyright
+  * @par Copyright (c) 2024 Intel Corporation.
+  * All rights reserved.
+  * 
+  * This code is proprietary to Intel Corporation and may not be used, modified,
+  * or distributed without the express written permission of Intel Corporation.
+  * 
+  ******************************************************************************
+  */
+
+
+/* Define to prevent recursive inclusion -------------------------------------*/
+
+#ifndef _FRAG_TEST_H
+#define _FRAG_TEST_H
+
+#include <stdint.h>
+
+/**
+ * @brief Starts the fragments test by processing and transmitting NC-SI 
+ *        packet fragments.
+ *
+ * This function is executed when a new NC-SI packet is available. It adjusts 
+ * the fragment pointers using `frag_test_adjust_pointers()`, and then iterates 
+ * through the fragments, preparing batches of MCTP headers and their 
+ * corresponding payloads. These batches are then sent to the USB hardware 
+ * in groups of up to 4 fragments (8 pairs of header and payload).
+ *
+ * @param arg Unused parameter, reserved for future use.
+ */
+
+void frag_test_start(uintptr_t arg);
+
+/**
+ * @brief Obtain a fake Ethernet NC-SI frame along with its size.
+ *
+ * In a real-world scenario, this frame would be placed in a designated RAM 
+ * region, and this logic would be notified via an interrupt.
+ *
+ * @note TBD: Confirm if this is the correct approach.
+ */
+
+void frag_test_on_ncsi_rx(void);
+
+/**
+ * @brief Initializes the module, allocates RAM for persistent variables, 
+ * and sets the required prerequisites for the test.
+ */
+
+void frag_test_init(void);
+
+
+#endif /* _FRAG_TEST_H */

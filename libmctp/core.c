@@ -10,7 +10,7 @@
 #include <string.h>
 
 #include <hal.h> /* LX7 infrastructure */
-#include <mctp_usb.h>
+#include <mctplib_usb.h>
 
 #undef pr_fmt
 #define pr_fmt(fmt) "libMCTP: " fmt

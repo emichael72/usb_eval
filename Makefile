@@ -35,7 +35,7 @@ FORCE:
 endif
 
 # Common include paths
-INCLUDE_PATHS = -Ilibmctp -Isrc/include
+INCLUDE_PATHS = -Ilibmctp -Isrc/include -Isrc/include
 
 # Compiler and flags
 CC = xt-clang
@@ -66,12 +66,15 @@ endif
 
 # Compiled sources
 SRCS =	src/main.c \
-		src/mctp_usb.c \
 		src/hal/hal.c \
 		src/hal/hal_alloc.c \
 		src/hal/hal_msgq.c \
 		src/test/cargs.c \
+		src/test/ncsi_packet.c \
+		src/test/mctplib_usb.c \
+		src/test/frag.c \
 		src/test/cycles_eval.c \
+		src/test/ncsi_packet.c \
 		libmctp/core.c \
 		libmctp/alloc.c \
 		libmctp/log.c \

@@ -1,9 +1,9 @@
 
 /**
   ******************************************************************************
-  * @file    mctp_usb.h
+  * @file    mctplib_usb.h
   * @author  IMCv2 Team
-  * @brief   A simple implementation for OpenMCTP that creates USB device bindings.
+  * @brief   A simple implementation for libmctp that creates USB device bindings.
   * 
   * This adaptation is purely for performance assessments, so no 'real USB' 
   * driver is involved. The implementation is intended for benchmarking and 
@@ -34,23 +34,6 @@
 /** @defgroup MCTP_USB_Exported_MACRO MCTP over USB Macros
   * @{
   */
-
-#define MCTP_USB_APP_NAME "MCTP over USB efficancy evaluation."
-
-/* Define version components */
-#define MCTP_USB_APP_VERSION_MAJOR 0
-#define MCTP_USB_APP_VERSION_MINOR 1
-#define MCTP_USB_APP_VERSION_BUILD 1
-
-/* Concatenate the version components into a single string */
-#define STR_HELPER(x) #x
-#define STR(x)        STR_HELPER(x)
-
-#ifndef DEBUG
-#define MCTP_USB_APP_VERSION STR(MCTP_USB_APP_VERSION_MAJOR) "." STR(MCTP_USB_APP_VERSION_MINOR) "." STR(MCTP_USB_APP_VERSION_BUILD)
-#else
-#define MCTP_USB_APP_VERSION STR(MCTP_USB_APP_VERSION_MAJOR) "." STR(MCTP_USB_APP_VERSION_MINOR) "." STR(MCTP_USB_APP_VERSION_BUILD) " Debug"
-#endif
 
 #define MCTP_USB_MSGQ_MAX_FRAME_SIZE   512 /**< Maximum size in bytes for each allocated buffer in the message queue */
 #define MCTP_USB_MSGQ_ALLOCATED_FRAMES 32  /**< Total number of allocated frames in the message queue */

@@ -61,6 +61,23 @@
   * @}
   */
 
+#define HAL_APP_NAME "MCTP over USB efficancy evaluation."
+
+/* Define version components */
+#define HAL_APP_VERSION_MAJOR 0
+#define HAL_APP_VERSION_MINOR 1
+#define HAL_APP_VERSION_BUILD 1
+
+/* Concatenate the version components into a single string */
+#define STR_HELPER(x) #x
+#define STR(x)        STR_HELPER(x)
+
+#ifndef DEBUG
+#define HAL_APP_VERSION STR(HAL_APP_VERSION_MAJOR) "." STR(HAL_APP_VERSION_MINOR) "." STR(HAL_APP_VERSION_BUILD)
+#else
+#define HAL_APP_VERSION STR(HAL_APP_VERSION_MAJOR) "." STR(HAL_APP_VERSION_MINOR) "." STR(HAL_APP_VERSION_BUILD) " Debug"
+#endif
+
 /**
  * @brief  HAL run-time definitions.
  */

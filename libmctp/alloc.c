@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <hal.h> /* LX7 Infrastructure */
 #include <hal_msgq.h>
-#include <mctp_usb.h>
+#include <mctplib_usb.h>
 
 #include "libmctp.h"
 #include "libmctp-alloc.h"
