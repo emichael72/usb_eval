@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-store" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    <title>Run Emulator</title>
+    <title>IMcv2 Team: Xtensa Instruction Set Simulator.</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -18,19 +18,19 @@
 
         .terminal {
             background-color: black;
-            color: #00FF00;
+            color: #00FF00;  /* Default text color is green */
             padding: 10px;
             border-radius: 5px;
             font-family: 'Courier New', Courier, monospace;
             font-size: 14px;
             font-weight: normal;
-            height: 50vh; /* Set height to 50% of the viewport height */
-            width: 100%; /* Set width to 100% of the parent container */
+            height: 50vh;  /* Set height to 50% of the viewport height */
+            width: 100%;   /* Set width to 100% of the parent container */
             overflow-y: scroll;
             white-space: pre-wrap;
             box-sizing: border-box;
             resize: both;
-            scroll-behavior: smooth; /* Smooth scrolling */
+            scroll-behavior: smooth;  /* Smooth scrolling */
         }
 
         #execute-button, #help-button {
@@ -41,13 +41,9 @@
             margin-bottom: 10px;
         }
 
-        .terminal.white-text {
-            color: white !important;
-        }
-
         ul {
-            list-style-type: none;
-            padding: 0;
+            /* list-style-type: none; */
+            padding: 15;
         }
 
         ul li {
@@ -57,58 +53,102 @@
         ul li:last-child {
             border-bottom: 1px solid #ccc;
         }
+
+        .help-section {
+            display: none;
+            margin-top: 20px;
+            padding: 10px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #fff;
+        }
     </style>
 </head>
 <body>
+    <h4 style="margin-bottom: 5px;">Xtensa Instruction Set Simulator Web interface.</h4>
+    <p style="font-size: 14px; margin-top: 0;">Another treat from the <b style="color: blue;">IMCv2</b> Team!</p>
+    
     <form id="run-form">
-        <div class="form-group">
-            <label for="argument">Enter Argument:</label>
-            <input type="text" id="argument" name="argument">
+        <div class="form-group" style="font-size: 14px;">
+            <label for="argument">Enter argument:</label>
+            <input type="text" id="argument" name="argument" value="-h" placeholder="Enter arguments">
         </div>
-        <div class="form-group">
+        <div class="form-group"style="font-size: 14px;">
             <label>
                 <input type="checkbox" id="include-summary" name="include-summary"> Include summary 
             </label>
         </div>
         <button type="submit" id="execute-button">Execute</button>
+        <button type="button" id="help-button">Help</button>
     </form>
 
-    <h3>Output:</h3>
+    <div id="help-section" class="help-section">
+        <h4>The following command line arguments are valid:</h4>
+        <ul>
+            <li><b>-t</b>, --test=VALUE     Execute a cycle test.</li>
+            <li><b>-r</b>, --rept=VALUE     Set the number of test repetitions.</li>
+            <li><b>-v</b>, --ver            Print the version and exit.</li>
+            <li><b>-h, -?</b>, --help       Print usage.</li>
+            <li><b style="color: rgb(30, 74, 170);">-t=?</b> : Show all supported tests.</li>
+            <li><b style="color: rgb(30, 74, 170);">-t=1 -r=10</b> : Execute test #1 4 times.</li>
+        </ul>
+    </div>
+
+    <h4>Output:</h4>
     <div class="terminal" id="output"></div>
 
     <script>
-        window.onload = function() {
-            document.getElementById('run-form').addEventListener('submit', function(event) {
+        document.addEventListener('DOMContentLoaded', function() {
+            const runForm = document.getElementById('run-form');
+            const outputElement = document.getElementById('output');
+            const helpButton = document.getElementById('help-button');
+            const helpSection = document.getElementById('help-section');
+
+            runForm.addEventListener('submit', function(event) {
                 event.preventDefault();
                 const argument = document.getElementById('argument').value;
                 const includeSummary = document.getElementById('include-summary').checked ? 'yes' : 'no';
 
-                const outputElement = document.getElementById('output');
-                outputElement.innerHTML = '';  // Clear the terminal box
+                // Show "Running..." message in the terminal box
+                outputElement.innerHTML = '<span style="color: yellow;">Running...</span>';
 
-                // Use Fetch API to handle streaming data
                 fetch(`/cgi-bin/runemu.cgi?arg=-c ${encodeURIComponent(argument)}&summary=${includeSummary}`)
                     .then(response => {
                         const reader = response.body.getReader();
                         const decoder = new TextDecoder();
+
+                        // Clear the "Running..." message when data starts streaming
+                        outputElement.innerHTML = ''; 
+
                         function read() {
                             reader.read().then(({ done, value }) => {
-                                if (done) {
-                                    return;
-                                }
-                                const text = decoder.decode(value);
-                                outputElement.innerHTML += `<span style="color: #00FF00;">${text}</span>`;
-                                outputElement.scrollTop = outputElement.scrollHeight;  // Scroll to bottom
+                                if (done) return;
+                                const chunk = decoder.decode(value);
+                                outputElement.innerHTML += chunk;  // Append the HTML directly as HTML
+                                // outputElement.scrollTop = outputElement.scrollHeight;  // Scroll to bottom only if near bottom
                                 read();  // Continue reading
+                            }).catch(error => {
+                                console.error('Read error:', error);
+                                outputElement.innerHTML += `<span style="color: red;">Error reading data.</span>`;
                             });
                         }
                         read();
                     })
                     .catch(error => {
-                        outputElement.textContent = 'Error: ' + error;
+                        console.error('Fetch error:', error);
+                        outputElement.innerHTML = `<span style="color: red;">Error fetching data.</span>`;
                     });
             });
-        };
+
+            helpButton.addEventListener('click', function() {
+                if (helpSection.style.display === 'none' || helpSection.style.display === '') {
+                    helpSection.style.display = 'block';
+                } else {
+                    helpSection.style.display = 'none';
+                }
+            });
+        });
     </script>
 </body>
 </html>

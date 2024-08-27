@@ -82,7 +82,6 @@ static int init_thread(void *arg, int32_t unused)
 
     if ( argc > 1 )
     {
-        printf("\n");
 
         /* Use libcargs to handle arguments.
          * Here we're making use of the handy feature that the emulator could be invoked
@@ -116,6 +115,8 @@ static int init_thread(void *arg, int32_t unused)
 
                 case 'c': /* Assume running as CGI - allow for some additional html related prinouts. */
                     cgi_mode = true;
+                    printf("<span>\n");
+                    fflush(stdout);
                     break;
 
                 case 'v': /* Version */
@@ -140,14 +141,14 @@ static int init_thread(void *arg, int32_t unused)
         }
     }
 
-    /*  Running as a CGI: this will turn the text color to white to better differentiate 
-    * our printouts from the xt-run summary. 
-    */
+    /* Running as a CGI: This will turn the text color to white to 
+     * better differentiate our printouts from the xt-run summary.
+     */
+
     if ( cgi_mode == true )
     {
-
         printf("\nRequest completed.\n");
-        printf("<hidden-correct-print>\n");
+        printf("<span style=\"color: white; font-size: 12px;\">\n");
     }
 
     if ( run_and_exit == true )

@@ -1,8 +1,5 @@
 #!/bin/bash
 
-echo "Content-type: text/plain"
-echo ""
-
 # To set up this hack, follow these steps:
 # 1. Install Lighttpd and FastCGI by running:
 #    sudo dnf install lighttpd lighttpd-fastcgi

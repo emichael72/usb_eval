@@ -154,6 +154,7 @@ uint64_t run_cycles_test(cycles_test test, int8_t iterations)
     if ( test_description != NULL )
     {
         printf("%s (x %d): %llu\n", test_description, iterations, avg_cycles);
+        fflush(stdout);
     }
 
     return avg_cycles;
