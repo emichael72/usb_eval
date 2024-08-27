@@ -548,7 +548,7 @@ __attribute__((noreturn)) void hal_sys_init(XosThreadFunc startThread, int _argc
     p_hal->pool_ctx = pool_ctx;
 
     /* TODO: Investigate why arguments are received as a single string instead of an array */
-    if ( _argv && _argc >= 1 && _argv[1] && hal_strchr((char *)_argv[1], 0x20) )
+    if ( _argv && _argc >= 1 && _argv[1] && hal_strchr((char *) _argv[1], 0x20) )
     {
         /* Restore arguments structure */
         p_hal->argv = hal_fix_args(_argv[0], (char *) _argv[1], ' ', &p_hal->argc);

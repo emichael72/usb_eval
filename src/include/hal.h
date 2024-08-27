@@ -66,7 +66,7 @@
 /* Define version components */
 #define HAL_APP_VERSION_MAJOR 0
 #define HAL_APP_VERSION_MINOR 1
-#define HAL_APP_VERSION_BUILD 1
+#define HAL_APP_VERSION_BUILD 2
 
 /* Concatenate the version components into a single string */
 #define STR_HELPER(x) #x

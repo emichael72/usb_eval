@@ -88,7 +88,8 @@ static int init_thread(void *arg, int32_t unused)
     if ( argc > 1 )
     {
 
-        /* Use libcargs to handle arguments.
+        /* 
+         * Use libcargs to handle arguments.
          * Here we're making use of the handy feature that the emulator could be invoked
          * with command-line arguments, allowing us to execute different paths based 
          * on external arguments.

@@ -55,8 +55,7 @@ typedef struct mctp_packet_t
     uint8_t packet_sequence  : 2; /* Packet Sequence Number */
     uint8_t end_of_message   : 1; /* End of Message Indicator */
     uint8_t start_of_message : 1; /* Start of Message Indicator */
-    uint8_t integrity_check  : 4; /* Integrity Check */
-    uint8_t reserved         : 4; /* Reserved */
+    /* Integrity_check and reserved fields are omitted */
 
 } mctp_ptr_packet;
 
@@ -69,8 +68,8 @@ typedef struct mctp_packet_t
 typedef struct mctp_frag_t
 {
 
-    mctp_ptr_packet     mctp_header;  /* MCTP 8 bytes header */
-    uint8_t *           payload;      /* Pointer to the actual NC-SI data */
+    mctp_ptr_packet     mctp_header;  /* MCTP 4 bytes header */
+    uint8_t *           payload;      /* Pointer to the NC-SI packet */
     size_t              payload_size; /* Length of the payload data pointed to */
     struct mctp_frag_t *next;         /* Pointer to the next packet */
 
@@ -148,12 +147,12 @@ static void frag_test_adjust_pointers(void)
 
 int frag_test_on_ncsi_rx(void)
 {
-    
-    if(p_frag_test == NULL)
+
+    if ( p_frag_test == NULL )
         return 1; /* Module not initalized */
-    
+
     p_frag_test->p_ncsi_packet = ncsi_request_packet(&p_frag_test->ncsi_packet_size);
-    if(p_frag_test->p_ncsi_packet == NULL || p_frag_test->ncsi_packet_size == 0)
+    if ( p_frag_test->p_ncsi_packet == NULL || p_frag_test->ncsi_packet_size == 0 )
         return 1;
 
     /* Prepended '3'to NCSI packet */
@@ -197,7 +196,7 @@ void frag_usb_tx(ptr_size_pair *pairs, size_t pairs_count)
  * the fragment pointers using `frag_test_adjust_pointers()`, and then iterates 
  * through the fragments, preparing batches of MCTP headers and their 
  * corresponding payloads. These batches are then sent to the USB hardware 
- * in groups of up to 4 fragments (8 pairs of header and payload).
+ * in groups of up to 4 fragments (2 pairs of header and payload).
  *
  * @param arg Unused parameter, reserved for future use.
  */
@@ -208,7 +207,7 @@ void frag_test_start(uintptr_t arg)
     frag_test_adjust_pointers();
 
     /* Define an array to hold up to 4 pairs at a time */
-    ptr_size_pair pairs[8]; // Each fragment has two pairs: header and payload
+    ptr_size_pair pairs[4];
 
     /* Iterate over the fragments and send them in batches */
     mctp_frag *frag        = p_frag_test->p_mctp_head;
@@ -229,9 +228,9 @@ void frag_test_start(uintptr_t arg)
         /* Move to the next fragment */
         frag = frag->next;
 
-        /* Check if we've collected 4 fragments (8 pairs) or reached 
+        /* Check if we've collected 4 fragments (2 pairs) or reached 
            the last fragment */
-        if ( pairs_count == 8 || i == p_frag_test->ncsi_frgas_count - 1 )
+        if ( pairs_count == 4 || i == p_frag_test->ncsi_frgas_count - 1 )
         {
             /* Send the batch to the USB hardware */
             frag_usb_tx(pairs, pairs_count);
@@ -241,8 +240,11 @@ void frag_test_start(uintptr_t arg)
 }
 
 /*
- * Initializes the module, allocates RAM for persistent variables, 
- * and sets the required prerequisites for the test.
+ * Initializes the module and allocates RAM for persistent variables.
+ * 
+ * Note: All fragments that we are allowed to use will be allocated during
+ * initialization and populated with default values. Any allocation failure 
+ * will result in an assertion.
  */
 
 void frag_test_init(void)
@@ -255,7 +257,8 @@ void frag_test_init(void)
 
     xos_disable_interrupts();
 
-    /* The following operations are performed once and do not count as 
+    /* 
+     * The following operations are performed once and do not count as 
      * 'test-related cycles'. 
      */
 
@@ -268,8 +271,11 @@ void frag_test_init(void)
     p_frag_test->source_eid      = 0x20;
     p_frag_test->p_mctp_head     = NULL;
 
-    /* Allocate all MCTP fragments and attch them to the session head pointer.
-    For now, feel as many fealds as posiiable to reduice setup clocks at run-time. */
+    /* 
+     * Allocate all MCTP fragments and attch them to the session head pointer.
+     * For now, feel as many fealds as posiiable to reduice setup clocks 
+     * at run-time. */
+
     while ( msg_index < MCTP_MAX_FRAGMENTS )
     {
 
@@ -294,9 +300,7 @@ void frag_test_init(void)
             frag->mctp_header.start_of_message = 0; /* Not Start of Message */
         }
 
-        frag->mctp_header.end_of_message  = 0;   /* Not End of Message */
-        frag->mctp_header.integrity_check = 0xF; /* Dummy integrity check */
-        frag->mctp_header.reserved        = 0;   /* Reserved field */
+        frag->mctp_header.end_of_message = 0; /* Not End of Message */
 
         /* Those are not set initially */
         frag->payload      = NULL;
@@ -304,7 +308,7 @@ void frag_test_init(void)
 
         /* Attach to the galobal head pointert */
         LL_APPEND(p_frag_test->p_mctp_head, frag);
-        
+
         msg_index++;
     }
 

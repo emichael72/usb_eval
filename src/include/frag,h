@@ -1,3 +1,4 @@
+
 /**
   ******************************************************************************
   * @file    frag.h
@@ -67,9 +68,12 @@ void frag_test_start(uintptr_t arg);
 
 int frag_test_on_ncsi_rx(void);
 
-/**
- * @brief Initializes the module, allocates RAM for persistent variables, 
- * and sets the required prerequisites for the test.
+/*
+ * Initializes the module and allocates RAM for persistent variables.
+ * 
+ * Note: All fragments that we are allowed to use will be allocated during
+ * initialization and populated with default values. Any allocation failure 
+ * will result in an assertion.
  */
 
 void frag_test_init(void);

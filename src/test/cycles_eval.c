@@ -141,15 +141,14 @@ uint64_t run_cycles_test(cycles_test test, int8_t iterations)
                 break;
 
             case CYCLES_EVAL_FRGA:
-                if(frag_test_on_ncsi_rx() == 0)
+                if ( frag_test_on_ncsi_rx() == 0 )
                 {
                     total_cycles += hal_measure_cycles(frag_test_start, 1);
                     test_description = "NC-SI to MCTP packet fragmentation flow";
                 }
                 else
-                      printf("Error: NC-SI packet was not acquired.\n");
+                    printf("Error: NC-SI packet was not acquired.\n");
                 break;
-               
 
             default:
                 /* Unsupported, show help end exit.*/
