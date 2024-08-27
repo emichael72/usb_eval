@@ -116,12 +116,12 @@ uint64_t run_cycles_test(cycles_test test, int8_t iterations)
         {
             case CYCLES_EVAL_USELESS:
                 total_cycles += hal_measure_cycles(hal_useless_function, 0);
-                test_description = "Useless function";
+                test_description = "Function expected to execute in 5";
                 break;
 
             case CYCLES_EVAL_MSGQ:
                 total_cycles += hal_measure_cycles(eval_msgq_cycles, msgq_handle);
-                test_description = "Message Q";
+                test_description = "Message Q (Request / Release)";
                 break;
 
             case CYCLES_EVAL_STD_MEMCPY:
@@ -131,18 +131,23 @@ uint64_t run_cycles_test(cycles_test test, int8_t iterations)
 
             case CYCLES_EVAL_HAL_MEMCPY:
                 total_cycles += hal_measure_cycles(eval_memcpy_cycles, 1);
-                test_description = "HAL optimized memcpy()";
+                test_description = "Eitan's ultra super optimized memcpy()";
                 break;
 
             case CYCLES_EVAL_USB_BUS_SEQ:
                 mctp_usb_run_test_seq();
-                printf("\n");
+
+                printf("<span style=\"color: yellow; font-size: 12px;\">\n");
+                printf("\n\nNote: These tests validate the correct handling of MCTP packets over a simulated USB\n");
+                printf("bus, ensuring that packet sequences, such as start-of-message (SOM), end-of-message (EOM),\n");
+                printf("and sequence numbers, are processed correctly.\n");
                 break;
+
             default:
                 /* Unsupported, show help end exit.*/
                 printf("Known test types:\n");
-                printf("\t0: Useless cycles.\n");
-                printf("\t1: MessageQ request/release.\n");
+                printf("\t0: Function expected to execute in 5.\n");
+                printf("\t1: Message Q (Request / Release).\n");
                 printf("\t2: Xtensa native memcpy() with 32 bytes.\n");
                 printf("\t3: Eitan's ultra super optimized memcpy() with 32 bytes.\n");
                 printf("\t4: Run MCTP sequence tests.\n");
@@ -153,7 +158,7 @@ uint64_t run_cycles_test(cycles_test test, int8_t iterations)
     avg_cycles = (total_cycles / iterations);
     if ( test_description != NULL )
     {
-        printf("%s (x %d): %llu\n", test_description, iterations, avg_cycles);
+        printf("'%s' (%d iterations) : %llu Cycles.\n", test_description, iterations, avg_cycles);
         fflush(stdout);
     }
 

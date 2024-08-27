@@ -222,7 +222,7 @@ void mctp_usb_run_test_seq(void)
     {
         test = &tests[test_num];
 
-        printf("Running: %-64s: ", test->name);
+        printf("Running: %-52s: ", test->name);
 
         /* Execute and count cycles */
         cycles = hal_measure_cycles(mctp_usb_test_seq_cycles, (uintptr_t) test);
