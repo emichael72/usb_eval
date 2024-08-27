@@ -57,6 +57,7 @@ static struct cag_option options[] =
  * 
  * @return Always returns 0.
  */
+
 static int init_thread(void *arg, int32_t unused)
 {
     uint64_t           measured_cycles  = 0;     /* Cycles related to any of our tests */

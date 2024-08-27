@@ -1,5 +1,4 @@
 
-
 /**
   ******************************************************************************
   * @file    mctplib_usb.c
@@ -254,7 +253,8 @@ void mctp_usb_init(uint8_t eid)
     p_mctpusb = hal_alloc(sizeof(mctp_usb_session));
     assert(p_mctpusb != NULL);
 
-    /* Create message queue pool to be used with libmctp. Later, we can use 
+    /* 
+     * Create message queue pool to be used with libmctp. Later, we can use 
      * msgq_request() and msgq_release() to manage buffers in the free-busy list 
      * managed by the 'msgq' module.
      */

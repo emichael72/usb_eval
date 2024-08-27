@@ -135,19 +135,26 @@ static void frag_test_adjust_pointers(void)
     }
 }
 
-/*
- * Obtain a fake Ethernet NC-SI frame along it's size . 
- * In a real-world scenario, this 
- * frame would be placed in a designated RAM region, and this logic 
-* would be notified via an interrupt.
- * 
-* TBD: Confirm if this is the correct approach.
-*/
+/**
+ * @brief Obtain a fake Ethernet NC-SI frame along with its size.
+ *
+ * In a real-world scenario, this frame would be placed in a designated RAM 
+ * region, and this logic would be notified via an interrupt.
+ *
+ * @note TBD: Confirm if this is the correct approach.
+ *
+ * @return 0 on success, 1 on failure.
+ */
 
-void frga_test_on_ncsi_rx(void)
+int frag_test_on_ncsi_rx(void)
 {
+    
+    if(p_frag_test == NULL)
+        return 1; /* Module not initalized */
+    
     p_frag_test->p_ncsi_packet = ncsi_request_packet(&p_frag_test->ncsi_packet_size);
-    assert(p_frag_test->p_ncsi_packet != NULL);
+    if(p_frag_test->p_ncsi_packet == NULL || p_frag_test->ncsi_packet_size == 0)
+        return 1;
 
     /* Prepended '3'to NCSI packet */
     p_frag_test->p_ncsi_packet->extra_byte = 3;
@@ -157,9 +164,12 @@ void frga_test_on_ncsi_rx(void)
 
     if ( p_frag_test->ncsi_frgas_count > MCTP_MAX_FRAGMENTS )
     {
-        /* Drop the NCSI packet , it's too big */
+        /* Drop the packet , it's too big */
         p_frag_test->ncsi_frgas_count = 0;
+        return 1;
     }
+
+    return 0; /* NC-SI packet reday for frgmantation */
 }
 
 /**
@@ -243,6 +253,8 @@ void frag_test_init(void)
     if ( p_frag_test != NULL )
         return; /* Must initialize only once */
 
+    xos_disable_interrupts();
+
     /* The following operations are performed once and do not count as 
      * 'test-related cycles'. 
      */
@@ -292,6 +304,8 @@ void frag_test_init(void)
 
         /* Attach to the galobal head pointert */
         LL_APPEND(p_frag_test->p_mctp_head, frag);
+        
+        msg_index++;
     }
 
     /* We'rte ready. */

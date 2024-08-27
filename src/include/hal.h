@@ -95,7 +95,7 @@
     1 /**< Initialize allocated memory 
                                                      to zero */
 #define HAL_MSGQ_USE_CRITICAL \
-    0 /**< Enables critical sections 
+    1 /**< Enables critical sections 
                                                      in the message queue to 
                                                      ensure thread-safe operation 
                                                      across multiple contexts */
@@ -103,7 +103,7 @@
     1 /**< Enable sanity checks when requesting
                                                      and releasing messages */
 
-#define HAL_PTR_SANITY_CHECKS 0 /**< Enable generic pointers checks */
+#define HAL_PTR_SANITY_CHECKS 1 /**< Enable generic pointers checks */
 
 /******************************************************************************
   * 

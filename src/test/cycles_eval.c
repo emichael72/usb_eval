@@ -21,6 +21,7 @@
 #include <hal.h>
 #include <hal_msgq.h>
 #include <mctplib_usb.h>
+#include <frag,h>
 #include <cycles_eval.h>
 #include <string.h> /* stdlib memcpy() */
 
@@ -139,6 +140,17 @@ uint64_t run_cycles_test(cycles_test test, int8_t iterations)
                 printf("and sequence numbers, are processed correctly.\n");
                 break;
 
+            case CYCLES_EVAL_FRGA:
+                if(frag_test_on_ncsi_rx() == 0)
+                {
+                    total_cycles += hal_measure_cycles(frag_test_start, 1);
+                    test_description = "NC-SI to MCTP packet fragmentation flow";
+                }
+                else
+                      printf("Error: NC-SI packet was not acquired.\n");
+                break;
+               
+
             default:
                 /* Unsupported, show help end exit.*/
                 printf("Known test types:\n");
@@ -147,6 +159,7 @@ uint64_t run_cycles_test(cycles_test test, int8_t iterations)
                 printf("\t2: Xtensa native memcpy() with 32 bytes.\n");
                 printf("\t3: Eitan's ultra super optimized memcpy() with 32 bytes.\n");
                 printf("\t4: Run MCTP sequence tests.\n");
+                printf("\t5: NC-SI to MCTP packet fragmentation flow.\n");
                 return 0; /* Case not handled */
         }
     }

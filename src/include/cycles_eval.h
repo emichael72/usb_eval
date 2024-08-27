@@ -33,8 +33,9 @@ typedef enum
     CYCLES_EVAL_MSGQ,        /*!< Execute message queue operations. */
     CYCLES_EVAL_STD_MEMCPY,  /*!< Execute stdlib memcpy() test. */
     CYCLES_EVAL_HAL_MEMCPY,  /*!< Execute hal hal_memcpy() test. */
-    CYCLES_EVAL_USB_BUS_SEQ, /*!< Run MCTP sequence tests. */
-    CYCLES_EVAL_INVALID      /*!< Invalid test case, used as a sentinel value. */
+    CYCLES_EVAL_USB_BUS_SEQ, /*!< Run MCTP sequence tests (libmctp). */
+    CYCLES_EVAL_FRGA,        /*!< Run MCTP 'frga' test. */
+    CYCLES_EVAL_INVALID      /*!< NC-SI to MCTP packet fragmentation flow. */
 
 } cycles_test;
 

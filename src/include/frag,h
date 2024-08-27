@@ -62,9 +62,10 @@ void frag_test_start(uintptr_t arg);
  * region, and this logic would be notified via an interrupt.
  *
  * @note TBD: Confirm if this is the correct approach.
+ * @return 0 on success, 1 on failure.
  */
 
-void frag_test_on_ncsi_rx(void);
+int frag_test_on_ncsi_rx(void);
 
 /**
  * @brief Initializes the module, allocates RAM for persistent variables, 
