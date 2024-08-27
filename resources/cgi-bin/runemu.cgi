@@ -41,7 +41,8 @@ SUMMARY=$(url_decode "$RAW_SUMMARY")
 
 # Build the command with or without the --summary option
 if [ "$SUMMARY" == "yes" ]; then
-    /opt/Xtensa_Explorer/XtDevTools/install/tools/RI-2022.10-linux/XtensaTools/bin/xt-run --summary firmware.elf "$ARG"
+    stdbuf -oL xt-run --summary firmware.elf "$ARG"
 else
-    /opt/Xtensa_Explorer/XtDevTools/install/tools/RI-2022.10-linux/XtensaTools/bin/xt-run firmware.elf "$ARG"
+    stdbuf -oL xt-run --version
+    stdbuf -oL xt-run firmware.elf "$ARG"
 fi

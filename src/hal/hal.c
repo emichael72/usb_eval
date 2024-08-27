@@ -33,6 +33,7 @@
  */
 
 #include <hal.h>
+#include <stdio.h>
 #include <string.h>
 
 /**
@@ -58,6 +59,19 @@ typedef struct _hal_session_t
 
 /* Persistent 'hal' related variables */
 hal_session *p_hal = NULL;
+
+char *hal_strchr(const char *s, int c)
+{
+    while ( *s )
+    {
+        if ( *s == c )
+        {
+            return (char *) s;
+        }
+        s++;
+    }
+    return NULL;
+}
 
 /**
  * @brief System 1 millisecond tick timer handler.
@@ -534,17 +548,16 @@ __attribute__((noreturn)) void hal_sys_init(XosThreadFunc startThread, int _argc
     p_hal->pool_ctx = pool_ctx;
 
     /* TODO: Investigate why arguments are received as a single string instead of an array */
-    /* Check if argc > 1 and argv is already valid */
-    if ( _argc > 1 && _argv != NULL )
+    if ( _argc >= 1 && hal_strchr((char *) _argv[1], 0x20) )
+    {
+        /* Restore arguments structure */
+        p_hal->argv = hal_fix_args(_argv[0], (char *) _argv[1], ' ', &p_hal->argc);
+    }
+    else
     {
         /* Assume that the arguments are already valid and return the original argv */
         p_hal->argv = _argv;
         p_hal->argc = _argc;
-    }
-    else
-    {
-        /* Restore arguments structure */
-        p_hal->argv = hal_fix_args(_argv[0], (char *) _argv[1], ' ', &p_hal->argc);
     }
 
     /* Get the simulator overhead cycles for precise measurements. */
@@ -565,6 +578,8 @@ __attribute__((noreturn)) void hal_sys_init(XosThreadFunc startThread, int _argc
     /* Create initial thread */
     ret = xos_thread_create(&p_hal->initial_thread, NULL, startThread, NULL, "initThread", p_hal->initial_thread_stack, HAL_DEFAULT_STACK_SIZE, 1, NULL, 0);
     assert(ret == XOS_OK); /* Initial thread creation error */
+
+    setvbuf(stdout, NULL, _IONBF, 0);
 
     /* Start Kernel which will block. */
     xos_start(0);
