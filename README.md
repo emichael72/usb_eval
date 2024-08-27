@@ -1,100 +1,51 @@
-# Estimation of the Required LX7 Cores for USB High Speed (480 Mbps) Throughput
+# MCTP Over USB / Performance Assessment (Draft).
 
-## Overview
-We aim to estimate the number of LX7 cores required to handle USB High Speed (480 Mbps) throughput. The USB interface will be utilized in its most basic form, functioning similarly to a glorified UART, serving as a fast point-to-point communication channel without the full complexity of the USB protocol.
+This repository contains code, documentation, scripts, and other resources to assist in accurately assessing the Xtensa LX7 cycle count for the implementation of MCTP (Management Component Transport Protocol) over USB.
 
-### Key Question:
-**How many LX7 cores do we really need?**
+## Prerequisites
 
-## 1. Hardware Aspects (Rough Estimations)
+Before building and running this project, ensure that you have the following tools and environment set up:
 
-- **USB ASIC Efficiency**: 
-  - No hardware is perfect; there may be bugs, wasted cycles, and other inefficiencies.
-  
-- **Interfacing with USB Peripheral**: 
-  - Considerations include using DMA, direct ISR, or register access.
+1. **Xtensa SDK for the LX7**
+    - Required tools:
+        - `xt-clang`, `xt-as`, `xt-ld`: Compiler, assembler, and linker.
+        - `xt-gdb`: Debugger.
+        - `xt-run`: Xtensa instruction set simulator.
 
-## 2. Breaking Down 'Throughput'
+2. **Operating System**
+    - The project was developed on Fedora 34. It should also work on other Linux distributions, preferably more modern versions.
 
-- **BPS Processing Capacity**: 
-  - We need to determine how many bits per second (BPS) the core can process.
-  
-- **MCTP Frames**:
-  - Bits are essentially MCTP frames being processed by a core in a given timeframe.
-  
-- **MCTP Operation Time**:
-  - We need to calculate the time it takes for the core to perform an 'MCTP operation'.
+3. **Python**
+    - Python is required if you need to convert Xtensa exported assembly files to instruction counts.
 
-## 3. Setting Up the Test Environment
+## Dependencies
 
-- **Efficient Cycle Estimation**:
-  - We need a mechanism to estimate the cycles used per 'logical operation'. In this case, the operation involves receiving an MCTP packet via USB, performing an integrity check, and either storing the frame or passing it to another entity (pass-through mode).
-  
-- **Focus**:
-  - The primary focus is on setting up an efficient test environment for accurate cycle estimation.
+This project uses modified versions of the following libraries:
 
-## 4. Tools
+1. **libmctp** - Part of OpenBMC: [openbmc/libmctp](https://github.com/openbmc/libmctp)
+2. **libcargs** - A more sensible method of parsing input arguments: [likle/cargs](https://github.com/likle/cargs)
+3. **Linked Lists (uthash)** - Essential linked list functionality: [uthash](https://troydhanson.github.io/uthash/)
 
-- **Xtensa LX7 SDK**:
-  - **Compiler, Linker**: `xt-clang`
-  - **Debugger**: `xt-gdb` (also capable of emulation)
-  - **Simulator**: `xt-run`
-  - **Object Dumper**: `xt_objdump`
+## Code Organization
 
-## 5. Testing Methodology
+- **`src/`** - Contains the USB/MCTP application code.
+- **`libmctp/`** - A modified version of the libmctp library, where most of the `malloc()` and `free()` calls have been replaced with a simplified free/list queue.
+- **`resources/`** - Miscellaneous files and resources.
 
-### A. Long, Not 100% Accurate Method
+## Building and Testing
 
-1. **Create a `hello_world.c` Project**:
-   - Avoid using the standard library (e.g., no `printf()`, `memcpy()`).
-   - If necessary, create your own versions of these functions.
+To build and test the project, ensure the Xtensa SDK is installed and its environment variables are correctly exported.
 
-2. **Compilation with `xt-clang`**:
-   - **Linker Flags**: `-nostdlib -nodefaultlibs`
-     - This removes all standard libraries, leaving only your code.
-   - **Compiler Flags**: `-O3 -DNDEBUG -ffreestanding -nostartfiles -c -save-temps=obj`
-     - This optimizes the code and saves the assembly output (`.s` file).
+### Available Commands:
 
-3. **Assembly Output**:
-   - Use the `.s` file or `xt_objdump` to generate an assembly export of the ELF executable.
+- **Build**
+    ```bash
+    make release
+    make debug
+    ```
 
-4. **Python Script**:
-   - Use Python to clean the output and retain only the instructions.
-
-5. **Cycle Counting**:
-   - Use Python along with a JSON file that acts as a dictionary mapping the LX7 instruction set to the associated CPU cycles.
-
-6. **Final Calculation**:
-   - Count the cycles to estimate the required cores.
-
-7. **Completion**:
-   - Done!
-
-
-### B. Using Emulation (Probably the Best Method)
-
-1. **Compile a Standard Bare (Empty `main()`) Project**:
-   - This project will serve as your baseline for comparison.
-
-2. **Compile with `xt-clang`**:
-   - Use maximum optimization flags: `-O3 -DNDEBUG`.
-   - The output will be an ELF file representing your baseline project.
-
-3. **Run the Baseline in Simulation**:
-   - Use `xt-run` to simulate the execution of the baseline project.
-   - Record the number of cycles used by the baseline project.
-
-4. **Add the Rest of Your Code**:
-   - Integrate the full code into your project.
-
-5. **Compile and Simulate Again**:
-   - Compile the full project and run it through the simulator using `xt-run`.
-
-6. **Calculate the Difference**:
-   - Subtract the number of cycles recorded in Step 3 (baseline) from the cycles recorded in Step 5 (full project).
-
-7. **Conclusion**:
-   - The difference in cycles gives you an estimate of the additional processing required by your code.
-
-   - You're done!
-
+- **Run**
+    ```bash
+    make run
+    ```
+    This command builds an optimized version of the project and executes it using `xt-run`.
