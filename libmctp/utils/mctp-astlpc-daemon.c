@@ -11,65 +11,65 @@
 #include "libmctp.h"
 #include "libmctp-astlpc.h"
 
-static const mctp_eid_t local_eid = 8;
+static const mctp_eid_t local_eid  = 8;
 static const mctp_eid_t remote_eid = 9;
 
-static const uint8_t echo_req = 1;
+static const uint8_t echo_req  = 1;
 static const uint8_t echo_resp = 2;
 
-struct ctx {
-	struct mctp *mctp;
+struct ctx
+{
+    struct mctp *mctp;
 };
 
 static void tx_message(struct ctx *ctx, mctp_eid_t eid, void *msg, size_t len)
 {
-	uint8_t type;
+    uint8_t type;
 
-	type = len > 0 ? *(uint8_t *)(msg) : 0x00;
+    type = len > 0 ? *(uint8_t *) (msg) : 0x00;
 
-	fprintf(stderr, "TX: dest EID 0x%02x: %zd bytes, first byte [0x%02x]\n",
-		eid, len, type);
-	mctp_message_tx(ctx->mctp, eid, 0, MCTP_MESSAGE_TO_SRC, msg, len);
+    fprintf(stderr, "TX: dest EID 0x%02x: %zd bytes, first byte [0x%02x]\n", eid, len, type);
+    mctp_message_tx(ctx->mctp, eid, 0, MCTP_MESSAGE_TO_SRC, msg, len);
 }
 
-static void rx_message(uint8_t eid, uint8_t msg_tag, bool tag_owner, void *data,
-		       void *msg, size_t len)
+static void rx_message(uint8_t eid, uint8_t msg_tag, bool tag_owner, void *data, void *msg, size_t len)
 {
-	struct ctx *ctx = data;
-	uint8_t type;
+    struct ctx *ctx = data;
+    uint8_t     type;
 
-	type = len > 0 ? *(uint8_t *)(msg) : 0x00;
+    type = len > 0 ? *(uint8_t *) (msg) : 0x00;
 
-	fprintf(stderr, "RX: src EID 0x%02x: %zd bytes, first byte [0x%02x]\n",
-		eid, len, type);
+    fprintf(stderr, "RX: src EID 0x%02x: %zd bytes, first byte [0x%02x]\n", eid, len, type);
 
-	if (type == echo_req) {
-		*(uint8_t *)(msg) = echo_resp;
-		tx_message(ctx, eid, msg, len);
-	}
+    if ( type == echo_req )
+    {
+        *(uint8_t *) (msg) = echo_resp;
+        tx_message(ctx, eid, msg, len);
+    }
 }
 
 int main(void)
 {
-	struct mctp_binding_astlpc *astlpc;
-	struct mctp *mctp;
-	struct ctx *ctx, _ctx;
-	int rc;
+    struct mctp_binding_astlpc *astlpc;
+    struct mctp *               mctp;
+    struct ctx *                ctx, _ctx;
+    int                         rc;
 
-	mctp = mctp_init();
-	assert(mctp);
+    mctp = mctp_init();
+    assert(mctp);
 
-	astlpc = mctp_astlpc_init_fileio();
-	assert(astlpc);
+    astlpc = mctp_astlpc_init_fileio();
+    assert(astlpc);
 
-	mctp_astlpc_register_bus(astlpc, mctp, local_eid);
+    mctp_astlpc_register_bus(astlpc, mctp, local_eid);
 
-	ctx = &_ctx;
-	ctx->mctp = mctp;
+    ctx       = &_ctx;
+    ctx->mctp = mctp;
 
-	mctp_set_rx_all(mctp, rx_message, ctx);
+    mctp_set_rx_all(mctp, rx_message, ctx);
 
-	for (;;) {
+    for ( ;; )
+    {
 #if 0
 
 		struct pollfd pollfds[2];
@@ -99,13 +99,13 @@ int main(void)
 				break;
 		}
 #else
-		(void)remote_eid;
-		rc = mctp_astlpc_poll(astlpc);
-		if (rc)
-			break;
+        (void) remote_eid;
+        rc = mctp_astlpc_poll(astlpc);
+        if ( rc )
+            break;
 
 #endif
-	}
+    }
 
-	return EXIT_SUCCESS;
+    return EXIT_SUCCESS;
 }

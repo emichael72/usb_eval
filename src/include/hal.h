@@ -53,6 +53,10 @@
                                                                    parameter warnings */
 #define __IO volatile /**< IO operation */
 
+#ifndef ARRAY_SIZE
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
+#endif
+
 /**
   * @}
   */
@@ -63,7 +67,7 @@
 
 #define HAL_CCOUNT_HACKVAL     (0xFC000000) /**< CCOUNT forward hack value */
 #define HAL_DEFAULT_STACK_SIZE (1 * 1024)   /**< Default stack size in bytes for threads */
-#define HAL_POOL_SIZE          (16 * 1024)  /**< Bytes available for the inner pool */
+#define HAL_POOL_SIZE          (32 * 1024)  /**< Bytes available for the inner pool */
 #define HAL_AUTO_TERMINATE \
     (60000) /**< Auto exit emulator after n 
                                                      milliseconds */
@@ -79,8 +83,10 @@
                                                      ensure thread-safe operation 
                                                      across multiple contexts */
 #define HAL_MSGQ_SANITY_CHECKS \
-    0 /**< Enable sanity checks when requesting
+    1 /**< Enable sanity checks when requesting
                                                      and releasing messages */
+
+#define HAL_PTR_SANITY_CHECKS 0 /**< Enable generic pointers checks */
 
 /******************************************************************************
   * 

@@ -56,7 +56,7 @@
 //#define MCTP_HAVE_FILEIO (HAVE_UNISTD_H && HAVE_FCNTL_H)
 
 /* Define to enable stdio functions */
-//#define MCTP_HAVE_STDIO 1
+#define MCTP_HAVE_STDIO 1
 
 /* Define to enable syslog */
 //#define MCTP_HAVE_SYSLOG 1

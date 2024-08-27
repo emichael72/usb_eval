@@ -53,45 +53,51 @@ static uint32_t msgq_old_int_level;
 #endif
 
 /*! Handle validity protection using a known marker. */
-#define HAL_MSGQ_MAGIC_VAL (0xa55aa55a)
+#define HAL_MSGQ_MAGIC_VAL      (0xa55aa55a)
+#define HAL_MSGQ_MINI_MAGIC_VAL (0xa55a)
 
-/*! @brief  States for a stored message queue item */
-typedef enum
+typedef struct
 {
-    MSGQ_ITEM_FREE = 0, /*!< Stored item is attached to the free items list */
-    MSGQ_ITEM_BUSY      /*!< Stored item is attached to the busy items list */
+    uint16_t marker   : 16; /* Memory marker */
+    uint8_t  status   : 1;  /* busy or free */
+    uint16_t reserved : 15; /* reserved */
+} buf_bits;
 
-} msgq_item_state;
+/*! @brief The message queue item structure */
+typedef struct __attribute__((packed)) __msgq_buf_t
+{
+    struct __msgq_buf_t *next, *prev; /*!< List next and previous pointers */
+    buf_bits             bits;        /*!< Vasrious flags */
+    uint8_t              data[0];     /*!< Payload */
+} msgq_buf;
 
 /*! @brief The message queue storage descriptor */
 typedef struct _msgq_storage_t
 {
-    msgq_buf *busy;         /*!< List of busy (in use) elements */
-    msgq_buf *free;         /*!< List of free (available) elements */
-    msgq_buf *elmArray;     /*!< Array of message queue items */
-    void *    p_storage;    /*!< Pointer to memory region for storing the elements */
-    uint32_t  elem_size;    /*!< Size of a single element in the queue */
-    uint32_t  tot_elements; /*!< Total number of elements in the queue */
-    uint32_t  magic;        /*!< Memory protection marker */
+    msgq_buf *busy;        /*!< List of busy (in use) elements */
+    msgq_buf *free;        /*!< List of free (available) elements */
+    uint16_t  item_size;   /*!< Size of a single element in the queue */
+    uint16_t  items_count; /*!< Total number of elements in the queue */
+    uint32_t  magic;       /*!< Memory protection marker */
+
 } msgq_storage;
 
 /**
  * @brief Requests a data pointer from the queue, moving the item to the busy list.
  * @param msgq_handle Handle to the storage instance.
- * @param data Pointer to data that should be copied to the storage, can be NULL.
  * @param size Size in bytes of 'data'.
- * @param reset If true, the storage buffer will be set to zeros before copying.
- * @retval Pointer to a message queue item or NULL on error.
+ * @retval Pointer biffer or NULL on error.
  */
 
-msgq_buf *msgq_request(uintptr_t msgq_handle, void *data, uint32_t size, bool reset)
+void *msgq_request(uintptr_t msgq_handle, size_t size)
 {
     msgq_buf *    p_buf = NULL;
     msgq_storage *pfs   = (msgq_storage *) msgq_handle; /* Handle to pointer */
 
 #if ( HAL_MSGQ_SANITY_CHECKS == 1 )
-    if ( pfs == NULL || pfs->magic != HAL_MSGQ_MAGIC_VAL )
-        return NULL;
+
+    if ( pfs == NULL || pfs->magic != HAL_MSGQ_MAGIC_VAL || pfs->item_size < size || pfs->free == NULL )
+        assert(0);
 #endif
 
     HAL_MSGQ_ENTER_CRITICAL();
@@ -106,24 +112,15 @@ msgq_buf *msgq_request(uintptr_t msgq_handle, void *data, uint32_t size, bool re
         DL_DELETE(pfs->free, p_buf);
 
     } while ( 0 );
+
     HAL_MSGQ_EXIT_CRITICAL();
 
     if ( p_buf == NULL )
         return NULL;
 
-    p_buf->next  = NULL;
-    p_buf->prev  = NULL;
-    p_buf->type  = MSGQ_ITEM_BUSY; /* Mark as busy */
-    p_buf->state = 0;              /* Initial state */
-
-    /* Copy data to the item's buffer if applicable */
-    if ( data && size && size <= pfs->elem_size )
-    {
-        if ( reset )
-            hal_zero_buf(p_buf->p_data, pfs->elem_size);
-
-        hal_memcpy(p_buf->p_data, data, size);
-    }
+    p_buf->next        = NULL;
+    p_buf->prev        = NULL;
+    p_buf->bits.status = 1; /* Mark as busy */
 
     HAL_MSGQ_ENTER_CRITICAL();
 
@@ -132,24 +129,31 @@ msgq_buf *msgq_request(uintptr_t msgq_handle, void *data, uint32_t size, bool re
 
     HAL_MSGQ_EXIT_CRITICAL();
 
-    return p_buf;
+    return (void *) p_buf->data;
 }
 
 /**
  * @brief Releases an element back to the free elements container.
  * @param msgq_handle Handle to the storage instance.
- * @param p_buf Pointer to the element that should be released.
+ * @param data Pointer to the element that should be released.
  * @retval 0 on success, 1 on error.
  */
 
-int msgq_release(uintptr_t msgq_handle, msgq_buf *p_buf)
+int msgq_release(uintptr_t msgq_handle, void *data)
 {
-    msgq_storage *pfs = (msgq_storage *) msgq_handle; /* Handle to pointer */
+    msgq_buf *    p_buf = NULL;
+    msgq_storage *pfs   = (msgq_storage *) msgq_handle; /* Handle to pointer */
+
+    // Calculate the offset of p_data within msgq_buf
+    size_t offset = offsetof(msgq_buf, data);
+
+    // Subtract the offset from the data_ptr to get the msgq_buf pointer
+    p_buf = (msgq_buf *) ((uint8_t *) data - offset);
 
 #if ( HAL_MSGQ_SANITY_CHECKS == 1 )
-    if ( pfs == NULL || pfs->magic != HAL_MSGQ_MAGIC_VAL || p_buf == NULL || p_buf->type == MSGQ_ITEM_FREE )
+    if ( pfs == NULL || pfs->magic != HAL_MSGQ_MAGIC_VAL || p_buf == NULL || p_buf->bits.marker != HAL_MSGQ_MINI_MAGIC_VAL )
     {
-        return 1; /* Error releasing item to storage */
+        assert(0); /* Error releasing item to storage */
     }
 #endif
 
@@ -158,9 +162,9 @@ int msgq_release(uintptr_t msgq_handle, msgq_buf *p_buf)
     /* Detach from the busy list */
     DL_DELETE(pfs->busy, p_buf);
 
-    p_buf->next = NULL;
-    p_buf->prev = NULL;
-    p_buf->type = MSGQ_ITEM_FREE;
+    p_buf->next        = NULL;
+    p_buf->prev        = NULL;
+    p_buf->bits.status = 0;
 
     /* Attach to the free list */
     DL_APPEND(pfs->free, p_buf);
@@ -172,56 +176,51 @@ int msgq_release(uintptr_t msgq_handle, msgq_buf *p_buf)
 
 /**
  * @brief Constructs a message queue storage instance.
- * @param elem_size Size in bytes of a single stored element.
- * @param tot_elements Maximum number of elements to store.
+ * @param item_size Size in bytes of a single stored element.
+ * @param items_count Maximum number of elements to store.
  * @retval Handle to the message queue (cast to uintptr_t) or 0 on error.
  */
 
-uintptr_t msgq_create(uint32_t elem_size, uint32_t tot_elements)
+uintptr_t msgq_create(size_t item_size, size_t items_count)
 {
-    uint32_t      elm         = 0;
-    size_t        allocSize   = 0;
-    uint8_t *     pStoragePtr = NULL;
-    msgq_storage *pfs         = NULL;
 
-    if ( elem_size == 0 || tot_elements == 0 )
+    size_t        q_item_size = 0;
+    msgq_buf *    p_buf       = NULL;
+    msgq_storage *p_storage   = NULL;
+
+    if ( item_size == 0 || items_count == 0 )
         return 0;
 
-    allocSize = sizeof(msgq_storage) + (elem_size * tot_elements);
+    /* Allocate space for the container */
+    p_storage = (msgq_storage *) hal_alloc(sizeof(msgq_storage));
+    assert(p_storage != NULL);
 
-    /* Allocate space for the storage descriptor and the element storage */
-    pfs = (msgq_storage *) hal_alloc(allocSize);
-    if ( pfs == NULL )
-        return 0;
+    /* Place pointers */
+    p_storage->magic       = 0;
+    p_storage->item_size   = item_size;
+    p_storage->items_count = items_count;
+    p_storage->busy        = NULL;
+    p_storage->free        = NULL;
 
-    pStoragePtr = (uint8_t *) pfs + sizeof(msgq_storage);
+    /* A single node size in bytes */
+    q_item_size = sizeof(msgq_buf) + item_size;
 
-    pfs->magic        = 0;
-    pfs->elem_size    = elem_size;
-    pfs->tot_elements = tot_elements;
-    pfs->p_storage    = (void *) pStoragePtr;
-    pfs->busy         = NULL;
-    pfs->free         = NULL;
-
-    pfs->elmArray = (msgq_buf *) hal_alloc(sizeof(msgq_buf) * tot_elements);
-    if ( pfs->elmArray == NULL )
+    /* Allocater notes and attch them to the free list */
+    for ( int i = 0; i < items_count; i++ )
     {
-        return 0; /* Memory error */
+        p_buf = (msgq_buf *) hal_alloc(q_item_size);
+        assert(p_buf != NULL);
+
+        p_buf->bits.status = 0; /* Free */
+        p_buf->bits.marker = HAL_MSGQ_MINI_MAGIC_VAL;
+        p_buf->next        = NULL;
+        p_buf->prev        = NULL;
+
+        DL_APPEND(p_storage->free, p_buf);
     }
 
-    /* Initialize free items list */
-    while ( elm < tot_elements )
-    {
-        pfs->elmArray[elm].p_data = (uint8_t *) pfs->p_storage + (elm * elem_size);
-        pfs->elmArray[elm].type   = MSGQ_ITEM_FREE;
-        pfs->elmArray[elm].next   = NULL;
-        pfs->elmArray[elm].prev   = NULL;
+    /* Set only when fully initialized */
+    p_storage->magic = HAL_MSGQ_MAGIC_VAL;
 
-        DL_APPEND(pfs->free, &pfs->elmArray[elm]);
-
-        elm++;
-    }
-
-    pfs->magic = HAL_MSGQ_MAGIC_VAL; /* Set only when fully initialized */
-    return (uintptr_t) pfs;
+    return (uintptr_t) p_storage;
 }

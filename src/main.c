@@ -75,7 +75,7 @@ static int init_thread(void *arg, int32_t unused)
 
     /* Initializes the transport layer, this call will assert on any error and
      * consequently cause the emulator to exit back to the shell. */
-    mctp_usb_init();
+    mctp_usb_init(MCTP_USB__DEST_EID);
 
     /* Retrieve argc and argv passed to main */
     hal_get_argcv(&argc, &argv);

@@ -70,20 +70,20 @@ static void eval_msgq_cycles(uintptr_t msgq_handle)
 
     const int frmaes_count = 1;
 
-    msgq_buf *p_buf[MCTP_USB_MSGQ_ALLOCATED_FRAMES];
-    int       ret_val;
+    void *p_bufs[MCTP_USB_MSGQ_ALLOCATED_FRAMES];
+    int   ret_val;
 
     /* Request n frames */
     for ( int i = 0; i < frmaes_count; i++ )
     {
-        p_buf[i] = msgq_request(msgq_handle, NULL, 0, false);
-        assert(p_buf[i] != NULL);
+        p_bufs[i] = msgq_request(msgq_handle, 16);
+        assert(p_bufs[i] != NULL);
     }
 
     /* Release . frames */
     for ( int i = 0; i < frmaes_count; i++ )
     {
-        ret_val = msgq_release(msgq_handle, p_buf[i]);
+        ret_val = msgq_release(msgq_handle, p_bufs[i]);
         assert(ret_val == 0);
     }
 }
@@ -134,6 +134,9 @@ uint64_t run_cycles_test(cycles_test test, int8_t iterations)
                 test_description = "HAL optimized memcpy()";
                 break;
 
+            case CYCLES_EVAL_USB_BUS_SEQ:
+                mctp_usb_run_seq_tests();
+                break;
             default:
                 /* Unsupported, show help end exit.*/
                 printf("Known test types:\n");
@@ -141,12 +144,17 @@ uint64_t run_cycles_test(cycles_test test, int8_t iterations)
                 printf("\t1: MessageQ request/release.\n");
                 printf("\t2: Xtensa native memcpy() with 32 bytes.\n");
                 printf("\t3: HAL optimized memcpy() with 32 bytes.\n");
+                printf("\t4: HAL optimized memcpy() with 32 bytes.\n");
+                printf("\t5: Run MCTP sequence tests.\n");
                 return 0; /* Case not handled */
         }
     }
 
     avg_cycles = (total_cycles / iterations);
-    printf("%s (x %d): %llu\n", test_description, iterations, avg_cycles);
+    if ( test_description != NULL )
+    {
+        printf("%s (x %d): %llu\n", test_description, iterations, avg_cycles);
+    }
 
     return avg_cycles;
 }
