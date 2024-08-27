@@ -121,18 +121,24 @@ static int mctp_usbt_tx(struct mctp_binding *binding __attribute__((unused)), st
 }
 
 /**
- * @return
+ * mctp_usb_rx_raw - Pushes raw MCTP data to the USB RX interface.
+ *
+ * This function allocates a new packet buffer from the pool and copies the 
+ * provided data into the buffer as an MCTP packet. The buffer is then handed 
+ * over to the MCTP core RX driver for further processing.
+ *
+ * @param buf: Pointer to the data buffer containing the MCTP packet.
+ * @param len: Length of the data buffer.
  */
-
-void mctp_usb_rx_raw(struct mctp_binding *binding, void *buf, size_t len)
+void mctp_usb_rx_raw(void *buf, size_t len)
 {
     struct mctp_pktbuf *pkt;
 
-    pkt = mctp_pktbuf_alloc(binding, len);
+    pkt = mctp_pktbuf_alloc(&p_mctpusb->binding, len);
     assert(pkt);
 
     hal_memcpy(mctp_pktbuf_hdr(pkt), buf, len);
-    mctp_bus_rx(binding, pkt);
+    mctp_bus_rx(&p_mctpusb->binding, pkt);
 }
 
 /**
@@ -151,33 +157,6 @@ uintptr_t mctp_usb_get_msgq_handle(void)
 #else
     return p_mctpusb->msgq_handle;
 #endif
-}
-
-static void mctp_usb_test_rx(uint8_t eid, bool tag_owner, uint8_t msg_tag, void *data, void *msg, size_t len)
-{
-}
-
-static void mctp_usb_run_seq_cycles(uintptr_t ptr)
-{
-    const mctp_eid_t remote_eid = 10;
-    struct test *    test       = (struct test *) ptr;
-
-    struct
-    {
-        struct mctp_hdr hdr;
-        uint8_t         payload[1];
-    } pktbuf;
-
-    for ( int i = 0; i < test->n_packets; i++ )
-    {
-        memset(&pktbuf, 0, sizeof(pktbuf));
-        pktbuf.hdr.dest          = p_mctpusb->eid;
-        pktbuf.hdr.src           = remote_eid;
-        pktbuf.hdr.flags_seq_tag = test->flags_seq_tags[i];
-        pktbuf.payload[0]        = i;
-
-        mctp_usb_rx_raw(&p_mctpusb->binding, &pktbuf, sizeof(pktbuf));
-    }
 }
 
 /**
@@ -201,7 +180,36 @@ static void mctp_usb_run_seq_cycles(uintptr_t ptr)
  * @return void
  */
 
-void mctp_usb_run_seq_tests(void)
+static void mctp_usb_test_rx(uint8_t eid, bool tag_owner, uint8_t msg_tag, void *data, void *msg, size_t len)
+{
+    /* Do not do anythig here, the cycles are counting :)*/
+}
+
+static void mctp_usb_test_seq_cycles(uintptr_t ptr)
+{
+    const mctp_eid_t remote_eid = 10;
+    struct test *    test       = (struct test *) ptr;
+
+    struct
+    {
+        struct mctp_hdr hdr;
+        uint8_t         payload[1];
+    } pktbuf;
+
+    for ( int i = 0; i < test->n_packets; i++ )
+    {
+        memset(&pktbuf, 0, sizeof(pktbuf));
+        pktbuf.hdr.dest          = p_mctpusb->eid;
+        pktbuf.hdr.src           = remote_eid;
+        pktbuf.hdr.flags_seq_tag = test->flags_seq_tags[i];
+        pktbuf.payload[0]        = i;
+
+        mctp_usb_rx_raw(&pktbuf, sizeof(pktbuf));
+    }
+}
+
+/* Test entry point */
+void mctp_usb_run_test_seq(void)
 {
 
     struct test *test   = NULL;
@@ -217,7 +225,7 @@ void mctp_usb_run_seq_tests(void)
         printf("Running: %-64s: ", test->name);
 
         /* Execute and count cycles */
-        cycles = hal_measure_cycles(mctp_usb_run_seq_cycles, (uintptr_t) test);
+        cycles = hal_measure_cycles(mctp_usb_test_seq_cycles, (uintptr_t) test);
 
         printf("%6llu cycles\n", cycles);
     }
@@ -268,7 +276,6 @@ void mctp_usb_init(uint8_t eid)
     p_mctpusb->binding.pkt_header  = 0;
     p_mctpusb->binding.pkt_trailer = 0;
 
-    // xos_disable_interrupts();
     ret = mctp_register_bus(p_mctpusb->p_mctp, &p_mctpusb->binding, eid);
     assert(ret == 0);
 }

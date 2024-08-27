@@ -135,7 +135,7 @@ uint64_t run_cycles_test(cycles_test test, int8_t iterations)
                 break;
 
             case CYCLES_EVAL_USB_BUS_SEQ:
-                mctp_usb_run_seq_tests();
+                mctp_usb_run_test_seq();
                 break;
             default:
                 /* Unsupported, show help end exit.*/
@@ -144,8 +144,7 @@ uint64_t run_cycles_test(cycles_test test, int8_t iterations)
                 printf("\t1: MessageQ request/release.\n");
                 printf("\t2: Xtensa native memcpy() with 32 bytes.\n");
                 printf("\t3: HAL optimized memcpy() with 32 bytes.\n");
-                printf("\t4: HAL optimized memcpy() with 32 bytes.\n");
-                printf("\t5: Run MCTP sequence tests.\n");
+                printf("\t4: Run MCTP sequence tests.\n");
                 return 0; /* Case not handled */
         }
     }

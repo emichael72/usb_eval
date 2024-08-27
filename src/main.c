@@ -183,8 +183,7 @@ static int init_thread(void *arg, int32_t unused)
 
 int main(int argc, char **argv)
 {
-    /* Initialize the system and start the XOS kernel. 
-     * This function will block. */
+    /* Initialize system and start XOS kernel.*/
 
     hal_sys_init(init_thread, argc, argv);
 

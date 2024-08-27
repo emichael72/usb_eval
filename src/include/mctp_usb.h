@@ -40,7 +40,7 @@
 /* Define version components */
 #define MCTP_USB_APP_VERSION_MAJOR 0
 #define MCTP_USB_APP_VERSION_MINOR 1
-#define MCTP_USB_APP_VERSION_BUILD 0
+#define MCTP_USB_APP_VERSION_BUILD 1
 
 /* Concatenate the version components into a single string */
 #define STR_HELPER(x) #x
@@ -113,7 +113,7 @@ uintptr_t mctp_usb_get_msgq_handle(void);
  * @return void
  */
 
-void mctp_usb_run_seq_tests(void);
+void mctp_usb_run_test_seq(void);
 
 /**
   * @}
