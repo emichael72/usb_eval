@@ -1,9 +1,9 @@
 /* SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later */
 
 #include <assert.h>
-#include <hal.h> /* LX7 Infrastructure */
+#include <hal.h> /* Intel: LX7 infrastructure */
+#include <test_mctplib.h> /* Intel : libmctop integrationm test */
 #include <hal_msgq.h>
-#include <mctplib_usb.h>
 
 #include "libmctp.h"
 #include "libmctp-alloc.h"
@@ -16,13 +16,13 @@
 void *__mctp_alloc(size_t size)
 {
     /* Use Q */
-    return msgq_request(mctp_usb_get_msgq_handle(), size);
+    return msgq_request(test_mctplib_get_msgq(), size);
 }
 
 void __mctp_free(void *ptr)
 {
     /* Use Q !*/
-    msgq_release(mctp_usb_get_msgq_handle(), ptr);
+    msgq_release(test_mctplib_get_msgq(), ptr);
 }
 
 void *__mctp_realloc(void *ptr, size_t size)

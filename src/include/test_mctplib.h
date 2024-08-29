@@ -1,7 +1,7 @@
 
 /**
   ******************************************************************************
-  * @file    mctplib_usb.h
+  * @file    test_nctplib.h
   * @author  IMCv2 Team
   * @brief   A simple implementation for libmctp that creates USB device bindings.
   * 
@@ -27,8 +27,8 @@
 
 /* Define to prevent recursive inclusion -------------------------------------*/
 
-#ifndef _MCTP_USB_H
-#define _MCTP_USB_H
+#ifndef _TEST_MCTP_LIB_H_
+#define _TEST_MCTP_LIB_H_
 
 /* Exported macro ------------------------------------------------------------*/
 /** @defgroup MCTP_USB_Exported_MACRO MCTP over USB Macros
@@ -51,29 +51,12 @@
   */
 
 /**
- * @brief Initializes the MTCP over USB transport layer.
- *
- * This function initializes the MTCP over USB transport layer by allocating 
- * necessary resources and initializing components. The function does not return 
- * anything but will assert if any component fails to initialize correctly.
- *
- * The following steps are performed:
- * - Allocate memory for the MTCP USB session.
- * - Create a message queue pool to be used with libmctp, allowing buffers to be 
- *   requested and released via msgq_request() and msgq_release().
- * - Initialize libmctp and assert if initialization fails.
- */
-
-void mctp_usb_init(uint8_t eid);
-
-/**
  * @brief Retrieves the handle to the message queue initialized by this module.
- *
  * @return The message queue handle, or 0 if the module or message queue is not 
  *         initialized.
  */
 
-uintptr_t mctp_usb_get_msgq_handle(void);
+uintptr_t test_mctplib_get_msgq(void);
 
 /**
  * @brief Run MCTP sequence tests over USB.
@@ -96,10 +79,28 @@ uintptr_t mctp_usb_get_msgq_handle(void);
  * @return void
  */
 
-void mctp_usb_run_test_seq(void);
+int   test_mctplib_prolog(uintptr_t ptr);
+void  test_exec_mctplib(uintptr_t ptr);
+char *test_mctplib_desc(size_t description_type);
+
+/**
+ * @brief Initializes the MTCP over USB transport layer.
+ *
+ * This function initializes the MTCP over USB transport layer by allocating 
+ * necessary resources and initializing components. The function does not return 
+ * anything but will assert if any component fails to initialize correctly.
+ *
+ * The following steps are performed:
+ * - Allocate memory for the MTCP USB session.
+ * - Create a message queue pool to be used with libmctp, allowing buffers to be 
+ *   requested and released via msgq_request() and msgq_release().
+ * - Initialize libmctp and assert if initialization fails.
+ */
+
+void test_mctplib_init(uint8_t eid);
 
 /**
   * @}
   */
 
-#endif /* _MCTP_USB_H */
+#endif /* _TEST_MCTP_LIB_H_ */

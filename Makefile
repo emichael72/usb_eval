@@ -69,16 +69,18 @@ SRCS =	src/main.c \
 		src/hal/hal.c \
 		src/hal/hal_alloc.c \
 		src/hal/hal_msgq.c \
-		src/test/cargs.c \
-		src/test/ncsi_packet.c \
-		src/test/mctplib_usb.c \
-		src/test/frag.c \
-		src/test/cycles_eval.c \
-		src/test/ncsi_packet.c \
+		src/hal/ncsi.c \
+		src/hal/cargs.c \
 		libmctp/core.c \
 		libmctp/alloc.c \
 		libmctp/log.c \
-		libmctp/crc-16-ccitt.c
+		libmctp/crc-16-ccitt.c \
+		src/tests/test_launcher.c \
+		src/tests/test_frag.c \
+		src/tests/test_mctplib.c \
+		src/tests/test_msgq.c \
+		src/tests/test_memcpy.c \
+		src/tests/test_usless.c
 	
 # Object files
 OBJS = $(patsubst %.c,$(BUILD_DIR)/%.o,$(SRCS)) \

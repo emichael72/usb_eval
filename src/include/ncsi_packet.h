@@ -30,8 +30,8 @@
 
 #include <stdint.h>
 
-#define NCSI_PACKET_MAX_SIZE  1536                        /* 1.5 KB maximum packet size */
-#define NCSI_PAYLOAD_MAX_SIZE (NCSI_PACKET_MAX_SIZE - 14) /* Ethernet header  is 14 bytes */
+#define NCSI_PACKET_MAX_SIZE  1536                            /* 1.5 KB maximum packet size */
+#define NCSI_PAYLOAD_MAX_SIZE (NCSI_PACKET_MAX_SIZE - 14 - 1) /* Ethernet header  is 14 bytes + Intel prepended byte */
 
 /* Ethernet header structure */
 typedef struct

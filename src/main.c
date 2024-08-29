@@ -18,17 +18,15 @@
   ******************************************************************************
   */
 
-#include <stdio.h>
 #include <hal.h>
+#include <test_launcher.h>
+#include <tests.h>
+#include <stdio.h>
 #include <ctype.h>
-#include <mctplib_usb.h>
-#include <frag,h>
 #include <cargs.h>
-#include <cycles_eval.h>
 
 /* Known console input arguments table. */
 /* clang-format off */
-
 static struct cag_option options[] =
 {
     {.identifier = 't', .access_letters = "t",  .access_name = "test",  .value_name = "VALUE",  .description = "Execute a cycle test."},
@@ -37,8 +35,49 @@ static struct cag_option options[] =
     {.identifier = 'c', .access_letters = "c",  .access_name = "cgi",   .value_name = NULL,     .description = "Enable web CGI mode."},
     {.identifier = 'h', .access_letters = "h?", .access_name = "help",  .value_name = NULL,     .description = "Print usage."},
 };
-
 /* clang-format on */
+
+/* clang-format off */
+static test_launcher_item_info tests_info[] = {
+
+    /* Prolog               Test function         Epilogue       Description           Prolog args  Test arg  Epilogue args  Repetitions */
+    /* --------------------------------------------------------------------------------------------------------------------------------- */
+    { NULL,                 hal_useless_function, NULL,          test_useless_desc,    0,           0,        0,             1           },
+    { NULL,                 test_exec_memcpy,     NULL,          test_memcpy_desc,     0,           0,        0,             1           },
+    { NULL,                 test_exec_msgq,       NULL,          test_msgq_desc,       0,           0,        0,             1           },
+    { test_mctplib_prolog,  test_exec_mctplib,    NULL,          test_mctplib_desc,    0,           0,        0,             1           },
+    { test_frag_prolog,     test_exec_frag,       NULL,          test_frag_desc,       0,           0,        0,             1           },
+
+};
+/* clang-format on */
+
+/**
+ * @brief Initializes the test launcher and registers all tests.
+ * 
+ * This function initializes the test launcher module and registers all tests 
+ * defined in the `tests_info` array. It returns 1 on success and 0 on failure.
+ * 
+ * @return int Returns 1 on successful initialization and registration, 0 on failure.
+ */
+
+static int init_register_tests(void)
+{
+    /* Initialize the tests launcher module */
+    if ( test_launcher_init() != 0 )
+        return 0;
+
+    /* Register each test from the tests_info array */
+    for ( size_t i = 0; i < sizeof(tests_info) / sizeof(tests_info[0]); i++ )
+    {
+        if ( test_launcher_register_test(&tests_info[i]) != 0 )
+        {
+            /* Handle registration failure */
+            return 0; /* Return 0 on failure */
+        }
+    }
+
+    return 1; /* Return 1 on successful initialization and registration */
+}
 
 /**
  * @brief Initial startup thread that initializes the system and processes 
@@ -68,19 +107,27 @@ static int init_thread(void *arg, int32_t unused)
     bool               run_and_exit     = true;  /* Specify to terminate immediately */
     const char *       value            = NULL;  /* Points to an extrcated argumnet */
     int                test_repetitions = 1;     /* Local argumnet */
-    int                test_type        = -1;    /* Local argumnet */
+    int                test_index       = -1;    /* Local argumnet */
     bool               cgi_mode         = false; /* Local argumnet */
     bool               exit_fetch       = false; /* Exit the arguments fearch loop */
+    char *             long_description;
 
     HAL_UNUSED(arg);
     HAL_UNUSED(unused);
 
-    /* Initializes the transport layer, this call will assert on any error and
-     * consequently cause the emulator to exit back to the shell. */
-    mctp_usb_init(MCTP_USB__DEST_EID);
+    /* Some tests require dedicated initialization routines, so: */
+
+    /* 
+     * Initializes the transport layer, this call will assert on any error and
+     * consequently cause the emulator to exit back to the shell. 
+     */
+    test_mctplib_init(MCTP_USB__DEST_EID);
 
     /* Initilizes the 'frag' logic test */
-    frag_test_init();
+    test_frag_init();
+
+    /* Now initilize the tets launcher module*/
+    init_register_tests();
 
     /* Retrieve argc and argv passed to main */
     hal_get_argcv(&argc, &argv);
@@ -110,12 +157,12 @@ static int init_thread(void *arg, int32_t unused)
                     break;
 
                 case 't': /* Execute our basic 'useless cycles' test */
-                    test_type = 0xff;
-                    value     = cag_option_get_value(&context);
+                    test_index = 0xff;
+                    value      = cag_option_get_value(&context);
                     if ( value != NULL )
                     {
                         if ( isdigit(*value) )
-                            test_type = atol(value);
+                            test_index = atol(value);
                     }
                     break;
 
@@ -142,19 +189,31 @@ static int init_thread(void *arg, int32_t unused)
         if ( exit_fetch == false )
         {
             /* Execute the action specified by the input flgas */
-            if ( test_type >= 0 )
-                measured_cycles = run_cycles_test(test_type, test_repetitions);
+            if ( test_index >= 0 )
+            {
+                measured_cycles = test_launcher_execute(test_index);
+                if ( measured_cycles > 0 )
+                {
+                    long_description = test_launcher_long_help(test_index);
+                    printf("Cycles count : %lld.\n\n", measured_cycles);
+
+                    if ( cgi_mode == true )
+                    {
+                        /* Running as a CGI: This will turn the text color to white to 
+                         * better differentiate our printouts from the xt-run summary.
+                         */
+
+                        printf("<span style=\"color: white; font-size: 12px;\">\n");
+                    }
+                    printf("Description:\n%s\n", long_description);
+                }
+            }
         }
     }
-
-    /* Running as a CGI: This will turn the text color to white to 
-     * better differentiate our printouts from the xt-run summary.
-     */
 
     if ( cgi_mode == true )
     {
         printf("\nRequest completed.\n");
-        printf("<span style=\"color: white; font-size: 12px;\">\n");
     }
 
     if ( run_and_exit == true )

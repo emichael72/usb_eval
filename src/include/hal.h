@@ -140,6 +140,19 @@
   * @}
   */
 
+/**
+ * @brief Pattern descriptor used for buffer painting and validation.
+ */
+typedef struct
+{
+    uint8_t  version;  /**< Version number of the pattern descriptor. */
+    uint16_t checksum; /**< Checksum of the pattern data. */
+
+} HAL_PATTERN_DESCRIPTOR;
+
+#define HAL_PATTERN_DESCRIPTOR_SIZE sizeof(HAL_PATTERN_DESCRIPTOR)
+#define HAL_MIN_PATTERN_BUFFER_SIZE (HAL_PATTERN_DESCRIPTOR_SIZE + 32)
+
 /** @addtogroup Exported_HAL_Functions HAL Exported Functions
  * @{
  */
@@ -269,6 +282,20 @@ void hal_terminate_simulation(int status);
  */
 
 uint64_t hal_measure_cycles(hal_sim_func func, uintptr_t arg);
+
+/**
+ * @brief Paints or vlidarte a buffer with a pattern and a descriptor.
+ *
+ * This function fills the given buffer with a predefined pattern and
+ * adds a pattern descriptor at the beginning of the buffer.
+ *
+ * @param p_buffer Pointer to the buffer to be painted.
+ * @param len Length of the buffer in bytes.
+ * @return 0 on success, 1 on error (e.g., invalid input).
+ */
+
+int hal_paint_buffer(void *p_buffer, size_t len);
+int hal_validate_paint_buffer(void *p_buffer, size_t len);
 
 /**
  * @brief Retrieve the current system tick count.

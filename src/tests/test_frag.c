@@ -94,6 +94,9 @@ typedef struct frag_test_t
     uint8_t          version;          /**< MCTP header version. */
     uint8_t          destination_eid;  /**< MCTP destination EID. */
     uint8_t          source_eid;       /**< MCTP source EID. */
+    uint8_t          usb_tx_frames;
+    uint8_t          usb_tx_operations;
+    uint16_t         usb_raw_payload;
 
 } frag_test;
 
@@ -109,7 +112,7 @@ frag_test *p_frag_test = NULL;
  * marked with the end-of-message (EOM) flag.
  */
 
-static void frag_test_adjust_pointers(void)
+static void test_frag_adjust_pointers(void)
 {
     mctp_frag *frag            = p_frag_test->p_mctp_head;
     uint8_t *  p_payload       = (uint8_t *) p_frag_test->p_ncsi_packet;
@@ -135,43 +138,6 @@ static void frag_test_adjust_pointers(void)
 }
 
 /**
- * @brief Obtain a fake Ethernet NC-SI frame along with its size.
- *
- * In a real-world scenario, this frame would be placed in a designated RAM 
- * region, and this logic would be notified via an interrupt.
- *
- * @note TBD: Confirm if this is the correct approach.
- *
- * @return 0 on success, 1 on failure.
- */
-
-int frag_test_on_ncsi_rx(void)
-{
-
-    if ( p_frag_test == NULL )
-        return 1; /* Module not initalized */
-
-    p_frag_test->p_ncsi_packet = ncsi_request_packet(&p_frag_test->ncsi_packet_size);
-    if ( p_frag_test->p_ncsi_packet == NULL || p_frag_test->ncsi_packet_size == 0 )
-        return 1;
-
-    /* Prepended '3'to NCSI packet */
-    p_frag_test->p_ncsi_packet->extra_byte = 3;
-
-    /* Calculate the total number of fragments needed */
-    p_frag_test->ncsi_frgas_count = (p_frag_test->ncsi_packet_size + USB_FRAME_SIZE - 1) / USB_FRAME_SIZE;
-
-    if ( p_frag_test->ncsi_frgas_count > MCTP_MAX_FRAGMENTS )
-    {
-        /* Drop the packet , it's too big */
-        p_frag_test->ncsi_frgas_count = 0;
-        return 1;
-    }
-
-    return 0; /* NC-SI packet reday for frgmantation */
-}
-
-/**
  * @brief Dummy function to simulate USB transmission of pointer-size pairs.
  *
  * This function is a placeholder for the actual USB transmission function. It 
@@ -183,17 +149,77 @@ int frag_test_on_ncsi_rx(void)
  * @param pairs_count The number of pairs in the array.
  */
 
-void frag_usb_tx(ptr_size_pair *pairs, size_t pairs_count)
+static void test_frag_on_usb_tx(ptr_size_pair *pairs, size_t pairs_count)
 {
-    /* Implementation of USB transmission would go here. */
+/* Implementation of USB transmission would go here. */
+#ifdef DEBUG
+
+    printf("\tUSB Tx %2d, messages: %d\n", p_frag_test->usb_tx_operations, pairs_count);
+
+    for ( int i = 0; i < pairs_count; i++ )
+    {
+        //printf("\tUSB TX [%2d]: %d bytres.\n",  p_frag_test->usb_tx_frames, pairs[i].size);
+        p_frag_test->usb_tx_frames++;
+
+        if ( i % 2 != 0 )
+            p_frag_test->usb_raw_payload += pairs[i].size;
+    }
+
+    p_frag_test->usb_tx_operations++;
+
+#endif
 }
 
 /**
- * @brief Starts the fragments test by processing and transmitting NC-SI 
+ * @brief Obtain a fake Ethernet NC-SI frame along with its size.
+ *
+ * In a real-world scenario, this frame would be placed in a designated RAM 
+ * region, and this logic would be notified via an interrupt.
+ * @note TBD: Confirm if this is the correct approach.
+ *
+ * @return 0 on success, 1 on failure.
+ */
+
+int test_frag_prolog(uintptr_t arg)
+{
+
+    if ( p_frag_test == NULL )
+        return 1; /* Module not initalized */
+
+    p_frag_test->p_ncsi_packet = ncsi_request_packet(&p_frag_test->ncsi_packet_size);
+    if ( p_frag_test->p_ncsi_packet == NULL || p_frag_test->ncsi_packet_size == 0 )
+        return 1;
+
+    /* Prepended '3'to NCSI packet */
+    p_frag_test->p_ncsi_packet->extra_byte = 3;
+    p_frag_test->usb_tx_frames             = 0;
+    p_frag_test->usb_raw_payload           = 0;
+    p_frag_test->usb_tx_operations         = 0;
+
+    /* Calculate the total number of fragments needed */
+    p_frag_test->ncsi_frgas_count = (p_frag_test->ncsi_packet_size + USB_FRAME_SIZE - 1) / USB_FRAME_SIZE;
+
+    if ( p_frag_test->ncsi_frgas_count > MCTP_MAX_FRAGMENTS )
+    {
+        /* Drop the packet , it's too big */
+        p_frag_test->ncsi_frgas_count = 0;
+        return 1;
+    }
+
+#ifdef DEBUG
+    printf("\tNC-SI inbound packet size: %d\n", p_frag_test->ncsi_packet_size);
+    printf("\tNC-SI expected fragments of up-to 64 bytes: %d\n", p_frag_test->ncsi_frgas_count);
+#endif
+
+    return 0; /* NC-SI packet reday for frgmantation */
+}
+
+/**
+ * @brief Performs the fragments test by processing and transmitting NC-SI 
  *        packet fragments.
  *
  * This function is executed when a new NC-SI packet is available. It adjusts 
- * the fragment pointers using `frag_test_adjust_pointers()`, and then iterates 
+ * the fragment pointers using `test_frag_adjust_pointers()`, and then iterates 
  * through the fragments, preparing batches of MCTP headers and their 
  * corresponding payloads. These batches are then sent to the USB hardware 
  * in groups of up to 4 fragments (2 pairs of header and payload).
@@ -201,10 +227,10 @@ void frag_usb_tx(ptr_size_pair *pairs, size_t pairs_count)
  * @param arg Unused parameter, reserved for future use.
  */
 
-void frag_test_start(uintptr_t arg)
+void test_exec_frag(uintptr_t arg)
 {
     /* By now, we trust that there is a pending NC-SI packet */
-    frag_test_adjust_pointers();
+    test_frag_adjust_pointers();
 
     /* Define an array to hold up to 4 pairs at a time */
     ptr_size_pair pairs[4];
@@ -232,10 +258,56 @@ void frag_test_start(uintptr_t arg)
            the last fragment */
         if ( pairs_count == 4 || i == p_frag_test->ncsi_frgas_count - 1 )
         {
-            /* Send the batch to the USB hardware */
-            frag_usb_tx(pairs, pairs_count);
+            /* Send the batch to the fake USB hardware interfcae */
+            test_frag_on_usb_tx(pairs, pairs_count);
             pairs_count = 0; /* Reset the counter for the next batch */
         }
+    }
+
+/* Packet sent. */
+#ifdef DEBUG
+    printf("\tTotal %d USB fragments\n", p_frag_test->usb_tx_frames);
+    printf("\tUSB raw TX bytes execluding MCTP: %d\n\n", p_frag_test->usb_raw_payload);
+
+#endif
+}
+
+/**
+ * @brief Provides a description for the NC-SI to MCTP packet fragmentation test.
+ * 
+ * This function returns a description of the test that handles NC-SI to MCTP packet 
+ * fragmentation using a zero-copy method, either as a brief one-liner or as a more 
+ * detailed explanation depending on the value of `description_type`.
+ * 
+ * @param description_type Specifies the type of description:
+ *                         0 for a brief one-line description,
+ *                         1 for an in-depth test description.
+ * @return A pointer to a string containing the description.
+ */
+
+char *test_frag_desc(size_t description_type)
+{
+    if ( description_type == 0 )
+    {
+        return "NC-SI to MCTP packet fragmentation flow using zero-copy method.";
+    }
+    else
+    {
+        return "This test simulates the reception and handling of an NC-SI packet, which is \n"
+               "then fragmented into smaller chunks to fit within MCTP fragments, each \n"
+               "attached to a 64-byte payload. The approach leverages zero-copy techniques \n"
+               "by using pointer arithmetic to avoid the overhead associated with resource-\n"
+               "intensive functions like memcpy().\n\n"
+               "Instead of copying data, pointers are created to directly reference segments \n"
+               "of the inbound NC-SI payload. These pointers form a list that points to the \n"
+               "different chunks of the original Ethernet packet, allowing the system to \n"
+               "efficiently handle the fragmentation without duplicating data in memory.\n\n"
+               "Finally, these pointers are passed to a simulated USB interface, which, in a \n"
+               "real-world application, would take these MCTP fragments, consolidate them \n"
+               "into contiguous USB frames, and transmit them. This test aims to validate the \n"
+               "efficiency and correctness of the fragmentation process, ensuring that the \n"
+               "system can handle packet fragmentation and reassembly with minimal resource \n"
+               "consumption and optimal performance.";
     }
 }
 
@@ -247,7 +319,7 @@ void frag_test_start(uintptr_t arg)
  * will result in an assertion.
  */
 
-void frag_test_init(void)
+void test_frag_init(void)
 {
     mctp_frag *frag      = NULL;
     int        msg_index = 0;

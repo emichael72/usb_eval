@@ -236,7 +236,7 @@ void inline hal_terminate_simulation(int status)
  * @return None (void function).
  */
 
-void inline hal_useless_function(uintptr_t xthal_async_L2_region_unlock)
+void inline hal_useless_function(uintptr_t unused)
 {
     __asm__ __volatile__("nop\n"
                          "nop\n"
@@ -399,6 +399,80 @@ void *hal_zero_buf(void *dest, size_t n)
     }
 
     return dest;
+}
+
+/**
+ * @brief Paints a buffer with a pattern and a descriptor.
+ *
+ * This function fills the given buffer with a predefined pattern and
+ * adds a pattern descriptor at the beginning of the buffer.
+ *
+ * @param p_buffer Pointer to the buffer to be painted.
+ * @param len Length of the buffer in bytes.
+ * @return 0 on success, 1 on error (e.g., invalid input).
+ */
+
+int hal_paint_buffer(void *p_buffer, size_t len)
+{
+
+    if ( p_buffer == NULL || len < HAL_MIN_PATTERN_BUFFER_SIZE )
+    {
+        return 1; /* Error: Invalid input */
+    }
+
+    /* Set up a pattern descriptor */
+    HAL_PATTERN_DESCRIPTOR descriptor = {0x01, 0x0000}; /* Example: version 1, checksum 0 */
+
+    /* Calculate checksum (simple sum of pattern bytes as an example) */
+    uint8_t *pattern = (uint8_t *) p_buffer + HAL_PATTERN_DESCRIPTOR_SIZE;
+    for ( size_t i = 0; i < len - HAL_PATTERN_DESCRIPTOR_SIZE; ++i )
+    {
+        pattern[i] = (uint8_t) (i & 0xFF); /* Example pattern: incrementing bytes */
+        descriptor.checksum += pattern[i];
+    }
+
+    /* Copy the descriptor into the buffer */
+    memcpy(p_buffer, &descriptor, HAL_PATTERN_DESCRIPTOR_SIZE);
+
+    return 0; /* Success */
+};
+
+/**
+ * @brief Validates a buffer against a previously painted pattern.
+ *
+ * This function checks if the buffer contains the expected pattern
+ * by comparing the checksum stored in the pattern descriptor.
+ *
+ * @param p_buffer Pointer to the buffer to be validated.
+ * @param len Length of the buffer in bytes.
+ * @return 0 on success (pattern is valid), 1 on error (e.g., invalid input or validation failure).
+ */
+
+int hal_validate_paint_buffer(void *p_buffer, size_t len)
+{
+    if ( p_buffer == NULL || len < HAL_MIN_PATTERN_BUFFER_SIZE )
+    {
+        return 1; /* Error: Invalid input */
+    }
+
+    /* Retrieve the descriptor from the buffer */
+    HAL_PATTERN_DESCRIPTOR *descriptor = (HAL_PATTERN_DESCRIPTOR *) p_buffer;
+
+    /* Calculate checksum of the pattern */
+    uint16_t calculated_checksum = 0;
+    uint8_t *pattern             = (uint8_t *) p_buffer + HAL_PATTERN_DESCRIPTOR_SIZE;
+    for ( size_t i = 0; i < len - HAL_PATTERN_DESCRIPTOR_SIZE; ++i )
+    {
+        calculated_checksum += pattern[i];
+    }
+
+    /* Validate the checksum */
+    if ( calculated_checksum != descriptor->checksum )
+    {
+        return 1; /* Error: Pattern validation failed */
+    }
+
+    return 0; /* Success: Pattern is valid */
 }
 
 /**

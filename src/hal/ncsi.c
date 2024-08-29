@@ -2,12 +2,10 @@
 /**
   ******************************************************************************
   *
-  * @file ncsi_packet.c
-  *  @brief NC-SI Ethernet packet structure definitions.
-  *
-  * Dummy API to help gemerating a relastic as posiiably NC SI packet.
+  * @file ncsi.c
+  *  @brief Dummy API to help gemerating a relastic as posiiably NC SI packet.
   *  
-  * @note This file includes guards to prevent recursive inclusion.
+  * @note https://www.dmtf.org/sites/default/files/standards/documents/DSP0222_1.0.0.pdf.
   * 
    ******************************************************************************
    * 
@@ -51,6 +49,8 @@ static uint16_t ncsi_htons(uint16_t hostshort)
 
 ncsi_eth_packet *ncsi_request_packet(uint16_t *size)
 {
+    int ret;
+
     /* Populate the Ethernet header with realistic data */
     uint8_t example_dest_mac[6] = {0x00, 0x25, 0x90, 0xAB, 0xCD, 0xEF};
     uint8_t example_src_mac[6]  = {0x00, 0x14, 0x22, 0x01, 0x23, 0x45};
@@ -60,14 +60,16 @@ ncsi_eth_packet *ncsi_request_packet(uint16_t *size)
     ncsi_global_packet.eth_header.ethertype = ncsi_htons(0x88F8); /* NC-SI EtherType */
 
     /* Populate NC-SI command/response header with realistic data */
-    ncsi_global_packet.ncsi_data.mc_id            = 0x01;           /* Example MC ID */
-    ncsi_global_packet.ncsi_data.header_revision  = 0x01;           /* Example Header Revision */
-    ncsi_global_packet.ncsi_data.payload_length   = ncsi_htons(64); /* Example payload length */
-    ncsi_global_packet.ncsi_data.channel_id       = 0x00;           /* Example Channel ID */
-    ncsi_global_packet.ncsi_data.command_response = 0x01;           /* Example Command */
+    ncsi_global_packet.ncsi_data.mc_id            = 0x01;                              /* Example MC ID */
+    ncsi_global_packet.ncsi_data.header_revision  = 0x01;                              /* Example Header Revision */
+    ncsi_global_packet.ncsi_data.payload_length   = ncsi_htons(NCSI_PAYLOAD_MAX_SIZE); /* Example payload length */
+    ncsi_global_packet.ncsi_data.channel_id       = 0x00;                              /* Example Channel ID */
+    ncsi_global_packet.ncsi_data.command_response = 0x01;                              /* Example Command */
 
-    /* Populate payload with example data */
-    memset(ncsi_global_packet.ncsi_data.payload, 0xA5, 64); /* Example payload data */
+    /* Populate payload with example data, this data could be later validated */
+    ret = hal_paint_buffer(ncsi_global_packet.ncsi_data.payload, NCSI_PAYLOAD_MAX_SIZE);
+    if ( ret != 0 )
+        return NULL;
 
     if ( size != NULL )
         *size = sizeof(ncsi_global_packet);
@@ -86,5 +88,12 @@ ncsi_eth_packet *ncsi_request_packet(uint16_t *size)
 
 void ncsi_release_packet(ncsi_eth_packet *pkt)
 {
-    /* Do nothing */
+    if ( pkt != NULL )
+    {
+        /* Placeholder: no action needed since we're using a statically installed packet 
+         * rather than dynamically generating it.
+         */
+
+        hal_zero_buf(pkt, sizeof(ncsi_eth_packet));
+    }
 }

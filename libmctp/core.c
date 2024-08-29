@@ -9,8 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <hal.h> /* LX7 infrastructure */
-#include <mctplib_usb.h>
+#include <hal.h> /* Intel: LX7 infrastructure */
+#include <test_mctplib.h> /* Intel : libmctop integrationm test */
 
 #undef pr_fmt
 #define pr_fmt(fmt) "libMCTP: " fmt
