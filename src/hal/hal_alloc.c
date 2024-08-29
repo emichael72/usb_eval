@@ -29,7 +29,7 @@ uint8_t hal_mem_pool[HAL_POOL_SIZE];
 #define HAL_BRK_MEM_MARKER_32 (0xa55aa55a)
 
 /* Generic type to manage 'brk, sbrk' style allocations */
-typedef struct __hal_brk_ctx
+typedef struct __attribute__((packed)) __hal_brk_ctx
 {
     uint8_t *p_mem_start;  /* Pointer to raw memory region to be managed */
     uint8_t *p_data_start; /* Pointer to the actual user data: raw data pointer + size of this structure (aligned) */
@@ -39,6 +39,7 @@ typedef struct __hal_brk_ctx
     uint32_t cur_size;     /* Current available size in the memory pool */
     uint32_t tot_size;     /* Total size of the memory pool */
     uint32_t mem_marker;   /* Marker to validate the memory context */
+
 } hal_brk_ctx;
 
 /**
@@ -150,9 +151,7 @@ void *hal_brk_alloc(__IO uintptr_t ctx, size_t size)
 
     /* Note: Memory cannot be freed, negative values are not allowed */
     if ( size == 0 )
-    {
         return NULL;
-    }
 
     size_aligned = hal_brk_align_up(size, 8);
 
@@ -169,6 +168,7 @@ void *hal_brk_alloc(__IO uintptr_t ctx, size_t size)
 #if ( HAL_BRK_ALLOC_ZERO_MEM == 1 )
     /* Memory reset. */
     hal_zero_buf(pCtx->ptr, size_aligned);
+
 #endif
 
     return (void *) pCtx->ptr;

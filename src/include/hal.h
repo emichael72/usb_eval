@@ -89,7 +89,7 @@
     (60000) /**< Auto exit emulator after n 
                                                      milliseconds */
 #define HAL_MEM_SANITY_CHECKS \
-    0 /**< Enable sanity checks in 
+    1 /**< Enable sanity checks in 
                                                      hal_memcpy() */
 #define HAL_BRK_ALLOC_ZERO_MEM \
     1 /**< Initialize allocated memory 

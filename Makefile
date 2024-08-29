@@ -77,6 +77,7 @@ SRCS =	src/main.c \
 		libmctp/crc-16-ccitt.c \
 		src/tests/test_launcher.c \
 		src/tests/test_frag.c \
+		src/tests/test_frag_memcpy.c \
 		src/tests/test_mctplib.c \
 		src/tests/test_msgq.c \
 		src/tests/test_memcpy.c \

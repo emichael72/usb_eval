@@ -64,7 +64,7 @@ typedef struct __attribute__((packed)) ncsi_eth_packet
 typedef struct ncsi_eth_packet
 #endif
 {
-    uint8_t           extra_byte; /* ToDo: Architecture - alignment issue? */
+    uint32_t          extra_byte; /* ToDo: Architecture - alignment issue? */
     ethernet_header_t eth_header; /* Ethernet header */
     ncsi_packet_t     ncsi_data;  /* NC-SI data including headers and payload */
 } ncsi_eth_packet;

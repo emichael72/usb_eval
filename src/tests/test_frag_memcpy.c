@@ -2,8 +2,8 @@
 /**
   ******************************************************************************
   *
-  * @file test_frag.c
-  * @brief Exploding an NCSI ethetnet packet to mutiple frames using zerocopy.
+  * @file test_frag_memcpy.c
+  * @brief Exploding an NCSI ethetnet packet to mutiple frames using memcpy().
   *  
   * @note 
   *  
@@ -22,6 +22,7 @@
 #include <hal.h>
 #include <hal_llist.h>
 #include <ncsi_packet.h>
+#include <string.h>
 #include <stdint.h>
 
 #define USB_FRAME_SIZE   64 /* USB base packet size */
@@ -45,7 +46,7 @@ typedef struct ptr_size_pair_t
 } ptr_size_pair;
 
 /* MCTP standard header */
-typedef struct mctp_packet_t
+typedef struct __attribute__((packed)) mctp_packet_t
 {
     uint8_t version;              /* MCTP version */
     uint8_t destination_eid;      /* Destination Endpoint ID */
@@ -68,10 +69,10 @@ typedef struct mctp_packet_t
 typedef struct mctp_frag_t
 {
 
-    mctp_ptr_packet     mctp_header;  /* MCTP 4 bytes header */
-    uint8_t *           payload;      /* Pointer to the NC-SI packet */
-    size_t              payload_size; /* Length of the payload data pointed to */
-    struct mctp_frag_t *next;         /* Pointer to the next packet */
+    mctp_ptr_packet     mctp_header;                     /* MCTP 4 bytes header */
+    uint8_t             payload[MCTP_MAX_FRAGMNET_SIZE]; /* Pointer to the NC-SI packet */
+    size_t              payload_size;                    /* Length of the payload data pointed to */
+    struct mctp_frag_t *next;                            /* Pointer to the next packet */
 
 } mctp_frag;
 
@@ -85,7 +86,7 @@ typedef struct mctp_frag_t
  * the current size and count of fragments.
  */
 
-typedef struct frag_test_t
+typedef struct frag_memcpy_test_t
 {
     ncsi_eth_packet *p_ncsi_packet;    /**< Pointer to the currently handled  NC-SI Ethernet packet. */
     mctp_frag *      p_mctp_head;      /**< Head pointer to the MCTP fragments list. */
@@ -98,9 +99,9 @@ typedef struct frag_test_t
     uint8_t          usb_tx_operations;
     uint16_t         usb_raw_payload;
 
-} frag_test;
+} frag_memcpy_test;
 
-frag_test *p_frag_test = NULL;
+frag_memcpy_test *p_frag_memcpy_test = NULL;
 
 /**
  * @brief Adjusts the pointers in the fragment list to correspond to a new 
@@ -112,18 +113,18 @@ frag_test *p_frag_test = NULL;
  * marked with the end-of-message (EOM) flag.
  */
 
-static void test_frag_adjust_pointers(void)
+static void test_frag_memcpy_prep_fragments(void)
 {
-    mctp_frag *frag            = p_frag_test->p_mctp_head;
-    uint8_t *  p_payload       = (uint8_t *) p_frag_test->p_ncsi_packet;
-    size_t     remaining_bytes = p_frag_test->ncsi_packet_size;
+    mctp_frag *frag            = p_frag_memcpy_test->p_mctp_head;
+    uint8_t *  p_payload       = (uint8_t *) p_frag_memcpy_test->p_ncsi_packet;
+    size_t     remaining_bytes = p_frag_memcpy_test->ncsi_packet_size;
 
     /* Adjust the fragments list to the inbound NC-SI packet */
-    for ( uint16_t i = 0; i < p_frag_test->ncsi_frgas_count && frag; i++ )
+    for ( uint16_t i = 0; i < p_frag_memcpy_test->ncsi_frgas_count && frag; i++ )
     {
-        /* Set the payload pointer and size */
-        frag->payload      = p_payload;
+        /* Copy data and build the outgoing USB packet */
         frag->payload_size = (remaining_bytes > USB_FRAME_SIZE) ? USB_FRAME_SIZE : remaining_bytes;
+        memcpy(frag->payload, p_payload, frag->payload_size);
 
         /* Update remaining bytes and payload pointer */
         p_payload += frag->payload_size;
@@ -149,23 +150,21 @@ static void test_frag_adjust_pointers(void)
  * @param pairs_count The number of pairs in the array.
  */
 
-static void test_frag_on_usb_tx(ptr_size_pair *pairs, size_t pairs_count)
+static void test_frag_memcpy_on_usb_tx(ptr_size_pair *pairs, size_t pairs_count)
 {
 /* Implementation of USB transmission would go here. */
 #ifdef DEBUG
 
-    printf("\tUSB Tx %2d, messages: %d\n", p_frag_test->usb_tx_operations, pairs_count);
+    printf("\tUSB Tx %2d, messages: %d\n", p_frag_memcpy_test->usb_tx_operations, pairs_count);
 
     for ( int i = 0; i < pairs_count; i++ )
     {
-        //printf("\tUSB TX [%2d]: %d bytres.\n",  p_frag_test->usb_tx_frames, pairs[i].size);
-        p_frag_test->usb_tx_frames++;
-
-        if ( i % 2 != 0 )
-            p_frag_test->usb_raw_payload += pairs[i].size;
+        //printf("\tUSB TX [%2d]: %d bytres.\n",  p_frag_memcpy_test->usb_tx_frames, pairs[i].size);
+        p_frag_memcpy_test->usb_tx_frames++;
+        p_frag_memcpy_test->usb_raw_payload += pairs[i].size;
     }
 
-    p_frag_test->usb_tx_operations++;
+    p_frag_memcpy_test->usb_tx_operations++;
 
 #endif
 }
@@ -180,35 +179,35 @@ static void test_frag_on_usb_tx(ptr_size_pair *pairs, size_t pairs_count)
  * @return 0 on success, 1 on failure.
  */
 
-int test_frag_prolog(uintptr_t arg)
+int test_frag_memcpy_prolog(uintptr_t arg)
 {
 
-    if ( p_frag_test == NULL )
+    if ( p_frag_memcpy_test == NULL )
         return 1; /* Module not initalized */
 
-    p_frag_test->p_ncsi_packet = ncsi_request_packet(&p_frag_test->ncsi_packet_size);
-    if ( p_frag_test->p_ncsi_packet == NULL || p_frag_test->ncsi_packet_size == 0 )
+    p_frag_memcpy_test->p_ncsi_packet = ncsi_request_packet(&p_frag_memcpy_test->ncsi_packet_size);
+    if ( p_frag_memcpy_test->p_ncsi_packet == NULL || p_frag_memcpy_test->ncsi_packet_size == 0 )
         return 1;
 
     /* Prepended '3'to NCSI packet */
-    p_frag_test->p_ncsi_packet->extra_byte = 3;
-    p_frag_test->usb_tx_frames             = 0;
-    p_frag_test->usb_raw_payload           = 0;
-    p_frag_test->usb_tx_operations         = 0;
+    p_frag_memcpy_test->p_ncsi_packet->extra_byte = 3;
+    p_frag_memcpy_test->usb_tx_frames             = 0;
+    p_frag_memcpy_test->usb_raw_payload           = 0;
+    p_frag_memcpy_test->usb_tx_operations         = 0;
 
     /* Calculate the total number of fragments needed */
-    p_frag_test->ncsi_frgas_count = (p_frag_test->ncsi_packet_size + USB_FRAME_SIZE - 1) / USB_FRAME_SIZE;
+    p_frag_memcpy_test->ncsi_frgas_count = (p_frag_memcpy_test->ncsi_packet_size + USB_FRAME_SIZE - 1) / USB_FRAME_SIZE;
 
-    if ( p_frag_test->ncsi_frgas_count > MCTP_MAX_FRAGMENTS )
+    if ( p_frag_memcpy_test->ncsi_frgas_count > MCTP_MAX_FRAGMENTS )
     {
         /* Drop the packet , it's too big */
-        p_frag_test->ncsi_frgas_count = 0;
+        p_frag_memcpy_test->ncsi_frgas_count = 0;
         return 1;
     }
 
 #ifdef DEBUG
-    printf("\tNC-SI inbound packet size: %d\n", p_frag_test->ncsi_packet_size);
-    printf("\tNC-SI expected fragments of up-to 64 bytes: %d\n", p_frag_test->ncsi_frgas_count);
+    printf("\tNC-SI inbound packet size: %d\n", p_frag_memcpy_test->ncsi_packet_size);
+    printf("\tNC-SI expected fragments of up-to 64 bytes: %d\n", p_frag_memcpy_test->ncsi_frgas_count);
 #endif
 
     return 0; /* NC-SI packet reday for frgmantation */
@@ -219,7 +218,7 @@ int test_frag_prolog(uintptr_t arg)
  *        packet fragments.
  *
  * This function is executed when a new NC-SI packet is available. It adjusts 
- * the fragment pointers using `test_frag_adjust_pointers()`, and then iterates 
+ * the fragment pointers using `test_frag_memcpy_adjust_pointers()`, and then iterates 
  * through the fragments, preparing batches of MCTP headers and their 
  * corresponding payloads. These batches are then sent to the USB hardware 
  * in groups of up to 4 fragments (2 pairs of header and payload).
@@ -227,30 +226,25 @@ int test_frag_prolog(uintptr_t arg)
  * @param arg Unused parameter, reserved for future use.
  */
 
-void test_exec_frag(uintptr_t arg)
+void test_exec_memcpy_frag(uintptr_t arg)
 {
-    mctp_frag *frag        = p_frag_test->p_mctp_head;
+    mctp_frag *frag        = p_frag_memcpy_test->p_mctp_head;
     size_t     pairs_count = 0;
     size_t     usb_tx_io   = 0;
 
     /* By now, we trust that there is a pending NC-SI packet */
-    test_frag_adjust_pointers();
+    test_frag_memcpy_prep_fragments();
 
     /* Define an array to hold up to 4 pairs at a time */
     ptr_size_pair pairs[4];
 
     /* Iterate over the fragments and send them in batches of upto 4 */
-    frag = p_frag_test->p_mctp_head;
-    for ( int i = 0; i < p_frag_test->ncsi_frgas_count; i++ )
+    frag = p_frag_memcpy_test->p_mctp_head;
+    for ( int i = 0; i < p_frag_memcpy_test->ncsi_frgas_count; i++ )
     {
-        /* First pair: MCTP header and its size */
+        /* Create pair of packet and size */
         pairs[pairs_count].ptr  = (uintptr_t) &frag->mctp_header;
-        pairs[pairs_count].size = sizeof(frag->mctp_header);
-        pairs_count++;
-
-        /* Second pair: Payload pointer and its size */
-        pairs[pairs_count].ptr  = (uintptr_t) frag->payload;
-        pairs[pairs_count].size = frag->payload_size;
+        pairs[pairs_count].size = sizeof(frag->mctp_header) + frag->payload_size;
         pairs_count++;
 
         /* Move to the next fragment */
@@ -258,10 +252,10 @@ void test_exec_frag(uintptr_t arg)
 
         /* Check if we've collected 4 fragments (2 pairs) or reached 
            the last fragment */
-        if ( pairs_count == 4 || i == p_frag_test->ncsi_frgas_count - 1 )
+        if ( pairs_count == 4 || i == p_frag_memcpy_test->ncsi_frgas_count - 1 )
         {
             /* Send the batch to the fake USB hardware interfcae */
-            test_frag_on_usb_tx(pairs, pairs_count);
+            test_frag_memcpy_on_usb_tx(pairs, pairs_count);
             usb_tx_io++;
             pairs_count = 0;
         }
@@ -269,9 +263,9 @@ void test_exec_frag(uintptr_t arg)
 
 /* Packet sent. */
 #ifdef DEBUG
-    printf("\n\tUSB fragments: %d\n", p_frag_test->usb_tx_frames);
+    printf("\n\tUSB fragments: %d\n", p_frag_memcpy_test->usb_tx_frames);
     printf("\tUSB IO: %d\n", usb_tx_io);
-    printf("\tUSB TX bytes (no MCTP headers): %d\n\n", p_frag_test->usb_raw_payload);
+    printf("\tUSB TX bytes (with MCTP headers): %d\n\n", p_frag_memcpy_test->usb_raw_payload);
 
 #endif
 }
@@ -289,29 +283,30 @@ void test_exec_frag(uintptr_t arg)
  * @return A pointer to a string containing the description.
  */
 
-char *test_frag_desc(size_t description_type)
+char *test_frag_memcpy_desc(size_t description_type)
 {
     if ( description_type == 0 )
     {
-        return "NC-SI to MCTP packet fragmentation flow using zero-copy method.";
+        return "NC-SI to MCTP packet fragmentation flow using memcpy() method.";
     }
     else
     {
         return "This test simulates the reception and handling of an NC-SI packet, which is \n"
                "then fragmented into smaller chunks to fit within MCTP fragments, each \n"
-               "attached to a 64-byte payload. The approach leverages zero-copy techniques \n"
-               "by using pointer arithmetic to avoid the overhead associated with resource-\n"
-               "intensive functions like memcpy().\n\n"
-               "Instead of copying data, pointers are created to directly reference segments \n"
-               "of the inbound NC-SI payload. These pointers form a list that points to the \n"
-               "different chunks of the original Ethernet packet, allowing the system to \n"
-               "efficiently handle the fragmentation without duplicating data in memory.\n\n"
-               "Finally, these pointers are passed to a simulated USB interface, which, in a \n"
-               "real-world application, would take these MCTP fragments, consolidate them \n"
-               "into contiguous USB frames, and transmit them. This test aims to validate the \n"
-               "efficiency and correctness of the fragmentation process, ensuring that the \n"
-               "system can handle packet fragmentation and reassembly with minimal resource \n"
-               "consumption and optimal performance.";
+               "attached to a 64-byte payload. The approach uses `memcpy()` to copy data \n"
+               "into a contiguous buffer in RAM, allowing for efficient transmission of \n"
+               "complete 68-byte packets to the USB peripheral.\n\n"
+               "While this method involves additional CPU cycles due to the overhead of \n"
+               "copying data, it significantly reduces USB I/O operations by consolidating \n"
+               "the MCTP fragments into full USB frames. This reduces the number of smaller \n"
+               "transmissions that would otherwise occur if the data were handled directly \n"
+               "with pointer arithmetic.\n\n"
+               "Finally, the contiguous buffer is passed to a simulated USB interface, which \n"
+               "in a real-world application would transmit the data as a complete USB frame. \n"
+               "This test aims to validate the efficiency and correctness of the fragmentation \n"
+               "process using `memcpy()`, ensuring that the system can handle packet \n"
+               "fragmentation and reassembly with minimal resource consumption and optimal \n"
+               "performance, despite the increased CPU cycles required for memory operations.";
     }
 }
 
@@ -323,12 +318,12 @@ char *test_frag_desc(size_t description_type)
  * will result in an assertion.
  */
 
-void test_frag_init(void)
+void test_frag_memcpy_init(void)
 {
     mctp_frag *frag      = NULL;
     int        msg_index = 0;
 
-    if ( p_frag_test != NULL )
+    if ( p_frag_memcpy_test != NULL )
         return; /* Must initialize only once */
 
     /* 
@@ -336,14 +331,14 @@ void test_frag_init(void)
      * 'test-related cycles'. 
      */
 
-    p_frag_test = hal_alloc(sizeof(frag_test));
-    assert(p_frag_test != NULL);
+    p_frag_memcpy_test = hal_alloc(sizeof(frag_memcpy_test));
+    assert(p_frag_memcpy_test != NULL);
 
     /* Sets MCTP defaults */
-    p_frag_test->version         = 1;
-    p_frag_test->destination_eid = 0x10;
-    p_frag_test->source_eid      = 0x20;
-    p_frag_test->p_mctp_head     = NULL;
+    p_frag_memcpy_test->version         = 1;
+    p_frag_memcpy_test->destination_eid = 0x10;
+    p_frag_memcpy_test->source_eid      = 0x20;
+    p_frag_memcpy_test->p_mctp_head     = NULL;
 
     /* 
      * Allocate all MCTP fragments and attch them to the session head pointer.
@@ -357,9 +352,9 @@ void test_frag_init(void)
         assert(frag != NULL);
 
         /* Initialize MCTP header */
-        frag->mctp_header.version         = p_frag_test->version;
-        frag->mctp_header.destination_eid = p_frag_test->destination_eid;
-        frag->mctp_header.source_eid      = p_frag_test->source_eid;
+        frag->mctp_header.version         = p_frag_memcpy_test->version;
+        frag->mctp_header.destination_eid = p_frag_memcpy_test->destination_eid;
+        frag->mctp_header.source_eid      = p_frag_memcpy_test->source_eid;
         frag->mctp_header.message_tag     = 0;
         frag->mctp_header.tag_owner       = 1;
 
@@ -377,11 +372,10 @@ void test_frag_init(void)
         frag->mctp_header.end_of_message = 0; /* Not End of Message */
 
         /* Those are not set initially */
-        frag->payload      = NULL;
         frag->payload_size = 0;
 
         /* Attach to the galobal head pointert */
-        LL_APPEND(p_frag_test->p_mctp_head, frag);
+        LL_APPEND(p_frag_memcpy_test->p_mctp_head, frag);
 
         msg_index++;
     }
