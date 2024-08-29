@@ -55,11 +55,13 @@ BUILD_TYPE ?= release
 BUILD_DIR = build/$(BUILD_TYPE)
 START_MESSAGE = "$(TARGET_PROJECT_NAME): \'$(BUILD_TYPE)\'."
 
+ CFLAGS = $(COMMON_CFLAGS)
+
 # Simplified conditional checks
 ifeq ($(BUILD_TYPE),debug)
-    CFLAGS = $(COMMON_CFLAGS) $(DEBUG_CFLAGS)
+    CFLAGS += $(DEBUG_CFLAGS)
 else ifeq ($(BUILD_TYPE),release)
-    CFLAGS = $(COMMON_CFLAGS) $(RELEASE_CFLAGS)
+    CFLAGS += $(RELEASE_CFLAGS)
 else
     $(error Invalid BUILD_TYPE specified: $(BUILD_TYPE))
 endif

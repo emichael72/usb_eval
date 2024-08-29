@@ -209,14 +209,18 @@ static int init_thread(void *arg, int32_t unused)
                     {
                         /*: Change text color whne in cgi mode */
                         cgi_set_color(cgi_mode, "yellow");
-
                         printf("Test %d: %s.\n", test_index, test_desc);
-                        cgi_set_color(cgi_mode, "00FF00");
                     }
 
-                    printf("Cycles count : %lld.\n\n", measured_cycles);
-                    cgi_set_color(cgi_mode, "white");
+#ifdef DEBUG
+                    cgi_set_color(cgi_mode, "red");
+                    printf("Cycles count [DEBUG]: %lld.\n\n", measured_cycles);
+#else
+                    cgi_set_color(cgi_mode, "cyan");
+                    printf("Cycles count: %lld.\n\n", measured_cycles);
+#endif
 
+                    cgi_set_color(cgi_mode, "white");
                     test_desc = test_launcher_get_desc(test_index, 1);
                     if ( test_desc != NULL )
                         printf("Description:\n%s\n", test_desc);
