@@ -58,19 +58,36 @@ void test_exec_memcpy(uintptr_t use_hal)
  * @return A pointer to a string containing the description.
  */
 
-char *test_memcpy_desc(size_t description_type)
+char *test_memcpy_desc_xtensa(size_t description_type)
 {
     if ( description_type == 0 )
     {
-        return "Optimized memcpy() vs Xtensa memcpy() using 32-byte buffers.";
+        return "Xtensa memcpy() using 32-byte buffers.";
     }
     else
     {
-        return "This test compares the performance of a home-made optimized memcpy() \n"
-               "function against the standard Xtensa memcpy() implementation. The test \n"
-               "is conducted using 32-byte buffers, with a focus on evaluating cycle \n"
-               "counts and efficiency for small memory operations. The results provide \n"
-               "insight into the effectiveness of custom optimizations in comparison to \n"
-               "vendor-supplied functions.\n";
+        return "This test evaluates the performance of the standard Xtensa memcpy() \n"
+               "implementation provided by the Xtensa libc. The test is conducted using \n"
+               "32-byte buffers, comparing its performance to a custom memcpy function. \n"
+               "The focus is on cycle counts and efficiency for small memory operations, \n"
+               "providing insights into how well the vendor-supplied memcpy performs \n"
+               "under these specific conditions.\n";
+    }
+}
+
+char *test_memcpy_desc_hal(size_t description_type)
+{
+    if ( description_type == 0 )
+    {
+        return "Custom optimized memcpy() using 32-byte buffers.";
+    }
+    else
+    {
+        return "This test evaluates the performance of a custom, optimized memcpy() \n"
+               "function, designed to outperform standard library functions in terms of \n"
+               "cycle counts and efficiency. The test is conducted using 32-byte buffers, \n"
+               "comparing this custom memcpy against the Xtensa libc memcpy. The results \n"
+               "highlight the advantages of a carefully tuned memcpy for specific use cases, \n"
+               "with an emphasis on optimizing performance for small memory operations.\n";
     }
 }

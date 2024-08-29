@@ -34,7 +34,8 @@
  */
 
 void  test_exec_memcpy(uintptr_t use_hal);
-char *test_memcpy_desc(size_t description_type);
+char *test_memcpy_desc_xtensa(size_t description_type);
+char *test_memcpy_desc_hal(size_t description_type);
 
 /**
  * @brief Measures the number of cycles spent when requesting and releasing buffers
