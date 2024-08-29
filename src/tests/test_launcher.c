@@ -42,6 +42,7 @@ typedef struct _test_launcher_session_t
 {
     launched_item *items_head;  /* Pointer to the head of the launched items list */
     size_t         items_count; /* Number of items in the list */
+    size_t         cgi_mode;
 
 } test_launcher_session;
 
@@ -170,6 +171,9 @@ int test_launcher_help(void)
 
     launched_item *item = p_launcher->items_head;
 
+    if ( p_launcher->cgi_mode == 1 )
+        printf("</span>");
+
     for ( size_t i = 0; i < p_launcher->items_count; i++ )
     {
         if ( item->item_info->desc != NULL )
@@ -177,7 +181,14 @@ int test_launcher_help(void)
         else
             test_description = "Test description not available";
 
-        printf("Test %zu: %s\n", i, test_description);
+        if ( p_launcher->cgi_mode == 1 )
+        {
+            printf("<span style=\"color: %s; font-size: 15px;\">%zu:  </span>", "yellow", i);
+            printf("<span style=\"color: %s; font-size: 15px;\">%s</span>\n", "white", test_description);
+        }
+        else
+            printf("%zu: %s\n", i, test_description);
+
         item = item->next;
     }
 
@@ -227,7 +238,7 @@ char *test_launcher_get_desc(size_t test_index, size_t type)
  * @return int Returns 0 on success, 1 on error.
  */
 
-int test_launcher_init(void)
+int test_launcher_init(size_t cgi_mode)
 {
     if ( p_launcher != NULL )
         return 1; /* Multiple initializations are not allowed */
@@ -237,5 +248,7 @@ int test_launcher_init(void)
         return 1; /* Memory allocation error */
 
     hal_zero_buf(p_launcher, sizeof(test_launcher_session));
+    p_launcher->cgi_mode = cgi_mode;
+
     return 0;
 }

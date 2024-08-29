@@ -70,8 +70,8 @@
     
     <form id="run-form">
         <div class="form-group" style="font-size: 14px;">
-            <label for="argument">Enter argument:</label>
-            <input type="text" id="argument" name="argument" value="-h" placeholder="Enter arguments">
+            <label for="test-number">Enter test number:</label>
+            <input type="text" id="test-number" name="test-number" value="?" style="width: 25px;" placeholder="Enter test number" pattern="[0-9?]*" title="Only decimals and '?' are allowed">
         </div>
         <div class="form-group" style="font-size: 14px;">
             <label>
@@ -88,17 +88,16 @@
     </form>
 
     <div id="help-section" class="help-section">
-        <h4>The following command line arguments are valid:</h4>
-        <ul>
-            <li><b>-t</b>, --test=VALUE     Execute a cycle test.</li>
-            <li><b>-r</b>, --rept=VALUE     Set the number of test repetitions.</li>
-            <li><b>-v</b>, --ver            Print the version and exit.</li>
-            <li><b>-h, -?</b>, --help       Print usage.</li>
-            <li><b style="color: rgb(30, 74, 170);">-t=?</b> : Show all supported tests.</li>
-            <li><b style="color: rgb(30, 74, 170);">-t=1 -r=10</b> : Execute test #1 4 times.</li>
-        </ul>
+        <h4>About the Test Execution:</h4>
+        <p>
+            This interface runs the Xtensa Instruction Set Simulator (`xt-run`), executing firmware tests in either debug or optimized (`-O3`) mode.
+            Enter a test number to start a specific test, or use '?' to list available tests.
+        </p>
+        <p>
+            The results show cycle counts and instruction efficiency, helping you analyze performance. Use checkboxes to include summaries or enable debug mode for additional details.
+        </p>
     </div>
-
+    
     <h4>Output:</h4>
     <div class="terminal" id="output"></div>
 
@@ -111,14 +110,14 @@
 
             runForm.addEventListener('submit', function(event) {
                 event.preventDefault();
-                const argument = document.getElementById('argument').value;
+                const testNumber = document.getElementById('test-number').value;
                 const includeSummary = document.getElementById('include-summary').checked ? 'yes' : 'no';
                 const debug = document.getElementById('debug').checked ? 'yes' : 'no';
 
                 // Show "Running..." message in the terminal box
                 outputElement.innerHTML = '<span style="color: yellow;">Running...</span>';
 
-                fetch(`/cgi-bin/runemu.cgi?arg=-c ${encodeURIComponent(argument)}&summary=${includeSummary}&debug=${debug}`)
+                fetch(`/cgi-bin/runemu.cgi?arg=-c-t=${encodeURIComponent(testNumber)}&summary=${includeSummary}&debug=${debug}`)
                     .then(response => {
                         const reader = response.body.getReader();
                         const decoder = new TextDecoder();

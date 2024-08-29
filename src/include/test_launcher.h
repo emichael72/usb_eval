@@ -95,7 +95,7 @@ uint64_t test_launcher_execute(size_t test_index);
  * @return int Returns 0 on success, 1 on error.
  */
 
-int test_launcher_init(void);
+int test_launcher_init(size_t cgi_mode);
 
 /**
   * @}

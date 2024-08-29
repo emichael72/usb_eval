@@ -73,9 +73,6 @@ static void cgi_set_color(bool mode, const char *color)
 
 static int init_register_tests(void)
 {
-    /* Initialize the tests launcher module */
-    if ( test_launcher_init() != 0 )
-        return 0;
 
     /* Register each test from the tests_info array */
     for ( size_t i = 0; i < sizeof(tests_info) / sizeof(tests_info[0]); i++ )
@@ -142,9 +139,6 @@ static int init_thread(void *arg, int32_t unused)
     test_frag_init();
     test_frag_memcpy_init();
 
-    /* Now initilize the tets launcher module*/
-    init_register_tests();
-
     /* Retrieve argc and argv passed to main */
     hal_get_argcv(&argc, &argv);
 
@@ -202,6 +196,13 @@ static int init_thread(void *arg, int32_t unused)
             /* Execute the action specified by the input flgas */
             if ( test_index >= 0 )
             {
+
+                /* Initialize the tests launcher module */
+                test_launcher_init(cgi_mode);
+
+                /* Now initilize the tets launcher module*/
+                init_register_tests();
+
                 measured_cycles = test_launcher_execute(test_index);
                 if ( measured_cycles > 0 )
                 {
