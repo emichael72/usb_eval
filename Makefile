@@ -121,7 +121,7 @@ $(BUILD_DIR)/$(TARGET): $(OBJS)
 post_build: $(BUILD_DIR)/$(TARGET)
 ifeq ($(PUBLISH_CGI),1)
 	@echo -e "$(COLOR_YELLOW)Copying to CGI path...$(COLOR_RESET)"
-	@sudo cp $(BUILD_DIR)/$(TARGET) /var/www/cgi-bin/firmware.elf >/dev/null 2>&1 || true
+	@sudo cp $(BUILD_DIR)/$(TARGET) /var/www/cgi-bin/$(BUILD_TYPE)/firmware.elf >/dev/null 2>&1 || true
 endif
 
 	@if [ $(COUNT_INSTRUCTIONS) -eq 1 ]; then \

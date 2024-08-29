@@ -30,7 +30,6 @@
 static struct cag_option options[] =
 {
     {.identifier = 't', .access_letters = "t",  .access_name = "test",  .value_name = "VALUE",  .description = "Execute a cycle test."},
-    {.identifier = 'r', .access_letters = "r",  .access_name = "rept",  .value_name = "VALUE",  .description = "Set the number of test repetitions."},
     {.identifier = 'v', .access_letters = "v",  .access_name = "ver",   .value_name = NULL,     .description = "Print the version and exit."},
     {.identifier = 'c', .access_letters = "c",  .access_name = "cgi",   .value_name = NULL,     .description = "Enable web CGI mode."},
     {.identifier = 'h', .access_letters = "h?", .access_name = "help",  .value_name = NULL,     .description = "Print usage."},
@@ -50,6 +49,16 @@ static test_launcher_item_info tests_info[] = {
 
 };
 /* clang-format on */
+
+/* Shortcut for seting text color whne in CGI mode. */
+static void cgi_set_color(bool mode, const char *color)
+{
+    if ( mode == true )
+    {
+        printf("</span><span style=\"color: %s; font-size: 14px;\">\n", color);
+        fflush(stdout);
+    }
+}
 
 /**
  * @brief Initializes the test launcher and registers all tests.
@@ -99,26 +108,30 @@ static int init_register_tests(void)
 
 static int init_thread(void *arg, int32_t unused)
 {
-    uint64_t           measured_cycles  = 0;     /* Cycles related to any of our tests */
-    cag_option_context context          = {0};   /* libcargs context */
-    int                argc             = 0;     /* Arguments count passed to main() */
-    char **            argv             = NULL;  /* Arguments array passed to main() */
-    char               identifier       = 0;     /* libcargs identifier */
-    bool               run_and_exit     = true;  /* Specify to terminate immediately */
-    const char *       value            = NULL;  /* Points to an extrcated argumnet */
-    int                test_repetitions = 1;     /* Local argumnet */
-    int                test_index       = -1;    /* Local argumnet */
-    bool               cgi_mode         = false; /* Local argumnet */
-    bool               exit_fetch       = false; /* Exit the arguments fearch loop */
-    char *             long_description;
+    uint64_t           measured_cycles = 0;     /* Cycles related to any of our tests */
+    cag_option_context context         = {0};   /* libcargs context */
+    int                argc            = 0;     /* Arguments count passed to main() */
+    char **            argv            = NULL;  /* Arguments array passed to main() */
+    char               identifier      = 0;     /* libcargs identifier */
+    bool               run_and_exit    = true;  /* Specify to terminate immediately */
+    bool               got_command     = false; /* Have we got any command to execute? */
+    const char *       value           = NULL;  /* Points to an extrcated argumnet */
+    int                test_index      = -1;    /* Local argumnet */
+    bool               cgi_mode        = false; /* Local argumnet */
+    bool               exit_fetch      = false; /* Exit the arguments fearch loop */
+    char *             test_desc       = NULL;  /* Test descriptive test */
 
     HAL_UNUSED(arg);
     HAL_UNUSED(unused);
 
+/* Allow for easer debugging */
+#ifdef DEBUG
+    xos_disable_interrupts();
+#endif
+
     /* Some tests require dedicated initialization routines, so: */
 
-    /* 
-     * Initializes the transport layer, this call will assert on any error and
+    /* Initializes the transport layer, this call will assert on any error and
      * consequently cause the emulator to exit back to the shell. 
      */
     test_mctplib_init(MCTP_USB__DEST_EID);
@@ -134,9 +147,7 @@ static int init_thread(void *arg, int32_t unused)
 
     if ( argc > 1 )
     {
-
-        /* 
-         * Use libcargs to handle arguments.
+        /* Use libcargs to handle arguments.
          * Here we're making use of the handy feature that the emulator could be invoked
          * with command-line arguments, allowing us to execute different paths based 
          * on external arguments.
@@ -150,12 +161,6 @@ static int init_thread(void *arg, int32_t unused)
             switch ( identifier )
             {
 
-                case 'r': /* Sets test repetiotions */
-                    value = cag_option_get_value(&context);
-                    if ( value != NULL )
-                        test_repetitions = atol(value);
-                    break;
-
                 case 't': /* Execute our basic 'useless cycles' test */
                     test_index = 0xff;
                     value      = cag_option_get_value(&context);
@@ -163,6 +168,7 @@ static int init_thread(void *arg, int32_t unused)
                     {
                         if ( isdigit(*value) )
                             test_index = atol(value);
+                        got_command = true;
                     }
                     break;
 
@@ -174,14 +180,16 @@ static int init_thread(void *arg, int32_t unused)
 
                 case 'v': /* Version */
                     printf("%s version %s\r\n", HAL_APP_NAME, HAL_APP_VERSION);
-                    exit_fetch = true;
+                    exit_fetch  = true;
+                    got_command = true;
                     break;
 
                 case 'h': /* Help */
                     printf("%s\n", HAL_APP_NAME);
                     printf("\nUsage: %s [OPTION]...\r\n", argv[0]);
                     cag_option_print(options, CAG_ARRAY_SIZE(options), stdout);
-                    exit_fetch = true;
+                    exit_fetch  = true;
+                    got_command = true;
                     break;
             }
         }
@@ -194,27 +202,35 @@ static int init_thread(void *arg, int32_t unused)
                 measured_cycles = test_launcher_execute(test_index);
                 if ( measured_cycles > 0 )
                 {
-                    long_description = test_launcher_long_help(test_index);
-                    printf("Cycles count : %lld.\n\n", measured_cycles);
-
-                    if ( cgi_mode == true )
+                    test_desc = test_launcher_get_desc(test_index, 0);
+                    if ( test_desc != NULL )
                     {
-                        /* Running as a CGI: This will turn the text color to white to 
-                         * better differentiate our printouts from the xt-run summary.
-                         */
+                        /*: Change text color whne in cgi mode */
+                        cgi_set_color(cgi_mode, "yellow");
 
-                        printf("<span style=\"color: white; font-size: 12px;\">\n");
+                        printf("Test %d: %s.\n", test_index, test_desc);
+                        cgi_set_color(cgi_mode, "00FF00");
                     }
-                    printf("Description:\n%s\n", long_description);
+
+                    printf("Cycles count : %lld.\n\n", measured_cycles);
+                    cgi_set_color(cgi_mode, "white");
+
+                    test_desc = test_launcher_get_desc(test_index, 1);
+                    if ( test_desc != NULL )
+                        printf("Description:\n%s\n", test_desc);
                 }
             }
         }
     }
 
-    if ( cgi_mode == true )
+    /* If no valid command was detected */
+    if ( got_command == false )
     {
-        printf("\nRequest completed.\n");
+        cgi_set_color(cgi_mode, "red");
+        printf("Error: did not get valid command to execute.\n");
     }
+
+    cgi_set_color(cgi_mode, "white");
 
     if ( run_and_exit == true )
         hal_terminate_simulation(EXIT_SUCCESS);

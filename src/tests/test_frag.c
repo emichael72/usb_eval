@@ -3,7 +3,7 @@
   ******************************************************************************
   *
   * @file frag.c
-  * @brief Exploding an NCSI ethetnet packet to mutiple frames.
+  * @brief Exploding an NCSI ethetnet packet to mutiple frames using zerocopy.
   *  
   * @note 
   *  
@@ -326,8 +326,6 @@ void test_frag_init(void)
 
     if ( p_frag_test != NULL )
         return; /* Must initialize only once */
-
-    xos_disable_interrupts();
 
     /* 
      * The following operations are performed once and do not count as 

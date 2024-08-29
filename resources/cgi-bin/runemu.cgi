@@ -36,10 +36,31 @@ ARG=$(url_decode "$RAW_ARG")
 RAW_SUMMARY=$(echo "$QUERY_STRING" | sed -n 's/^.*summary=\([^&]*\).*$/\1/p')
 SUMMARY=$(url_decode "$RAW_SUMMARY")
 
+# Extract and decode the debug parameter from the query string
+RAW_DEBUG=$(echo "$QUERY_STRING" | sed -n 's/^.*debug=\([^&]*\).*$/\1/p')
+DEBUG=$(url_decode "$RAW_DEBUG")
+
+# Set the ELF file path based on the debug parameter
+if [ "$DEBUG" == "yes" ]; then
+    ELF_PATH="debug/firmware.elf"
+else
+    ELF_PATH="release/firmware.elf"
+fi
+
+# Check if the ELF file exists
+if [ ! -f "$ELF_PATH" ]; then
+    # Output error message in HTML format
+    echo "Content-Type: text/html"
+    echo ""
+    echo "<html><body><h3 style='color: red;'>Error: ELF binary could not be found.</h3></body></html>"
+    exit 1
+fi
+
 # Build the command with or without the --summary option
 if [ "$SUMMARY" == "yes" ]; then
-    stdbuf -oL xt-run --summary firmware.elf "$ARG"
+    xt-run --summary "$ELF_PATH" "$ARG"
 else
-    stdbuf -oL xt-run --version
-    stdbuf -oL xt-run firmware.elf "$ARG"
+    xt-run --version
+    xt-run "$ELF_PATH" "$ARG"
 fi
+

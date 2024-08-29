@@ -60,11 +60,12 @@ typedef struct test_launcher_item_info_t
  * an error message.
  * 
  * @param test_index The index of the test whose long description is to be retrieved.
+ * @param type 0 for short description, 1 for long.
  * @return A pointer to the description string, or an error message if the test 
  *         or description is not found.
  */
 
-char *test_launcher_long_help(size_t test_index);
+char *test_launcher_get_desc(size_t test_index, size_t type);
 
 /**
  * @brief Prints the description of all registered tests.

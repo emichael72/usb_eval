@@ -25,7 +25,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/debug/firmware.elf",
-            "args": ["-t=4"],
+            "args": ["-c kjh"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [

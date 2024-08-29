@@ -222,6 +222,8 @@ static uint64_t hal_get_sim_overhead_cycles(void)
 
 void inline hal_terminate_simulation(int status)
 {
+    fflush(stdout);
+    hal_delay_ms(100);
     exit(status); /* Standard C library exit */
 }
 

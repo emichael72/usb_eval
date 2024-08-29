@@ -192,11 +192,12 @@ int test_launcher_help(void)
  * an error message.
  * 
  * @param test_index The index of the test whose long description is to be retrieved.
+ * @param type 0 for short description, 1 for long.
  * @return A pointer to the description string, or an error message if the test 
  *         or description is not found.
  */
 
-char *test_launcher_long_help(size_t test_index)
+char *test_launcher_get_desc(size_t test_index, size_t type)
 {
     launched_item *item = NULL;
     size_t         i    = 0;
@@ -213,7 +214,10 @@ char *test_launcher_long_help(size_t test_index)
     if ( item == NULL || item->item_info->desc == NULL )
         return "Error: can't locate specified test";
 
-    test_description = item->item_info->desc(1);
+    if ( type > 1 )
+        type = 1;
+
+    test_description = item->item_info->desc(type);
 
     return test_description;
 }

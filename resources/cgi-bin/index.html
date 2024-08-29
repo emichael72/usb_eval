@@ -42,7 +42,6 @@
         }
 
         ul {
-            /* list-style-type: none; */
             padding: 15;
         }
 
@@ -74,9 +73,14 @@
             <label for="argument">Enter argument:</label>
             <input type="text" id="argument" name="argument" value="-h" placeholder="Enter arguments">
         </div>
-        <div class="form-group"style="font-size: 14px;">
+        <div class="form-group" style="font-size: 14px;">
             <label>
                 <input type="checkbox" id="include-summary" name="include-summary"> Include summary 
+            </label>
+        </div>
+        <div class="form-group" style="font-size: 14px;">
+            <label>
+                <input type="checkbox" id="debug" name="debug"> Debug
             </label>
         </div>
         <button type="submit" id="execute-button">Execute</button>
@@ -109,11 +113,12 @@
                 event.preventDefault();
                 const argument = document.getElementById('argument').value;
                 const includeSummary = document.getElementById('include-summary').checked ? 'yes' : 'no';
+                const debug = document.getElementById('debug').checked ? 'yes' : 'no';
 
                 // Show "Running..." message in the terminal box
                 outputElement.innerHTML = '<span style="color: yellow;">Running...</span>';
 
-                fetch(`/cgi-bin/runemu.cgi?arg=-c ${encodeURIComponent(argument)}&summary=${includeSummary}`)
+                fetch(`/cgi-bin/runemu.cgi?arg=-c ${encodeURIComponent(argument)}&summary=${includeSummary}&debug=${debug}`)
                     .then(response => {
                         const reader = response.body.getReader();
                         const decoder = new TextDecoder();
@@ -126,7 +131,6 @@
                                 if (done) return;
                                 const chunk = decoder.decode(value);
                                 outputElement.innerHTML += chunk;  // Append the HTML directly as HTML
-                                // outputElement.scrollTop = outputElement.scrollHeight;  // Scroll to bottom only if near bottom
                                 read();  // Continue reading
                             }).catch(error => {
                                 console.error('Read error:', error);

@@ -32,6 +32,7 @@
 
 #define NCSI_PACKET_MAX_SIZE  1536                            /* 1.5 KB maximum packet size */
 #define NCSI_PAYLOAD_MAX_SIZE (NCSI_PACKET_MAX_SIZE - 14 - 1) /* Ethernet header  is 14 bytes + Intel prepended byte */
+#define NCSI_PACKED           0
 
 /* Ethernet header structure */
 typedef struct
@@ -57,12 +58,15 @@ typedef struct
 } ncsi_packet_t;
 
 /* Full NC-SI Ethernet packet structure */
+#if ( NCSI_PACKED > 0 )
+typedef struct __attribute__((packed)) ncsi_eth_packet
+#else
 typedef struct ncsi_eth_packet
+#endif
 {
-    uint8_t           extra_byte;
+    uint8_t           extra_byte; /* ToDo: Architecture - alignment issue? */
     ethernet_header_t eth_header; /* Ethernet header */
-    ncsi_packet_t     ncsi_data;  /* NC-SI data including headers and 
-                                     payload */
+    ncsi_packet_t     ncsi_data;  /* NC-SI data including headers and payload */
 } ncsi_eth_packet;
 
 /**
