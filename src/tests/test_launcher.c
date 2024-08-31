@@ -3,8 +3,8 @@
   ******************************************************************************
   * @file    test_launcher.c
   * @author  IMCv2 Team
-  * @brief   Functions to evaluate the number of cycles spent in key logic 
-  *          software components in this solution.
+  * @brief   Allow to register and execute various test and report Cycles 
+  *          asociated with them.
   *    
   ******************************************************************************
   * 
