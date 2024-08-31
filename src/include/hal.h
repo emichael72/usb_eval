@@ -136,6 +136,37 @@
 #define HAL_OVERHEAD_CYCLES (11)
 #endif
 
+/* Teminal ANSI escapes code for colors support */
+#define ANSI_CLS         "\033[2J"
+#define ANSI_CLR         "\033[K"
+#define ANSI_CURSOR_OFF  "\033[?25l"
+#define ANSI_CURSOR_ON   "\033[?25h"
+#define ANSI_BLACK       "\033[30m"          /* Black */
+#define ANSI_RED         "\033[1;31m"        /* Red */
+#define ANSI_GREEN       "\033[1;32m"        /* Green */
+#define ANSI_YELLOW      "\033[1;33m"        /* Yellow */
+#define ANSI_BLUE        "\033[1;34m"        /* Blue */
+#define ANSI_MAGENTA     "\033[1;35m"        /* Magenta */
+#define ANSI_CYAN        "\033[1;36m"        /* Cyan  */
+#define ANSI_WHITE       "\033[37m"          /* White */
+#define ANSI_BOLDBLACK   "\033[1m\033[30m"   /* Bold Black */
+#define ANSI_BOLDRED     "\033[1m\033[1;31m" /* Bold Red */
+#define ANSI_BOLDGREEN   "\033[1m\033[1;32m" /* Bold Green */
+#define ANSI_BOLDYELLOW  "\033[1m\033[1;33m" /* Bold Yellow */
+#define ANSI_BOLDBLUE    "\033[1m\033[1;34m" /* Bold Blue */
+#define ANSI_BOLDMAGENTA "\033[1m\033[1;35m" /* Bold Magenta */
+#define ANSI_BOLDCYAN    "\033[1m\033[1;36m" /* Bold Cyan */
+#define ANSI_BOLDWHITE   "\033[1m\033[37m"   /* Bold White */
+#define ANSI_BG_BLACK    "\033[0;40m"
+#define ANSI_FG_BLACK    "\033[1;30m"
+#define ANSI_BG_WHITE    "\033[0;47m"
+#define ANSI_FG_WHITE    "\033[1;37m"
+#define ANSI_BG_CYAN     "\033[0;46m"
+#define ANSI_BG_YELLOW   "\033[0;43m"
+#define ANSI_FG_DEFAULT  "\033[0;39m"
+#define ANSI_BG_DEFAULT  "\033[0;49m"
+#define ANSI_MODE        ANSI_CURSOR_ON ANSI_BG_DEFAULT ANSI_FG_DEFAULT
+
 /**
   * @}
   */
@@ -216,6 +247,21 @@ void *hal_memcpy(void *__restrict dest, const void *__restrict src, size_t n);
  */
 
 void *hal_zero_buf(void *dest, size_t n);
+
+/**
+ * @brief Outputs a byte array as hex strings to the terminal.
+ *
+ * This function prints the contents of a byte array in a formatted hex dump
+ * style. Each line contains 16 bytes in hexadecimal representation, followed
+ * by their ASCII equivalents (or a '.' for non-printable characters). The memory
+ * address is optionally included at the start of each line.
+ *
+ * @param data Pointer to the byte array to be dumped.
+ * @param size Number of bytes to be displayed from the array.
+ * @param addAddress Boolean flag to include or omit the address field in the output.
+ */
+
+void hal_hexdump(const void *data, size_t size, bool addAddress, const char *prefx);
 
 /**
  * @brief Allocate a memory chunk from a pre-initialized region.

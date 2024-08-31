@@ -478,6 +478,92 @@ int hal_validate_paint_buffer(void *p_buffer, size_t len)
 }
 
 /**
+ * @brief Outputs a byte array as hex strings to the terminal.
+ *
+ * This function prints the contents of a byte array in a formatted hex dump
+ * style. Each line contains 16 bytes in hexadecimal representation, followed
+ * by their ASCII equivalents (or a '.' for non-printable characters). The memory
+ * address is optionally included at the start of each line.
+ *
+ * @param data Pointer to the byte array to be dumped.
+ * @param size Number of bytes to be displayed from the array.
+ * @param addAddress Boolean flag to include or omit the address field in the output.
+ */
+
+void hal_hexdump(const void *data, size_t size, bool addAddress, const char *prefx)
+{
+    char           lineBuffer[80] = {0}; /* Buffer to hold the entire line for printing */
+    unsigned char *pAddr          = (unsigned char *) data;
+    unsigned char *pAscii, *pHex;
+    size_t         i, line_offset;
+    bool           print_line = false;
+
+    if ( data == NULL || size == 0 )
+        return;
+
+    printf("\n");
+
+    for ( i = 0; i < size; ++i )
+    {
+        /* Start a new line for every 16 bytes */
+        if ( i % 16 == 0 )
+        {
+            pAscii = ((unsigned char *) lineBuffer) + (addAddress ? 60 : 51);
+            pHex   = ((unsigned char *) lineBuffer) + (addAddress ? 9 : 0);
+            memset(lineBuffer, 0x20, sizeof(lineBuffer) - 1);
+
+            lineBuffer[addAddress ? 77 : 68] = '|';
+            lineBuffer[addAddress ? 59 : 50] = '|';
+
+            if ( addAddress )
+            {
+                /* Get the address field */
+                sprintf(lineBuffer, "%08x ", (uintptr_t) pAddr);
+            }
+
+            pAddr += 16;
+            line_offset = addAddress ? 9 : 0;
+            print_line  = false;
+        }
+
+        /* Append the hex value of the current byte to the line buffer */
+        unsigned char byte = ((unsigned char *) data)[i];
+        pHex[0]            = "0123456789ABCDEF"[byte >> 4];
+        pHex[1]            = "0123456789ABCDEF"[byte & 0x0F];
+        pHex[2]            = ' ';
+        pHex += 3;
+        line_offset += 3;
+
+        /* Store the ASCII character or a '.' if non-printable */
+        *pAscii = (byte >= ' ' && byte <= '~') ? byte : '.';
+        pAscii++;
+
+        /* Handle line endings */
+        if ( (i + 1) % 16 == 0 || i + 1 == size )
+            print_line = true;
+
+        if ( print_line )
+        {
+            lineBuffer[line_offset] = 0x20;
+
+            /* Print prefix if specified */
+            if ( prefx )
+                printf("%s", prefx);
+
+            if ( i + 1 == size )
+            {
+                /* Last line, do not print the newline character */
+                printf("%s", lineBuffer);
+            }
+            else
+            {
+                printf("%s\n", lineBuffer);
+            }
+        }
+    }
+}
+
+/**
  * @brief HAL wrapper around the underlying 'brk' style allocator to
  *        provide a malloc() style API. Note that memory cannot be
  *        freed in this platform.
@@ -655,7 +741,7 @@ __attribute__((noreturn)) void hal_sys_init(XosThreadFunc startThread, int _argc
     ret = xos_thread_create(&p_hal->initial_thread, NULL, startThread, NULL, "initThread", p_hal->initial_thread_stack, HAL_DEFAULT_STACK_SIZE, 1, NULL, 0);
     assert(ret == XOS_OK); /* Initial thread creation error */
 
-    setvbuf(stdout, NULL, _IONBF, 0);
+    //    setvbuf(stdout, NULL, _IONBF, 0);
 
     /* Start Kernel which will block. */
     xos_start(0);

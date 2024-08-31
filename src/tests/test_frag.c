@@ -87,15 +87,16 @@ typedef struct mctp_frag_t
 
 typedef struct frag_test_t
 {
-    ncsi_eth_packet *p_ncsi_packet;    /**< Pointer to the currently handled  NC-SI Ethernet packet. */
-    mctp_frag *      p_mctp_head;      /**< Head pointer to the MCTP fragments list. */
+    ncsi_eth_packet *p_ncsi_packet; /**< Pointer to the currently handled  NC-SI Ethernet packet. */
+    mctp_frag *      p_mctp_head;   /**< Head pointer to the MCTP fragments list. */
+    uint8_t *        p_ncsi_start;
     uint8_t          ncsi_frgas_count; /**< Count of MCTP fragments used to  encapsulate the NC-SI packet. */
     uint16_t         ncsi_packet_size; /**< Size of the inbound NC-SI packet in bytes. */
     uint8_t          version;          /**< MCTP header version. */
     uint8_t          destination_eid;  /**< MCTP destination EID. */
     uint8_t          source_eid;       /**< MCTP source EID. */
     uint8_t          usb_tx_frames;
-    uint8_t          usb_tx_operations;
+    uint8_t          usb_tx_io;
     uint16_t         usb_raw_payload;
 
 } frag_test;
@@ -115,15 +116,28 @@ frag_test *p_frag_test = NULL;
 static void test_frag_adjust_pointers(void)
 {
     mctp_frag *frag            = p_frag_test->p_mctp_head;
-    uint8_t *  p_payload       = (uint8_t *) p_frag_test->p_ncsi_packet;
+    uint8_t *  p_payload       = p_frag_test->p_ncsi_start;
     size_t     remaining_bytes = p_frag_test->ncsi_packet_size;
+
+    /* Ensure the first fragment does not exceed 63 bytes */
+    size_t first_packet_size = (remaining_bytes > (USB_FRAME_SIZE - 1)) ? (USB_FRAME_SIZE - 1) : remaining_bytes;
 
     /* Adjust the fragments list to the inbound NC-SI packet */
     for ( uint16_t i = 0; i < p_frag_test->ncsi_frgas_count && frag; i++ )
     {
         /* Set the payload pointer and size */
-        frag->payload      = p_payload;
-        frag->payload_size = (remaining_bytes > USB_FRAME_SIZE) ? USB_FRAME_SIZE : remaining_bytes;
+        frag->payload = p_payload;
+
+        if ( i == 0 )
+        {
+            /* Set the size for the first fragment */
+            frag->payload_size = first_packet_size;
+        }
+        else
+        {
+            /* Set the size for the subsequent fragments */
+            frag->payload_size = (remaining_bytes > USB_FRAME_SIZE) ? USB_FRAME_SIZE : remaining_bytes;
+        }
 
         /* Update remaining bytes and payload pointer */
         p_payload += frag->payload_size;
@@ -154,18 +168,17 @@ static void test_frag_on_usb_tx(ptr_size_pair *pairs, size_t pairs_count)
 /* Implementation of USB transmission would go here. */
 #ifdef DEBUG
 
-    printf("\tUSB Tx %2d, messages: %d\n", p_frag_test->usb_tx_operations, pairs_count);
-
     for ( int i = 0; i < pairs_count; i++ )
     {
-        //printf("\tUSB TX [%2d]: %d bytres.\n",  p_frag_test->usb_tx_frames, pairs[i].size);
+
+        printf("\n\n\tUSB IO %-2u packet %-2u, %-2u bytes :", p_frag_test->usb_tx_io, p_frag_test->usb_tx_frames, pairs[i].size);
+        hal_hexdump((void *) pairs[i].ptr, pairs[i].size, false, "\t");
+
         p_frag_test->usb_tx_frames++;
 
         if ( i % 2 != 0 )
             p_frag_test->usb_raw_payload += pairs[i].size;
     }
-
-    p_frag_test->usb_tx_operations++;
 
 #endif
 }
@@ -191,10 +204,26 @@ int test_frag_prolog(uintptr_t arg)
         return 1;
 
     /* Prepended '3'to NCSI packet */
-    p_frag_test->p_ncsi_packet->extra_byte = 3;
-    p_frag_test->usb_tx_frames             = 0;
-    p_frag_test->usb_raw_payload           = 0;
-    p_frag_test->usb_tx_operations         = 0;
+
+    /* According to architecture, we must prepend an extra byte to the first
+        message payload and set it to 3. In this implementation, we've added 32 bits
+        (4 bytes) to the NC-SI packet to maintain alignment. Now, we are setting the
+        last byte of this 32-bit segment to 3. This adjustment ensures that the first
+        message in the packet starts with the value '3', but it does so at the expense
+        of the first MCTP message not beginning at an aligned address.
+        
+        Architectural note: While we ensured that the NC-SI packet remains aligned,
+        the first MCTP message will start at a non-aligned address due to this 
+        adjustment.
+    */
+
+    p_frag_test->p_ncsi_packet->extra_byte[3] = 3;
+    p_frag_test->p_ncsi_start                 = (uint8_t *) (&(p_frag_test->p_ncsi_packet->extra_byte[3]));
+    p_frag_test->ncsi_packet_size -= 3; /* We've added 32 bits to the NC-SI and we need only the last byte */
+
+    p_frag_test->usb_tx_frames   = 0;
+    p_frag_test->usb_raw_payload = 0;
+    p_frag_test->usb_tx_io       = 0;
 
     /* Calculate the total number of fragments needed */
     p_frag_test->ncsi_frgas_count = (p_frag_test->ncsi_packet_size + USB_FRAME_SIZE - 1) / USB_FRAME_SIZE;
@@ -231,7 +260,6 @@ void test_exec_frag(uintptr_t arg)
 {
     mctp_frag *frag        = p_frag_test->p_mctp_head;
     size_t     pairs_count = 0;
-    size_t     usb_tx_io   = 0;
 
     /* By now, we trust that there is a pending NC-SI packet */
     test_frag_adjust_pointers();
@@ -262,15 +290,16 @@ void test_exec_frag(uintptr_t arg)
         {
             /* Send the batch to the fake USB hardware interfcae */
             test_frag_on_usb_tx(pairs, pairs_count);
-            usb_tx_io++;
+
+            p_frag_test->usb_tx_io++;
             pairs_count = 0;
         }
     }
 
 /* Packet sent. */
 #ifdef DEBUG
-    printf("\n\tUSB fragments: %d\n", p_frag_test->usb_tx_frames);
-    printf("\tUSB IO: %d\n", usb_tx_io);
+    printf("\n\n\tUSB fragments: %d\n", p_frag_test->usb_tx_frames);
+    printf("\tUSB IO: %d\n", p_frag_test->usb_tx_io);
     printf("\tUSB TX bytes (no MCTP headers): %d\n\n", p_frag_test->usb_raw_payload);
 
 #endif
