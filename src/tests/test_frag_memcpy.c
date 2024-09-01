@@ -190,10 +190,10 @@ int test_frag_memcpy_prolog(uintptr_t arg)
         return 1;
 
     /* Prepended '3'to NCSI packet */
-    p_frag_memcpy_test->p_ncsi_packet->extra_byte = 3;
-    p_frag_memcpy_test->usb_tx_frames             = 0;
-    p_frag_memcpy_test->usb_raw_payload           = 0;
-    p_frag_memcpy_test->usb_tx_operations         = 0;
+    p_frag_memcpy_test->p_ncsi_packet->extra_byte[3] = 3;
+    p_frag_memcpy_test->usb_tx_frames                = 0;
+    p_frag_memcpy_test->usb_raw_payload              = 0;
+    p_frag_memcpy_test->usb_tx_operations            = 0;
 
     /* Calculate the total number of fragments needed */
     p_frag_memcpy_test->ncsi_frgas_count = (p_frag_memcpy_test->ncsi_packet_size + USB_FRAME_SIZE - 1) / USB_FRAME_SIZE;
