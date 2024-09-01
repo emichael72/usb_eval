@@ -72,8 +72,8 @@ char *test_frag_memcpy_desc(size_t description_type);
  * will result in an assertion.
  */
 
-void test_frag_init(void);
-void test_frag_memcpy_init(void);
+int test_frag_init(uintptr_t arg);
+int test_frag_memcpy_init(uintptr_t arg);
 
 #endif /* #define _TEST_FRAG_H_
  */

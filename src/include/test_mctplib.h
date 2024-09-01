@@ -36,7 +36,10 @@
   */
 
 #define MCTP_USB_MSGQ_MAX_FRAME_SIZE   512 /**< Maximum size in bytes for each allocated buffer in the message queue */
-#define MCTP_USB_MSGQ_ALLOCATED_FRAMES 32  /**< Total number of allocated frames in the message queue */
+#define MCTP_USB_MSGQ_ALLOCATED_FRAMES 1   /**< Total number of allocated frames in the message queue */
+
+#define MCTP_USB_MAX_CONTEXT_SIZE        1500 /* Used by context buffer, aqual to max Ethernet frame */
+#define MCTP_USB_MSGQ_ALLOCATED_CONTEXES 1
 
 /* Dummy end-point ID used by our bus */
 #define MCTP_USB__DEST_EID 9
@@ -56,7 +59,7 @@
  *         initialized.
  */
 
-uintptr_t test_mctplib_get_msgq(void);
+uintptr_t test_mctplib_get_handle(size_t type);
 
 /**
  * @brief Run MCTP sequence tests over USB.
@@ -97,7 +100,7 @@ char *test_mctplib_desc(size_t description_type);
  * - Initialize libmctp and assert if initialization fails.
  */
 
-void test_mctplib_init(uint8_t eid);
+int test_mctplib_init(uintptr_t eid);
 
 /**
   * @}

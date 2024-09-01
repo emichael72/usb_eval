@@ -32,29 +32,26 @@
  *        including a description, the number of packets, expected outcomes, and relevant 
  *        flags or sequence tags.
  */
+
 typedef struct test_mctplib_seq_t
 {
-    char *  name;              /**< Pointer to a string that describes the test case. */
-    int     n_packets;         /**< Number of packets involved in the test case. */
-    uint8_t flags_seq_tags[4]; /**< Array of 4 bytes representing flags and sequence
+    char    name[64];           /**< Pointer to a string that describes the test case. */
+    int     n_packets;          /**< Number of packets involved in the test case. */
+    uint8_t flags_seq_tags[32]; /**< Array of 4 bytes representing flags and sequence
                                     tags for the packets. Each byte controls the
                                     behavior of the corresponding packet in the test.*/
-    int     exp_rx_count;      /**< Expected number of packets that should be
-                                    successfully received as part of the test. */
-    size_t  exp_rx_len;        /**< Expected total length (in bytes) of the data
-                                    that should be received as a result of the test. */
 } test_mctplib_seq;
 
 /* clang-format off */
 test_mctplib_seq seq_tests[] = {
 
-/*    Test description                         | n_packets | flags_seq_tags                                | exp_rx_count | exp_rx_len  */
+/*    Test description                         | n_packets | flags_seq_tags                                                              */
 /*  -------------------------------------------------------------------------------------------------------------------------------------*/
-    { "Single packet",                                   1, { SEQ(1) | MCTP_HDR_FLAG_SOM | MCTP_HDR_FLAG_EOM },                     1, 1 },
-    { "Two packets: one start, one end",                 2, { SEQ(1) | MCTP_HDR_FLAG_SOM, SEQ(2) | MCTP_HDR_FLAG_EOM },             1, 2 },
-    { "Three packets: one start, one no flags, one end", 3, { SEQ(1) | MCTP_HDR_FLAG_SOM, SEQ(2), SEQ(3) | MCTP_HDR_FLAG_EOM },     1, 3 },
-    { "Two packets, wrapping sequence numbers",          2, { SEQ(3) | MCTP_HDR_FLAG_SOM, SEQ(0) | MCTP_HDR_FLAG_EOM },             1, 2 },
-    { "Two packets, invalid sequence number",            2, { SEQ(1) | MCTP_HDR_FLAG_SOM, SEQ(3) | MCTP_HDR_FLAG_EOM },             0, 0 }
+ //   { "Single packet",                                   1, { SEQ(1) | MCTP_HDR_FLAG_SOM | MCTP_HDR_FLAG_EOM }, },
+ //   { "Two packets: one start, one end",                 2, { SEQ(1) | MCTP_HDR_FLAG_SOM, SEQ(2) | MCTP_HDR_FLAG_EOM }, },
+    { "Six packets: one start, 4 no flags, one end", 6, { SEQ(1) | MCTP_HDR_FLAG_SOM, SEQ(2), SEQ(3), SEQ(4),SEQ(5), SEQ(6) | MCTP_HDR_FLAG_EOM },    },
+  //  { "Two packets, wrapping sequence numbers",          2, { SEQ(3) | MCTP_HDR_FLAG_SOM, SEQ(0) | MCTP_HDR_FLAG_EOM }, },
+  //  { "Two packets, invalid sequence number",            2, { SEQ(1) | MCTP_HDR_FLAG_SOM, SEQ(3) | MCTP_HDR_FLAG_EOM }, }
 };
 /* clang-format on */
 
@@ -63,10 +60,11 @@ test_mctplib_seq seq_tests[] = {
  */
 typedef struct test_mctplib_session_t
 {
-    struct mctp *       p_mctp;      /* Pointer to the libmctp instance */
-    struct mctp_binding binding;     /* libmctp binding container */
-    mctp_eid_t          eid;         /* Our Endpoint ID */
-    uintptr_t           msgq_handle; /* Handle to the message queue */
+    struct mctp *       p_mctp;             /* Pointer to the libmctp instance */
+    struct mctp_binding binding;            /* libmctp binding container */
+    mctp_eid_t          eid;                /* Our Endpoint ID */
+    uintptr_t           msgq_handle;        /* Handle to the message queue */
+    uintptr_t           msgq_contex_handle; /* Handle to the message queue dedicated for context buffers */
 
 } test_mctplib_session;
 
@@ -98,8 +96,11 @@ void test_mctplib_rx(void *buf, size_t len)
     pkt = mctp_pktbuf_alloc(&p_mctpusb->binding, len);
     assert(pkt);
 
-    hal_memcpy(mctp_pktbuf_hdr(pkt), buf, len);
+    memcpy(mctp_pktbuf_hdr(pkt), buf, len);
+
+    xt_iss_profile_enable();
     mctp_bus_rx(&p_mctpusb->binding, pkt);
+    xt_iss_profile_disable();
 }
 
 /**
@@ -108,16 +109,21 @@ void test_mctplib_rx(void *buf, size_t len)
  *         initialized.
  */
 
-uintptr_t test_mctplib_get_msgq(void)
+uintptr_t test_mctplib_get_handle(size_t type)
 {
 #if ( HAL_PTR_SANITY_CHECKS > 0 )
-    if ( p_mctpusb != NULL )
-        return p_mctpusb->msgq_handle;
-
-    return 0;
-#else
-    return p_mctpusb->msgq_handle;
+    if ( p_mctpusb == NULL )
+    {
+        return 0;
+    }
 #endif
+
+    if ( type == 0 )
+    {
+        return p_mctpusb->msgq_handle;
+    }
+    else
+        return p_mctpusb->msgq_contex_handle;
 }
 
 /**
@@ -141,37 +147,62 @@ uintptr_t test_mctplib_get_msgq(void)
  * @return void
  */
 
+/* MCTP standard header */
+typedef struct mctplib_header_t
+{
+    uint8_t version;              /* MCTP version */
+    uint8_t dest;                 /* Destination Endpoint ID */
+    uint8_t src;                  /* Source Endpoint ID */
+    uint8_t message_tag      : 3; /* Message Tag */
+    uint8_t tag_owner        : 1; /* Tag Owner */
+    uint8_t packet_sequence  : 2; /* Packet Sequence Number */
+    uint8_t end_of_message   : 1; /* End of Message Indicator */
+    uint8_t start_of_message : 1; /* Start of Message Indicator */
+
+} mctplib_header;
+
 static void test_mctplib_dummy_rx(uint8_t eid, bool tag_owner, uint8_t msg_tag, void *data, void *msg, size_t len)
 {
     /* Do not do anything here, the cycles are counting :) */
+#ifdef DEBUG
+    printf("Dummy RX receiver got message from %d, %d bytes.\n", eid, len);
+#endif
 }
+
+#define FRAG_SIZE   64
+#define FRAGS_COUNT 23
+
+typedef struct test_pkt_t
+{
+    mctplib_header hdr;
+    uint8_t        payload[FRAG_SIZE];
+} test_pkt;
+
+test_pkt         pktbuf     = {0};
+const mctp_eid_t remote_eid = 10;
 
 void test_exec_mctplib(uintptr_t ptr)
 {
-    test_mctplib_seq *test       = NULL;
-    const mctp_eid_t  remote_eid = 10;
-    unsigned int      test_num;
 
-    struct
+    xt_iss_profile_disable();
+
+    for ( int i = 0; i < FRAGS_COUNT; i++ )
     {
-        struct mctp_hdr hdr;
-        uint8_t         payload[1];
-    } pktbuf;
 
-    for ( test_num = 0; test_num < ARRAY_SIZE(seq_tests); test_num++ )
-    {
-        test = &seq_tests[test_num];
+        pktbuf.hdr.dest             = p_mctpusb->eid;
+        pktbuf.hdr.src              = remote_eid;
+        pktbuf.hdr.start_of_message = 0;
+        pktbuf.hdr.end_of_message   = 0;
+        pktbuf.payload[0]           = i;
 
-        for ( int i = 0; i < test->n_packets; i++ )
-        {
-            memset(&pktbuf, 0, sizeof(pktbuf));
-            pktbuf.hdr.dest          = p_mctpusb->eid;
-            pktbuf.hdr.src           = remote_eid;
-            pktbuf.hdr.flags_seq_tag = test->flags_seq_tags[i];
-            pktbuf.payload[0]        = i;
+        if ( i == 0 )
+            pktbuf.hdr.start_of_message = 1;
+        if ( i == (FRAGS_COUNT - 1) )
+            pktbuf.hdr.end_of_message = 1;
 
-            test_mctplib_rx(&pktbuf, sizeof(pktbuf));
-        }
+        test_mctplib_rx(&pktbuf, sizeof(pktbuf));
+
+        pktbuf.hdr.packet_sequence++;
     }
 }
 
@@ -239,9 +270,12 @@ char *test_mctplib_desc(size_t description_type)
  * - Initialize libmctp and assert if initialization fails.
  */
 
-void test_mctplib_init(uint8_t eid)
+int test_mctplib_init(uintptr_t eid)
 {
     int ret;
+
+    if ( p_mctpusb != NULL )
+        return 1;
 
     /* Request RAM for this module, assert on failure */
     p_mctpusb = hal_alloc(sizeof(test_mctplib_session));
@@ -256,21 +290,30 @@ void test_mctplib_init(uint8_t eid)
     p_mctpusb->msgq_handle = msgq_create(MCTP_USB_MSGQ_MAX_FRAME_SIZE, MCTP_USB_MSGQ_ALLOCATED_FRAMES);
     assert(p_mctpusb->msgq_handle != 0);
 
+    p_mctpusb->msgq_contex_handle = msgq_create(MCTP_USB_MAX_CONTEXT_SIZE, MCTP_USB_MSGQ_ALLOCATED_CONTEXES);
+    assert(p_mctpusb->msgq_contex_handle != 0);
+
     /* Initialize libmctp, assert on error. */
     p_mctpusb->p_mctp = mctp_init();
     assert(p_mctpusb->p_mctp != NULL);
 
-    p_mctpusb->eid = eid;
+    p_mctpusb->eid = (int) eid;
     mctp_set_max_message_size(p_mctpusb->p_mctp, MCTP_USB_MSGQ_MAX_FRAME_SIZE);
+
+#ifdef DEBUG
+    mctp_set_log_stdio(MCTP_LOG_DEBUG);
+#endif
 
     /* Binding */
     p_mctpusb->binding.name        = "USB";
     p_mctpusb->binding.version     = 1;
     p_mctpusb->binding.tx          = test_mctplib_tx;
-    p_mctpusb->binding.pkt_size    = MCTP_PACKET_SIZE(MCTP_BTU);
+    p_mctpusb->binding.pkt_size    = MCTP_BODY_SIZE(MCTP_USB_MSGQ_MAX_FRAME_SIZE) - 16;
     p_mctpusb->binding.pkt_header  = 0;
     p_mctpusb->binding.pkt_trailer = 0;
 
     ret = mctp_register_bus(p_mctpusb->p_mctp, &p_mctpusb->binding, eid);
     assert(ret == 0);
+
+    return ret;
 }

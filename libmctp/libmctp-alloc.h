@@ -7,6 +7,10 @@
 
 void *__mctp_alloc(size_t size);
 void  __mctp_free(void *ptr);
-void *__mctp_realloc(void *ptr, size_t size);
+
+void *__mctp_alloc_context(size_t size);
+void  __mctp_free_context(void *ptr);
+
+int __mctp_mem_init(void);
 
 #endif /* _LIBMCTP_ALLOC_H */

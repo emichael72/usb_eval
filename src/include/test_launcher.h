@@ -28,8 +28,7 @@
 /* Maximum number of test items */
 #define TEST_LAUNCHER_MAX_ITEMS 20
 
-typedef int (*test_launcher_prolog_func)(uintptr_t);
-typedef int (*test_launcher_epilogue_func)(uintptr_t);
+typedef int (*test_launcher_func)(uintptr_t);
 typedef char *(*test_launcher_get_description)(size_t description_type);
 
 /**
@@ -37,10 +36,12 @@ typedef char *(*test_launcher_get_description)(size_t description_type);
  */
 typedef struct test_launcher_item_info_t
 {
-    test_launcher_prolog_func     prolog;       /**< Logic to execute prior to the actual measured function, can be NULL */
+    test_launcher_func            init;
+    test_launcher_func            prolog;       /**< Logic to execute prior to the actual measured function, can be NULL */
     hal_sim_func                  test_func;    /**< Measured function, must not be NULL */
-    test_launcher_epilogue_func   epilogue;     /**< Logic to execute after the measured function, can be NULL */
+    test_launcher_func            epilogue;     /**< Logic to execute after the measured function, can be NULL */
     test_launcher_get_description desc;         /**< Rerives test decription NULL */
+    uintptr_t                     init_arg;     /**< Parameter to pass to the 'prolog' function */
     uintptr_t                     prolog_arg;   /**< Parameter to pass to the 'prolog' function */
     uintptr_t                     test_arg;     /**< Parameter to pass to the measured function */
     uintptr_t                     epilogue_arg; /**< Parameter to pass to the 'epilogue' function */

@@ -64,7 +64,7 @@ typedef struct mctp_packet_t
     uint8_t start_of_message : 1; /* Start of Message Indicator */
     /* Integrity_check and reserved fields are omitted */
 
-} mctp_ptr_packet;
+} mctp_packet;
 
 /* 
  * MCTP and additional pointers packet structure
@@ -75,7 +75,7 @@ typedef struct mctp_packet_t
 typedef struct mctp_frag_t
 {
 
-    mctp_ptr_packet     mctp_header;  /* MCTP 4 bytes header */
+    mctp_packet         mctp_header;  /* MCTP 4 bytes header */
     uint8_t *           payload;      /* Pointer to the NC-SI packet */
     size_t              payload_size; /* Length of the payload data pointed to */
     struct mctp_frag_t *next;         /* Pointer to the next packet */
@@ -454,13 +454,13 @@ char *test_frag_desc(size_t description_type)
  * will result in an assertion.
  */
 
-void test_frag_init(void)
+int test_frag_init(uintptr_t arg)
 {
     mctp_frag *frag      = NULL;
     int        msg_index = 0;
 
     if ( p_frag_test != NULL )
-        return; /* Must initialize only once */
+        return 1; /* Must initialize only once */
 
     /* 
      * The following operations are performed once and do not count as 
@@ -518,4 +518,5 @@ void test_frag_init(void)
     }
 
     /* We'rte ready. */
+    return 0;
 }

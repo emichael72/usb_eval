@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <hal.h> /* Intel: LX7 infrastructure */
+#include <hal.h>          /* Intel: LX7 infrastructure */
 #include <test_mctplib.h> /* Intel : libmctop integrationm test */
 
 #undef pr_fmt
@@ -97,7 +97,7 @@ struct mctp
 /* 64kb should be sufficient for a single message. Applications
  * requiring higher sizes can override by setting max_message_size.*/
 #ifndef MCTP_MAX_MESSAGE_SIZE
-#define MCTP_MAX_MESSAGE_SIZE 65536
+#define MCTP_MAX_MESSAGE_SIZE MCTP_USB_MSGQ_MAX_FRAME_SIZE
 #endif
 
 static int mctp_message_tx_on_bus(struct mctp_bus *bus, mctp_eid_t src, mctp_eid_t dest, bool tag_owner, uint8_t msg_tag, void *msg, size_t msg_len);
@@ -236,7 +236,7 @@ static void mctp_msg_ctx_drop(struct mctp_msg_ctx *ctx)
 {
     if ( ctx->buf )
     {
-        __mctp_free(ctx->buf);
+        __mctp_free_context(ctx->buf);
         ctx->buf = NULL;
     }
 
@@ -249,7 +249,7 @@ static void mctp_msg_ctx_reset(struct mctp_msg_ctx *ctx)
     ctx->fragment_size = 0;
     if ( ctx->buf )
     {
-        __mctp_free(ctx->buf);
+        __mctp_free_context(ctx->buf);
         ctx->buf = NULL;
     }
 }
@@ -262,16 +262,16 @@ static int mctp_msg_ctx_add_pkt(struct mctp_msg_ctx *ctx, struct mctp_pktbuf *pk
 
     if ( ctx->buf == NULL )
     {
-        ctx->buf        = __mctp_alloc(MCTP_USB_MSGQ_MAX_FRAME_SIZE);
+        ctx->buf        = __mctp_alloc_context(MCTP_USB_MAX_CONTEXT_SIZE);
         ctx->p_cur      = ctx->buf;
         ctx->buf_size   = 0;
-        ctx->free_bytes = MCTP_USB_MSGQ_MAX_FRAME_SIZE;
+        ctx->free_bytes = MCTP_USB_MAX_CONTEXT_SIZE;
     }
 
     /* No buffer - drop the message */
     if ( ctx->free_bytes < len )
     {
-        __mctp_free(ctx->buf);
+        __mctp_free_context(ctx->buf);
         return -1;
     }
 
@@ -279,55 +279,6 @@ static int mctp_msg_ctx_add_pkt(struct mctp_msg_ctx *ctx, struct mctp_pktbuf *pk
     ctx->buf_size += len;
     ctx->free_bytes -= len;
     ctx->p_cur += len;
-
-    return 0;
-}
-
-int mctp_msg_ctx_add_pkt_x(struct mctp_msg_ctx *ctx, struct mctp_pktbuf *pkt, size_t max_size)
-{
-    size_t len;
-
-    len = mctp_pktbuf_size(pkt) - sizeof(struct mctp_hdr);
-
-    if ( len + ctx->buf_size < ctx->buf_size )
-    {
-        return -1;
-    }
-
-    if ( ctx->buf_size + len > ctx->buf_alloc_size )
-    {
-        size_t new_alloc_size;
-        void * lbuf;
-
-        /* @todo: finer-grained allocation */
-        if ( ! ctx->buf_alloc_size )
-        {
-            new_alloc_size = MAX(len, 4096UL);
-        }
-        else
-        {
-            new_alloc_size = MAX(ctx->buf_alloc_size * 2, len + ctx->buf_size);
-        }
-
-        /* Don't allow heap to grow beyond a limit */
-        if ( new_alloc_size > max_size )
-            return -1;
-
-        lbuf = __mctp_realloc(ctx->buf, new_alloc_size);
-        if ( lbuf )
-        {
-            ctx->buf            = lbuf;
-            ctx->buf_alloc_size = new_alloc_size;
-        }
-        else
-        {
-            __mctp_free(ctx->buf);
-            return -1;
-        }
-    }
-
-    memcpy((uint8_t *) ctx->buf + ctx->buf_size, mctp_pktbuf_data(pkt), len);
-    ctx->buf_size += len;
 
     return 0;
 }
@@ -340,6 +291,9 @@ struct mctp *mctp_init(void)
     mctp = hal_alloc(sizeof(*mctp));
 
     if ( ! mctp )
+        return NULL;
+
+    if ( __mctp_mem_init() != 0 )
         return NULL;
 
     memset(mctp, 0, sizeof(*mctp));
@@ -610,7 +564,7 @@ void mctp_bus_rx(struct mctp_binding *binding, struct mctp_pktbuf *pkt)
 
     hdr = mctp_pktbuf_hdr(pkt);
 
-    /* small optimisation: don't bother reassembly if we're going to
+    /* Small optimisation: don't bother reassembly if we're going to
 	 * drop the packet in mctp_rx anyway */
     if ( mctp->route_policy == ROUTE_ENDPOINT && ! mctp_rx_dest_is_local(bus, hdr->dest) )
         goto out;

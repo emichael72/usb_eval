@@ -318,13 +318,13 @@ char *test_frag_memcpy_desc(size_t description_type)
  * will result in an assertion.
  */
 
-void test_frag_memcpy_init(void)
+int test_frag_memcpy_init(uintptr_t arg)
 {
     mctp_frag *frag      = NULL;
     int        msg_index = 0;
 
     if ( p_frag_memcpy_test != NULL )
-        return; /* Must initialize only once */
+        return 1; /* Must initialize only once */
 
     /* 
      * The following operations are performed once and do not count as 
@@ -381,4 +381,5 @@ void test_frag_memcpy_init(void)
     }
 
     /* We'rte ready. */
+    return 0;
 }

@@ -39,15 +39,15 @@ static struct cag_option options[] =
 /* clang-format off */
 static test_launcher_item_info tests_info[] = {
 
-    /* Prolog                   Test function           Epilogue       Description              Prolog args  Test arg  Epilogue args  Repetitions */
+    /* Init                    Prolog                   Test function           Epilogue        Description     Args               Repetitions */
     /* ------------------------------------------------------------------------------------------------------------------------------------------ */
-    { NULL,                     hal_useless_function,   NULL,          test_useless_desc,       0,           0,        0,             1           },
-    { NULL,                     test_exec_memcpy,       NULL,          test_memcpy_desc_xtensa, 0,           0,        0,             1           },
-    { NULL,                     test_exec_memcpy,       NULL,          test_memcpy_desc_hal,    0,           1,        0,             1           },
-    { NULL,                     test_exec_msgq,         NULL,          test_msgq_desc,          0,           0,        0,             1           },
-    { test_mctplib_prolog,      test_exec_mctplib,      NULL,          test_mctplib_desc,       0,           0,        0,             1           },
-    { test_frag_prolog,         test_exec_frag,         NULL,          test_frag_desc,          0,           0,        0,             1           },
-    { test_frag_memcpy_prolog,  test_exec_memcpy_frag,  NULL,          test_frag_memcpy_desc,   0,           0,        0,             1           },
+    { NULL,                     NULL,                     hal_useless_function,   NULL, test_useless_desc,       0,     0,  0,  0,  1           },
+    { NULL,                     NULL,                     test_exec_memcpy,       NULL, test_memcpy_desc_xtensa, 0,     0,  0,  0,  1           },
+    { NULL,                     NULL,                     test_exec_memcpy,       NULL, test_memcpy_desc_hal,    0,     0,  1,  0,  1           },
+    { NULL,                     NULL,                     test_exec_msgq,         NULL, test_msgq_desc,          MCTP_USB__DEST_EID,    0,  0,  0,  1 },
+    { test_mctplib_init,        test_mctplib_prolog,      test_exec_mctplib,      NULL, test_mctplib_desc,       0,     0,  0,  0,  1           },
+    { test_frag_init,           test_frag_prolog,         test_exec_frag,         NULL, test_frag_desc,          0,     0,  0,  0,  1           },
+    { test_frag_memcpy_init,    test_frag_memcpy_prolog,  test_exec_memcpy_frag,  NULL, test_frag_memcpy_desc,   0,     0,  0,  0,  1           },
 
 };
 /* clang-format on */
@@ -127,17 +127,6 @@ static int init_thread(void *arg, int32_t unused)
 #ifdef DEBUG
     xos_disable_interrupts();
 #endif
-
-    /* Some tests require dedicated initialization routines, so: */
-
-    /* Initializes the transport layer, this call will assert on any error and
-     * consequently cause the emulator to exit back to the shell. 
-     */
-    test_mctplib_init(MCTP_USB__DEST_EID);
-
-    /* Initilizes the 'frag' logic test */
-    test_frag_init();
-    test_frag_memcpy_init();
 
     /* Retrieve argc and argv passed to main */
     hal_get_argcv(&argc, &argv);

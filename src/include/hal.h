@@ -83,7 +83,7 @@
  */
 
 #define HAL_CCOUNT_HACKVAL     (0xFC000000) /**< CCOUNT forward hack value */
-#define HAL_DEFAULT_STACK_SIZE (1 * 1024)   /**< Default stack size in bytes for threads */
+#define HAL_DEFAULT_STACK_SIZE (2 * 1024)   /**< Default stack size in bytes for threads */
 #define HAL_POOL_SIZE          (32 * 1024)  /**< Bytes available for the inner pool */
 #define HAL_AUTO_TERMINATE \
     (60000) /**< Auto exit emulator after n 

@@ -32,7 +32,7 @@
 void test_exec_msgq(uintptr_t unused)
 {
     const int frames_count = 1;
-    uintptr_t msgq_handle  = test_mctplib_get_msgq();
+    uintptr_t msgq_handle  = test_mctplib_get_handle(0);
 
     void *p_bufs[1];
     int   ret_val;

@@ -130,6 +130,13 @@ uint64_t test_launcher_execute(size_t test_index)
         if ( item == NULL )
             break;
 
+        /* Execute the init function if it exists */
+        if ( item->item_info->init )
+        {
+            if ( item->item_info->init(item->item_info->init_arg) )
+                break; /* Error: init function failed */
+        }
+
         /* Execute the prolog function if it exists */
         if ( item->item_info->prolog )
         {
