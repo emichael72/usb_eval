@@ -238,7 +238,7 @@ static void cag_option_parse_value(cag_option_context *context, const cag_option
 static void cag_option_parse_access_name(cag_option_context *context, char **c)
 {
     const cag_option *option;
-    char             *n;
+    char *            n;
 
     // Now we need to extract the access name, which is any symbol up to a '=' or
     // a '\0'.
@@ -282,7 +282,7 @@ static void cag_option_parse_access_name(cag_option_context *context, char **c)
 static void cag_option_parse_access_letter(cag_option_context *context, char **c)
 {
     const cag_option *option;
-    char             *n, *v, letter;
+    char *            n, *v, letter;
 
     n = *c;
 

@@ -134,7 +134,7 @@ void *msgq_get_next(uintptr_t msgq_handle, int list_type, bool order)
 
 void *msgq_request(uintptr_t msgq_handle, size_t size)
 {
-    msgq_buf     *p_buf = NULL;
+    msgq_buf *    p_buf = NULL;
     msgq_storage *pfs   = (msgq_storage *) msgq_handle; /* Handle to pointer */
 
 #if ( HAL_MSGQ_SANITY_CHECKS == 1 )
@@ -189,7 +189,7 @@ void *msgq_request(uintptr_t msgq_handle, size_t size)
 
 int msgq_release(uintptr_t msgq_handle, void *data)
 {
-    msgq_buf     *p_buf = NULL;
+    msgq_buf *    p_buf = NULL;
     msgq_storage *pfs   = (msgq_storage *) msgq_handle; /* Handle to pointer */
 
     /* Calculate the offset of p_data within msgq_buf */
@@ -233,7 +233,7 @@ uintptr_t msgq_create(size_t item_size, size_t items_count)
 {
 
     size_t        q_item_size = 0;
-    msgq_buf     *p_buf       = NULL;
+    msgq_buf *    p_buf       = NULL;
     msgq_storage *p_storage   = NULL;
 
     if ( item_size == 0 || items_count == 0 )

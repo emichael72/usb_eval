@@ -81,12 +81,12 @@ uintptr_t hal_brk_alloc_init(void)
 
 #if defined(HAL_POOL_SIZE) && (HAL_POOL_SIZE > 0)
 
-    const void  *mem_start = hal_mem_pool;
+    const void * mem_start = hal_mem_pool;
     hal_brk_ctx *pCtx      = (hal_brk_ctx *) mem_start;
     uint8_t      ctxSize   = hal_brk_align_up(sizeof(hal_brk_ctx), 8);
     uintptr_t    addr;
     const size_t tot_size = HAL_POOL_SIZE;
-    uint8_t     *mem_end  = NULL;
+    uint8_t *    mem_end  = NULL;
 
     if ( ! pCtx || tot_size == 0 )
     {

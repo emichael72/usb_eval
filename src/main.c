@@ -110,15 +110,15 @@ static int init_thread(void *arg, int32_t unused)
     uint64_t           measured_cycles = 0;     /* Cycles related to any of our tests */
     cag_option_context context         = {0};   /* libcargs context */
     int                argc            = 0;     /* Arguments count passed to main() */
-    char             **argv            = NULL;  /* Arguments array passed to main() */
+    char **            argv            = NULL;  /* Arguments array passed to main() */
     char               identifier      = 0;     /* libcargs identifier */
     bool               run_and_exit    = true;  /* Specify to terminate immediately */
     bool               got_command     = false; /* Have we got any command to execute? */
-    const char        *value           = NULL;  /* Points to an extrcated argumnet */
+    const char *       value           = NULL;  /* Points to an extrcated argumnet */
     int                test_index      = -1;    /* Local argumnet */
     bool               cgi_mode        = false; /* Local argumnet */
     bool               exit_fetch      = false; /* Exit the arguments fearch loop */
-    char              *test_desc       = NULL;  /* Test descriptive test */
+    char *             test_desc       = NULL;  /* Test descriptive test */
 
     HAL_UNUSED(arg);
     HAL_UNUSED(unused);

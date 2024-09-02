@@ -30,7 +30,7 @@
 typedef struct __launched_item_t
 {
     struct __launched_item_t *next;      /* Pointer to the next item in the list */
-    test_launcher_item_info  *item_info; /* Pointer to the data for the launched item */
+    test_launcher_item_info * item_info; /* Pointer to the data for the launched item */
 
 } launched_item;
 
@@ -228,7 +228,7 @@ char *test_launcher_get_desc(size_t test_index, size_t type)
 {
     launched_item *item = NULL;
     size_t         i    = 0;
-    char          *test_description;
+    char *         test_description;
 
     /* Find the list item at the specified index */
     LL_FOREACH(p_launcher->items_head, item)

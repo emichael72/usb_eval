@@ -66,7 +66,7 @@ typedef struct mctp_frag_t
 {
 
     mctp_packet         mctp_header;  /* MCTP 4 bytes header */
-    uint8_t            *payload;      /* Pointer to the NC-SI packet */
+    uint8_t *           payload;      /* Pointer to the NC-SI packet */
     size_t              payload_size; /* Length of the payload data pointed to */
     struct mctp_frag_t *next;         /* Pointer to the next packet */
 
@@ -85,8 +85,8 @@ typedef struct mctp_frag_t
 typedef struct frag_test_t
 {
     ncsi_eth_packet *p_ncsi_packet;             /**< Pointer to the current NC-SI Ethernet packet. */
-    mctp_frag       *p_mctp_head;               /**< Head of the MCTP fragments list. */
-    uint8_t         *p_ncsi_start;              /**< Pointer to the start of the NC-SI message. */
+    mctp_frag *      p_mctp_head;               /**< Head of the MCTP fragments list. */
+    uint8_t *        p_ncsi_start;              /**< Pointer to the start of the NC-SI message. */
     ptr_size_pair    pairs[USB_MAX_POINTERS];   /**< Array of pointers for USB operations. */
     cb_on_usb_tx     usb_tx_cb;                 /**< User defined - TX callkback */
     uint16_t         ncsi_packet_size;          /**< Size of the NC-SI packet in bytes. */
@@ -180,7 +180,7 @@ static int test_frag_calculate_ncsi_fragments(void)
 static void test_frag_adjust_pointers(void)
 {
     mctp_frag *frag            = p_frag_test->p_mctp_head;
-    uint8_t   *p_payload       = p_frag_test->p_ncsi_start;
+    uint8_t *  p_payload       = p_frag_test->p_ncsi_start;
     size_t     remaining_bytes = p_frag_test->ncsi_packet_size;
 
     /* Ensure the first fragment does not exceed 63 bytes */
@@ -288,7 +288,6 @@ int test_frag_prolog(uintptr_t arg)
     p_frag_test->p_ncsi_packet->extra_byte[3] = 3;
     p_frag_test->p_ncsi_start                 = (uint8_t *) (&(p_frag_test->p_ncsi_packet->extra_byte[3]));
     p_frag_test->ncsi_packet_size -= 3; /* We've added 32 bits to the NC-SI and we need only the last byte */
-
     p_frag_test->usb_raw_payload           = 0;
     p_frag_test->usb_tx_total_pointers     = 0;
     p_frag_test->usb_tx_total_operations   = 0;

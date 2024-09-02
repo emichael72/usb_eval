@@ -24,8 +24,8 @@
 #include <test_defrag.h>
 #include <string.h>
 
-#define DEFRAG_SKIP_SEQ_VALIDATION          (0)
-#define DEFRAG_PERFORM_FIRSTBYTE_VALIDATION (0)
+#define DEFRAG_PERFORM_SEQ_VALIDATION       (1)
+#define DEFRAG_PERFORM_FIRSTBYTE_VALIDATION (1)
 
 /* MCTP standard packet along with 64 bytes payload  */
 typedef struct mctp_packet_t
@@ -42,16 +42,6 @@ typedef struct mctp_packet_t
 
 } mctp_packet;
 
-/* Full NC-SI Ethernet packet structure */
-
-typedef struct __attribute__((packed)) ncsi_raw_packet_t
-{
-
-    ethernet_header_t eth_header; /* Ethernet header */
-    ncsi_packet_t     ncsi_data;  /* NC-SI data including headers and payload */
-
-} ncsi_raw_packet;
-
 /* 
  * A single USB packet
  */
@@ -59,7 +49,7 @@ typedef struct __attribute__((packed)) ncsi_raw_packet_t
 typedef struct _usb_packet_t
 {
     struct _usb_packet_t *next; /* Pointer to the next packet */
-    void                 *data; /* Frame data */
+    void *                data; /* Frame data */
     size_t                size; /* Length of the payload data stored in the packet */
 
 } usb_packet;
@@ -75,15 +65,16 @@ typedef struct _usb_packet_t
  */
 typedef struct test_defrag_session_t
 {
-    uint8_t        *p_ncsi_start;  /**< Pointer to the start of the NC-SI message buffer. */
-    usb_packet     *p_usb_packets; /**< Head pointer to the linked list of USB packet fragments. */
-    char           *error;
-    uint16_t        ncsi_packet_size;  /**< Expected size of the complete NC-SI packet in bytes. */
-    uint16_t        rx_raw_size;       /**< Total size of the received raw data after defragmentation. */
-    uint16_t        usb_raw_size;      /**< Total size of the raw data received from USB packets. */
-    uint16_t        usb_offset;        /**<  Offset to track position in the buffer */
-    uint8_t         usb_packets_count; /**< Number of USB packet fragments received. */
-    ncsi_raw_packet ncsi_packet;       /**< Buffer to store the assembled NC-SI Ethernet packet. */
+    uint8_t *        p_ncsi_start;  /**< Pointer to the start of the NC-SI message buffer. */
+    usb_packet *     p_usb_packets; /**< Head pointer to the linked list of USB packet fragments. */
+    char *           error;
+    uint8_t          usb_packets_count; /**< Number of USB packet fragments received. */
+    uint16_t         ncsi_packet_size;  /**< Expected size of the complete NC-SI packet in bytes. */
+    uint16_t         rx_raw_size;       /**< Total size of the received raw data after defragmentation. */
+    uint16_t         usb_raw_size;      /**< Total size of the raw data received from USB packets. */
+    uint16_t         usb_offset;        /**<  Offset to track position in the buffer */
+    ncsi_eth_packet *p_ncsi_packet;     /**< Pointer to the current NC-SI Ethernet packet. */
+    ncsi_eth_packet  ncsi_packet;       /**< Buffer to store the assembled NC-SI Ethernet packet. */
 
 } test_defrag_session;
 
@@ -165,6 +156,8 @@ int test_defrag_prolog(uintptr_t arg)
     p_defrag->usb_raw_size      = 0;
     p_defrag->usb_offset        = 0;
     p_defrag->error             = NULL;
+    p_defrag->p_ncsi_packet     = &p_defrag->ncsi_packet;
+    p_defrag->p_ncsi_start      = (uint8_t *) (&(p_defrag->p_ncsi_packet->extra_byte[1]));
 
     /* Make use of the 'frag' test ability to create MCTP fragments */
     /* Call the 'frag' test prolog */
@@ -179,7 +172,7 @@ int test_defrag_prolog(uintptr_t arg)
     if ( p_defrag->usb_packets_count == 0 )
         return 1; /* No data */
 
-    p_defrag->ncsi_packet_size = sizeof(ncsi_raw_packet);
+    p_defrag->ncsi_packet_size = sizeof(ncsi_eth_packet) - 3;
     p_defrag->rx_raw_size      = 0;
 
     printf("Input: %d USB buffers, total %d bytes.\n", p_defrag->usb_packets_count, p_defrag->usb_raw_size);
@@ -232,7 +225,7 @@ int test_defrag_epilog(uintptr_t arg)
 void test_exec_defrag(uintptr_t arg)
 {
     usb_packet *packet          = p_defrag->p_usb_packets; /* Point to head */
-    uint8_t    *ncsi_packet_ptr = (uint8_t *) &p_defrag->ncsi_packet;
+    uint8_t *   ncsi_packet_ptr = p_defrag->p_ncsi_start;
 
 #if ( DEFRAG_PERFORM_SEQ_VALIDATION > 0 )
     uint8_t expected_sequence = 0; /* Expected MCTP sequence number */
@@ -272,8 +265,8 @@ void test_exec_defrag(uintptr_t arg)
 #endif
 
                 /* Calculate and copy the first packet's payload */
-                payload_size = (mctp->end_of_message) ? (remaining_size - header_size - 1) : 62;
-                memcpy(ncsi_packet_ptr + p_defrag->usb_offset, mctp->payload + 1, payload_size);
+                payload_size = (mctp->end_of_message) ? (remaining_size - header_size) : 63;
+                memcpy(ncsi_packet_ptr + p_defrag->usb_offset, mctp->payload, payload_size);
 
                 /* Update offsets */
                 p_defrag->usb_offset += payload_size;

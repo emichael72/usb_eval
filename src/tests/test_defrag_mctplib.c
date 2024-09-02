@@ -48,7 +48,7 @@ typedef struct mctplib_packet_t
 
 typedef struct test_defrag_mctplib_session_t
 {
-    struct mctp        *p_mctp;             /* Pointer to the libmctp instance */
+    struct mctp *       p_mctp;             /* Pointer to the libmctp instance */
     struct mctp_binding binding;            /* libmctp binding container */
     mctp_eid_t          eid;                /* Our Endpoint ID */
     mctp_eid_t          dest_eid;           /* Remote Endpoint ID */
@@ -132,7 +132,7 @@ int test_defrag_mctplib_prolog(uintptr_t arg)
     uint8_t             frgas_count = 0;
     char                color_byte  = 'A';
     struct mctp_pktbuf *pkt         = NULL;
-    mctplib_packet     *p_mctp, *p_last_mctp = NULL;
+    mctplib_packet *    p_mctp, *p_last_mctp = NULL;
 
     /* Pre-build about 25 MCTP messages */
     while ( (pkt = mctp_pktbuf_alloc(&p_defrag_lib->binding, sizeof(mctplib_packet))) != NULL )
