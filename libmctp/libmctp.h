@@ -156,10 +156,10 @@ void mctp_set_log_custom(void (*fn)(int, const char *, va_list));
 #define MCTP_LOG_DEBUG   7
 
 /* Macro to retrieve a pointer to the MCTP header within a packet buffer */
-#define MCTP_PKTBUF_HDR(pkt) ((mctp_hdr *) ((pkt)->data + (pkt)->mctp_hdr_off))
+#define MCTP_PKTBUF_HDR(pkt) ((struct mctp_hdr *) ((pkt)->data + (pkt)->mctp_hdr_off))
 
 /* Macro to retrieve a pointer to the data following the MCTP header */
-#define MCTP_PKTBUF_DATA(pkt) ((void *) ((pkt)->data + (pkt)->mctp_hdr_off + sizeof(mctp_hdr)))
+#define MCTP_PKTBUF_DATA(pkt) ((void *) ((pkt)->data + (pkt)->mctp_hdr_off + sizeof(struct mctp_hdr)))
 
 /* Macro to calculate the size of the packet based on start and end offsets */
 #define MCTP_PKTBUF_SIZE(pkt) ((pkt)->end - (pkt)->start)

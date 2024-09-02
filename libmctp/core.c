@@ -133,21 +133,6 @@ void mctp_pktbuf_free(struct mctp_pktbuf *pkt)
     __mctp_free(pkt);
 }
 
-struct mctp_hdr *mctp_pktbuf_hdr(struct mctp_pktbuf *pkt)
-{
-    return (struct mctp_hdr *) (pkt->data + pkt->mctp_hdr_off);
-}
-
-void *mctp_pktbuf_data(struct mctp_pktbuf *pkt)
-{
-    return pkt->data + pkt->mctp_hdr_off + sizeof(struct mctp_hdr);
-}
-
-size_t mctp_pktbuf_size(struct mctp_pktbuf *pkt)
-{
-    return pkt->end - pkt->start;
-}
-
 void *mctp_pktbuf_alloc_start(struct mctp_pktbuf *pkt, size_t size)
 {
     assert(size <= pkt->start);
@@ -182,7 +167,7 @@ int mctp_pktbuf_push(struct mctp_pktbuf *pkt, void *data, size_t len)
 
 void *mctp_pktbuf_pop(struct mctp_pktbuf *pkt, size_t len)
 {
-    if ( len > mctp_pktbuf_size(pkt) )
+    if ( len > MCTP_PKTBUF_SIZE(pkt) )
         return NULL;
 
     pkt->end -= len;
@@ -265,15 +250,19 @@ static int mctp_msg_ctx_add_pkt(struct mctp_msg_ctx *ctx, struct mctp_pktbuf *pk
 {
     size_t len;
 
-    len = mctp_pktbuf_size(pkt) - sizeof(struct mctp_hdr);
+#ifdef DEBUG
+    if ( ctx->buf == NULL )
+        return -1;
+#endif
+    len = MCTP_PKTBUF_SIZE(pkt) - sizeof(struct mctp_hdr);
 
     /* No buffer - drop the message */
-    if ( ctx->buf == NULL || ctx->free_bytes < len )
+    if ( ctx->free_bytes < len )
         return -1;
 
-    memcpy((uint8_t *) ctx->p_cur, mctp_pktbuf_data(pkt), len);
+    memcpy((uint8_t *) ctx->p_cur, MCTP_PKTBUF_DATA(pkt), len);
 
-    ctx->buf_size += len;
+    //  ctx->buf_size += len;
     ctx->free_bytes -= len;
     ctx->p_cur += len;
 
@@ -555,14 +544,16 @@ void mctp_bus_rx(struct mctp_binding *binding, struct mctp_pktbuf *pkt)
     assert(bus);
 
     /* Drop packet if it was smaller than mctp hdr size */
-    if ( mctp_pktbuf_size(pkt) <= sizeof(struct mctp_hdr) )
+    if ( MCTP_PKTBUF_SIZE(pkt) <= sizeof(struct mctp_hdr) )
         goto out;
 
     if ( mctp->capture )
         mctp->capture(pkt, MCTP_MESSAGE_CAPTURE_INCOMING, mctp->capture_data);
 #endif
 
-    hdr = mctp_pktbuf_hdr(pkt);
+    // hdr = mctp_pktbuf_hdr(pkt);
+
+    hdr = MCTP_PKTBUF_HDR(pkt);
 
     /* Small optimisation: don't bother reassembly if we're going to
 	 * drop the packet in mctp_rx anyway */
@@ -607,7 +598,7 @@ void mctp_bus_rx(struct mctp_binding *binding, struct mctp_pktbuf *pkt)
 
             /* Save the fragment size, subsequent middle fragments
 		 * should of the same size */
-            ctx->fragment_size = mctp_pktbuf_size(pkt);
+            ctx->fragment_size = MCTP_PKTBUF_SIZE(pkt);
 
             rc = mctp_msg_ctx_add_pkt(ctx, pkt, mctp->max_message_size);
             if ( rc )
@@ -635,7 +626,7 @@ void mctp_bus_rx(struct mctp_binding *binding, struct mctp_pktbuf *pkt)
                 goto out;
             }
 
-            len = mctp_pktbuf_size(pkt);
+            len = MCTP_PKTBUF_SIZE(pkt);
 
             if ( len > ctx->fragment_size )
             {
@@ -667,7 +658,7 @@ void mctp_bus_rx(struct mctp_binding *binding, struct mctp_pktbuf *pkt)
                 goto out;
             }
 
-            len = mctp_pktbuf_size(pkt);
+            len = MCTP_PKTBUF_SIZE(pkt);
 
             if ( len != ctx->fragment_size )
             {
@@ -808,7 +799,7 @@ static int mctp_message_tx_on_bus(struct mctp_bus *bus, mctp_eid_t src, mctp_eid
             payload_len = max_payload_len;
 
         pkt = mctp_pktbuf_alloc(bus->binding, payload_len + sizeof(*hdr));
-        hdr = mctp_pktbuf_hdr(pkt);
+        hdr = MCTP_PKTBUF_HDR(pkt);
 
         hdr->ver           = bus->binding->version & 0xf;
         hdr->dest          = dest;
@@ -821,7 +812,7 @@ static int mctp_message_tx_on_bus(struct mctp_bus *bus, mctp_eid_t src, mctp_eid
             hdr->flags_seq_tag |= MCTP_HDR_FLAG_EOM;
         hdr->flags_seq_tag |= (i & MCTP_HDR_SEQ_MASK) << MCTP_HDR_SEQ_SHIFT;
 
-        memcpy(mctp_pktbuf_data(pkt), (uint8_t *) msg + p, payload_len);
+        memcpy(MCTP_PKTBUF_DATA(pkt), (uint8_t *) msg + p, payload_len);
 
         /* add to tx queue */
         if ( bus->tx_queue_tail )

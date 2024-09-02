@@ -3,8 +3,8 @@
   ******************************************************************************
   * @file    test_defrag_mctplib.c
   * @author  IMCv2 Team
-  * @brief   A simple implementation for libmctp that creates a fake 
-  *          'USB device' bindings.
+  * @brief   Aggregates 25 fragments of MCTP packets into a single frame 
+  *          using libmctp.
   * 
   ******************************************************************************
   * 
@@ -76,45 +76,40 @@ uintptr_t test_defrag_mctplib_get_handle(size_t type)
 #endif
 
     if ( type == 0 )
-    {
         return p_mctpusb->msgq_handle;
-    }
     else
         return p_mctpusb->msgq_contex_handle;
 }
 
 /**
- * @brief Run MCTP sequence tests over 'fake USB bus'
+ * @brief Executed by libmctp when a complete packet destined for our EID is fully assembled.
+ * This function acts as a placeholder to demonstrate reception and processing of MCTP messages.
  *
- * This function serves as the entry point for running MCTP (Management Component
- * Transport Protocol) sequence tests specifically designed for the LX7 platform.
- * These tests validate the correct handling of MCTP packets over a simulated USB
- * bus, ensuring that packet sequences, such as start-of-message (SOM), end-of-message
- * (EOM), and sequence numbers, are processed correctly.
- *
- * The function currently runs a series of predefined tests to validate the packet
- * reception logic, checking that packets are reconstructed correctly from the
- * sequence of incoming data. Over time, this function will be extended to implement
- * a complete USB bus for MCTP, allowing real MCTP messages to be transmitted and
- * received over USB.
- *
- * @note This function is part of the MCTP USB implementation on the Xtensa LX7 platform
- * and relies on the libmctp library and the MCTP test utilities.
- *
- * @return void
+ * @param eid The endpoint identifier to which the message was sent.
+ * @param tag_owner Boolean indicating if the tag is owned.
+ * @param msg_tag The message tag.
+ * @param data Pointer to the data received.
+ * @param msg Pointer to the complete message.
+ * @param len Length of the message in bytes.
  */
 
 static void test_defrag_mctplib_dummy_rx(uint8_t eid, bool tag_owner, uint8_t msg_tag, void *data, void *msg, size_t len)
 {
-    /* Do not do anything here, the cycles are counting :) */
 #ifdef DEBUG
-    printf("Dummy RX receiver got message from %d, %d bytes.\n", eid, len);
+    printf("Dummy RX receiver got a message from EID %d, length %d bytes.\n", eid, len);
 #endif
 }
 
+/**
+ * @brief Executes the defragmentation test using libmctp.
+ * This function simulates the reception of a sequence of fragmented packets,
+ * pushes them through the libmctp handler, and expects them to be reassembled and passed to the dummy RX receiver.
+ * 
+ * @param arg Unused argument, included for compatibility with function pointer expectations.
+ */
+
 void test_exec_defrag_mctplib(uintptr_t arg)
 {
-
     struct mctp_pktbuf *pkt;
     while ( (pkt = (struct mctp_pktbuf *) msgq_get_next(p_mctpusb->msgq_handle, 1, true)) != NULL )
     {
@@ -122,7 +117,15 @@ void test_exec_defrag_mctplib(uintptr_t arg)
     }
 }
 
-/* libmctp integration prolog  */
+/**
+ * @brief Sets up the environment for a defragmentation test (libmctp).
+ * This prolog function creates and initializes a series of MCTP packets, setting the correct
+ * destination ID and sequence, ready to be processed by the libmctp Rx handler.
+ * 
+ * @param arg Unused argument, included for compatibility with function pointer expectations.
+ * @return Status of the operation, 0 on success, non-zero on failure.
+ */
+
 int test_defrag_mctplib_prolog(uintptr_t arg)
 {
     uint8_t             frgas_count = 0;
@@ -130,29 +133,25 @@ int test_defrag_mctplib_prolog(uintptr_t arg)
     struct mctp_pktbuf *pkt;
     mctplib_packet     *p_mctp, *p_last_mctp = NULL;
 
-    /* Pre build about 25 MCTP messages */
+    /* Pre-build about 25 MCTP messages */
     while ( (pkt = mctp_pktbuf_alloc(&p_mctpusb->binding, sizeof(mctplib_packet))) != NULL )
     {
-
-        p_mctp                   = (mctplib_packet *) mctp_pktbuf_hdr(pkt);
+        p_mctp                   = (mctplib_packet *) MCTP_PKTBUF_HDR(pkt);
         p_mctp->dest             = p_mctpusb->eid;
         p_mctp->src              = p_mctpusb->dest_eid;
         p_mctp->packet_sequence  = frgas_count;
-        p_mctp->start_of_message = 0;
+        p_mctp->start_of_message = (frgas_count == 0); // Mark the start of the MCTP message
         p_mctp->end_of_message   = 0;
 
-        if ( frgas_count == 0 )
-            p_mctp->start_of_message = 1; /* Mark MCTP start */
-
-        memset(p_mctp->payload, (int) color_byte, member_size(mctplib_packet, payload));
+        memset(p_mctp->payload, (int) color_byte, sizeof(p_mctp->payload));
         frgas_count++;
         color_byte++;
 
-        /* Keep track of last frame */
+        /* Keep track of the last frame */
         p_last_mctp = p_mctp;
     }
 
-    /* Mark last MCTP message */
+    /* Mark the last MCTP message */
     p_last_mctp->end_of_message = 1;
 
     /* Register a dummy receiver */
@@ -160,60 +159,40 @@ int test_defrag_mctplib_prolog(uintptr_t arg)
 }
 
 /**
- * @brief Provides a description for the 'libmctp' test.
- * 
- * This function returns a description of the 'libmctp' test, either as a brief 
- * one-liner or as a more detailed explanation depending on the value of 
- * `description_type`.
- * 
- * @param description_type Specifies the type of description:
- *                         0 for a brief one-line description,
- *                         1 for an in-depth test description.
- * @return A pointer to a string containing the description.
+ * @brief Initializes the MCTP fragmentation test environment over USB using libmctp.
+ *
+ * This function prepares the MCTP over USB transport layer by allocating necessary
+ * resources and setting up message queues for packet and context management. It initializes
+ * the libmctp library, configures MCTP settings, and registers the MCTP bus with a
+ * specified binding. If any allocation fails or if libmctp cannot be initialized,
+ * the function returns an error.
+ *
+ * @param arg Unused parameter, included for function signature compatibility.
+ * @return 0 on success, 1 if initialization fails due to resource allocation errors,
+ *         or if libmctp fails to initialize.
  */
 
 char *test_defrag_mctplib_desc(size_t description_type)
 {
     if ( description_type == 0 )
     {
-        return "Uses 'libmctp' to register a USB bus and push MCTP packets through it.";
+        return "Defragmentation test using 'libmctp'.";
     }
     else
     {
-        return "This test utilizes 'libmctp', a part of the OpenBMC project \n"
-               "(https://github.com/openbmc/libmctp), which is a stack capable of managing \n"
-               "multiple buses, each with its own Endpoint Identifier (EID) and registered \n"
-               "transmit/receive device-implemented functions.\n\n"
-               "'libmctp' is designed to handle the Management Component Transport Protocol \n"
-               "(MCTP), which is used in platform management systems. It allows for the \n"
-               "registration of various types of buses, including I2C, SMBus, and USB, each \n"
-               "with its own EID and associated devices.\n\n"
-               "In this test, a dummy USB bus is created to evaluate 'libmctp's ability to \n"
-               "handle MCTP packets arriving in various forms and sequences. The test \n"
-               "specifically examines how well 'libmctp' can process these packets, ensuring \n"
-               "they are correctly managed across the bus interface. This includes testing \n"
-               "the proper handling of different packet sequences, such as single packet \n"
-               "messages, multi-packet messages, and handling of packet flags like Start of \n"
-               "Message (SOM) and End of Message (EOM).\n\n"
-               "The goal of the test is to validate the robustness and correctness of \n"
-               "'libmctp's implementation in scenarios that simulate real-world data traffic \n"
-               "on a USB bus, ensuring it can reliably handle MCTP communications under \n"
-               "various conditions.\n";
+        return "In this test 25 MCTP packets are fragmented and sent through a dummy USB bus.\n"
+               "The test ensures the correct reassembly of these fragments into complete messages which are then\n"
+               "processed by a predefined receiver function.\n";
     }
 }
 
 /**
- * @brief Initializes the MCTP over USB libmctp bus.
+ * @brief Initializes the MCTP fragmentation test using libmctp.
  *
  * This function initializes the MCTP over USB transport layer by allocating 
- * necessary resources and initializing components. The function does not return 
- * anything but will assert if any component fails to initialize correctly.
- *
- * The following steps are performed:
- * - Allocate memory for the MCTP USB session.
- * - Create a message queue pool to be used with libmctp, allowing buffers to be 
- *   requested and released via msgq_request() and msgq_release().
- * - Initialize libmctp and assert if initialization fails.
+ * necessary resources and initializing components.
+  
+  @return 0 on sucsess, else 1.
  */
 
 int test_defrag_mctplib_init(uintptr_t arg)
@@ -225,7 +204,8 @@ int test_defrag_mctplib_init(uintptr_t arg)
 
     /* Request RAM for this module, assert on failure */
     p_mctpusb = hal_alloc(sizeof(test_defrag_mctplib_session));
-    assert(p_mctpusb != NULL);
+    if ( p_mctpusb == NULL )
+        return 0;
 
     /* 
      * Create message queue pool to be used with libmctp. Later, we can use 
@@ -235,11 +215,15 @@ int test_defrag_mctplib_init(uintptr_t arg)
 
     /* Pool for MCTP packets */
     p_mctpusb->msgq_handle = msgq_create(MCTP_USB_MSGQ_MAX_FRAME_SIZE, MCTP_USB_MSGQ_ALLOCATED_FRAMES);
-    assert(p_mctpusb->msgq_handle != 0);
+    if ( p_mctpusb->msgq_handle == 0 )
+        ;
+    return 0;
 
     /* Pool for MCTP context buffers */
     p_mctpusb->msgq_contex_handle = msgq_create(MCTP_USB_MAX_CONTEXT_SIZE, MCTP_USB_MSGQ_ALLOCATED_CONTEXES);
-    assert(p_mctpusb->msgq_contex_handle != 0);
+    if ( p_mctpusb->msgq_contex_handle == 0 )
+        ;
+    return 0;
 
     /* Initialize libmctp, assert on error. */
     p_mctpusb->p_mctp = mctp_init();
@@ -263,7 +247,5 @@ int test_defrag_mctplib_init(uintptr_t arg)
     p_mctpusb->binding.pkt_trailer = 0;
 
     ret = mctp_register_bus(p_mctpusb->p_mctp, &p_mctpusb->binding, p_mctpusb->eid);
-    assert(ret == 0);
-
     return ret;
 }

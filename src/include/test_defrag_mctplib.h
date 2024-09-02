@@ -60,24 +60,11 @@
 uintptr_t test_defrag_mctplib_get_handle(size_t type);
 
 /**
- * @brief Run MCTP sequence tests over USB.
- *
- * This function serves as the entry point for running MCTP (Management Component
- * Transport Protocol) sequence tests specifically designed for the LX7 platform.
- * These tests validate the correct handling of MCTP packets over a simulated USB
- * bus, ensuring that packet sequences, such as start-of-message (SOM), end-of-message
- * (EOM), and sequence numbers, are processed correctly.
- *
- * The function currently runs a series of predefined tests to validate the packet
- * reception logic, checking that packets are reconstructed correctly from the
- * sequence of incoming data. Over time, this function will be extended to implement
- * a complete USB bus for MCTP, allowing real MCTP messages to be transmitted and
- * received over USB.
- *
- * @note This function is part of the MCTP USB implementation on the Xtensa LX7 platform
- * and relies on the libmctp library and the MCTP test utilities.
- *
- * @return void
+ * @brief Executes the defragmentation test using libmctp.
+ * This function simulates the reception of a sequence of fragmented packets,
+ * pushes them through the libmctp handler, and expects them to be reassembled and passed to the dummy RX receiver.
+ * 
+ * @param arg Unused argument, included for compatibility with function pointer expectations.
  */
 
 int   test_defrag_mctplib_prolog(uintptr_t arg);
@@ -85,17 +72,17 @@ void  test_exec_defrag_mctplib(uintptr_t arg);
 char *test_defrag_mctplib_desc(size_t description_type);
 
 /**
- * @brief Initializes the MTCP over USB transport layer.
+ * @brief Initializes the MCTP fragmentation test environment over USB using libmctp.
  *
- * This function initializes the MTCP over USB transport layer by allocating 
- * necessary resources and initializing components. The function does not return 
- * anything but will assert if any component fails to initialize correctly.
+ * This function prepares the MCTP over USB transport layer by allocating necessary
+ * resources and setting up message queues for packet and context management. It initializes
+ * the libmctp library, configures MCTP settings, and registers the MCTP bus with a
+ * specified binding. If any allocation fails or if libmctp cannot be initialized,
+ * the function returns an error.
  *
- * The following steps are performed:
- * - Allocate memory for the MTCP USB session.
- * - Create a message queue pool to be used with libmctp, allowing buffers to be 
- *   requested and released via msgq_request() and msgq_release().
- * - Initialize libmctp and assert if initialization fails.
+ * @param arg Unused parameter, included for function signature compatibility.
+ * @return 0 on success, 1 if initialization fails due to resource allocation errors,
+ *         or if libmctp fails to initialize.
  */
 
 int test_defrag_mctplib_init(uintptr_t eid);
