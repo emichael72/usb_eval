@@ -41,13 +41,14 @@ static test_launcher_item_info tests_info[] = {
 
     /* Init                    Prolog                   Test function           Epilogue        Description     Args               Repetitions */
     /* ------------------------------------------------------------------------------------------------------------------------------------------ */
-    { NULL,                         NULL,                       hal_useless_function,       NULL, test_useless_desc,            0,     0,  0,  0,  1           },
-    { NULL,                         NULL,                       test_exec_memcpy,           NULL, test_memcpy_desc_xtensa,      0,     0,  0,  0,  1           },
-    { NULL,                         NULL,                       test_exec_memcpy,           NULL, test_memcpy_desc_hal,         0,     0,  1,  0,  1           },
-    { NULL,                         test_msgq_prolog,           test_exec_msgq,             NULL, test_msgq_desc,               0,     0,  0,  0,  1           },
-    { test_defrag_mctplib_init,     test_defrag_mctplib_prolog, test_exec_defrag_mctplib,   NULL, test_defrag_mctplib_desc,     0,     0,  0,  0,  1           },
-    { test_frag_init,               test_frag_prolog,           test_exec_frag,             NULL, test_frag_desc,               0,     0,  0,  0,  1           },
-    { test_frag_memcpy_init,        test_frag_memcpy_prolog,    test_exec_memcpy_frag,      NULL, test_frag_memcpy_desc,        0,     0,  0,  0,  1           },
+    { NULL,                         NULL,                       hal_useless_function,       NULL, test_useless_desc,            0,     0,  0,  0,  1    },
+    { NULL,                         NULL,                       test_exec_memcpy,           NULL, test_memcpy_desc_xtensa,      0,     0,  0,  0,  1    },
+    { NULL,                         NULL,                       test_exec_memcpy,           NULL, test_memcpy_desc_hal,         0,     0,  1,  0,  1    },
+    { NULL,                         test_msgq_prolog,           test_exec_msgq,             NULL, test_msgq_desc,               0,     0,  0,  0,  1    },
+    { test_defrag_init,             test_defrag_prolog,         test_exec_defrag,           NULL, test_defrag_desc,             0,     0,  0,  0,  1    },
+    { test_defrag_mctplib_init,     test_defrag_mctplib_prolog, test_exec_defrag_mctplib,   NULL, test_defrag_mctplib_desc,     0,     0,  0,  0,  1    },
+    { test_frag_init,               test_frag_prolog,           test_exec_frag,             NULL, test_frag_desc,               0,     0,  0,  0,  1    },
+    { test_frag_memcpy_init,        test_frag_memcpy_prolog,    test_exec_memcpy_frag,      NULL, test_frag_memcpy_desc,        0,     0,  0,  0,  1    },
 
 };
 /* clang-format on */

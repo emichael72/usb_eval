@@ -19,7 +19,7 @@
 
 #include <hal.h>
 #include <test_frag,h>
-#include <test_defrag_mctplib.h>
+#include <test_defrag.h>
 
 /* Define to prevent recursive inclusion -------------------------------------*/
 

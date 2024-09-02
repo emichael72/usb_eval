@@ -21,7 +21,7 @@
 #include <hal.h>
 #include <hal_llist.h>
 #include <hal_msgq.h>
-#include <test_defrag_mctplib.h>
+#include <test_defrag.h>
 #include <libmctp-log.h>
 #include <string.h>
 
@@ -58,7 +58,7 @@ typedef struct test_defrag_mctplib_session_t
 } test_defrag_mctplib_session;
 
 /* Pointer to the module's session instance */
-test_defrag_mctplib_session *p_mctpusb = NULL;
+test_defrag_mctplib_session *p_defrag_lib = NULL;
 
 /**
  * @brief Retrieves the handle to the message queue initialized by this module.
@@ -69,16 +69,16 @@ test_defrag_mctplib_session *p_mctpusb = NULL;
 uintptr_t test_defrag_mctplib_get_handle(size_t type)
 {
 #if ( HAL_PTR_SANITY_CHECKS > 0 )
-    if ( p_mctpusb == NULL )
+    if ( p_defrag_lib == NULL )
     {
         return 0;
     }
 #endif
 
     if ( type == 0 )
-        return p_mctpusb->msgq_handle;
+        return p_defrag_lib->msgq_handle;
     else
-        return p_mctpusb->msgq_contex_handle;
+        return p_defrag_lib->msgq_contex_handle;
 }
 
 /**
@@ -112,9 +112,9 @@ void test_exec_defrag_mctplib(uintptr_t arg)
 {
     struct mctp_pktbuf *pkt;
 
-    while ( (pkt = (struct mctp_pktbuf *) msgq_get_next(p_mctpusb->msgq_handle, 1, true)) != NULL )
+    while ( (pkt = (struct mctp_pktbuf *) msgq_get_next(p_defrag_lib->msgq_handle, 1, true)) != NULL )
     {
-        mctp_bus_rx(&p_mctpusb->binding, pkt);
+        mctp_bus_rx(&p_defrag_lib->binding, pkt);
     }
 }
 
@@ -135,11 +135,11 @@ int test_defrag_mctplib_prolog(uintptr_t arg)
     mctplib_packet     *p_mctp, *p_last_mctp = NULL;
 
     /* Pre-build about 25 MCTP messages */
-    while ( (pkt = mctp_pktbuf_alloc(&p_mctpusb->binding, sizeof(mctplib_packet))) != NULL )
+    while ( (pkt = mctp_pktbuf_alloc(&p_defrag_lib->binding, sizeof(mctplib_packet))) != NULL )
     {
         p_mctp                   = (mctplib_packet *) MCTP_PKTBUF_HDR(pkt);
-        p_mctp->dest             = p_mctpusb->eid;
-        p_mctp->src              = p_mctpusb->dest_eid;
+        p_mctp->dest             = p_defrag_lib->eid;
+        p_mctp->src              = p_defrag_lib->dest_eid;
         p_mctp->packet_sequence  = frgas_count;
         p_mctp->start_of_message = (frgas_count == 0); // Mark the start of the MCTP message
         p_mctp->end_of_message   = 0;
@@ -156,7 +156,7 @@ int test_defrag_mctplib_prolog(uintptr_t arg)
     p_last_mctp->end_of_message = 1;
 
     /* Register a dummy receiver */
-    return mctp_set_rx_all(p_mctpusb->p_mctp, test_defrag_mctplib_dummy_rx, NULL);
+    return mctp_set_rx_all(p_defrag_lib->p_mctp, test_defrag_mctplib_dummy_rx, NULL);
 }
 
 /**
@@ -200,12 +200,12 @@ int test_defrag_mctplib_init(uintptr_t arg)
 {
     int ret;
 
-    if ( p_mctpusb != NULL )
+    if ( p_defrag_lib != NULL )
         return 1;
 
     /* Request RAM for this module, assert on failure */
-    p_mctpusb = hal_alloc(sizeof(test_defrag_mctplib_session));
-    if ( p_mctpusb == NULL )
+    p_defrag_lib = hal_alloc(sizeof(test_defrag_mctplib_session));
+    if ( p_defrag_lib == NULL )
         return 0;
 
     /* 
@@ -215,37 +215,37 @@ int test_defrag_mctplib_init(uintptr_t arg)
      */
 
     /* Pool for MCTP packets */
-    p_mctpusb->msgq_handle = msgq_create(MCTP_USB_MSGQ_MAX_FRAME_SIZE, MCTP_USB_MSGQ_ALLOCATED_FRAMES);
-    if ( p_mctpusb->msgq_handle == 0 )
+    p_defrag_lib->msgq_handle = msgq_create(MCTP_USB_MSGQ_MAX_FRAME_SIZE, MCTP_USB_MSGQ_ALLOCATED_FRAMES);
+    if ( p_defrag_lib->msgq_handle == 0 )
         return 0;
 
     /* Pool for MCTP context buffers */
-    p_mctpusb->msgq_contex_handle = msgq_create(MCTP_USB_MAX_CONTEXT_SIZE, MCTP_USB_MSGQ_ALLOCATED_CONTEXES);
-    if ( p_mctpusb->msgq_contex_handle == 0 )
+    p_defrag_lib->msgq_contex_handle = msgq_create(MCTP_USB_MAX_CONTEXT_SIZE, MCTP_USB_MSGQ_ALLOCATED_CONTEXTS);
+    if ( p_defrag_lib->msgq_contex_handle == 0 )
         return 0;
 
     /* Initialize libmctp, assert on error. */
-    p_mctpusb->p_mctp = mctp_init();
-    if ( p_mctpusb->p_mctp == NULL )
+    p_defrag_lib->p_mctp = mctp_init();
+    if ( p_defrag_lib->p_mctp == NULL )
         return 0;
 
-    p_mctpusb->eid      = (int) MCTP_USB_SRC_EID;
-    p_mctpusb->dest_eid = (int) MCTP_USB_DST_EID;
+    p_defrag_lib->eid      = (int) MCTP_USB_SRC_EID;
+    p_defrag_lib->dest_eid = (int) MCTP_USB_DST_EID;
 
-    mctp_set_max_message_size(p_mctpusb->p_mctp, MCTP_USB_MSGQ_MAX_FRAME_SIZE);
+    mctp_set_max_message_size(p_defrag_lib->p_mctp, MCTP_USB_MSGQ_MAX_FRAME_SIZE);
 
 #ifdef DEBUG
     mctp_set_log_stdio(MCTP_LOG_DEBUG);
 #endif
 
     /* Binding */
-    p_mctpusb->binding.name        = "USB";
-    p_mctpusb->binding.version     = 1;
-    p_mctpusb->binding.tx          = NULL;
-    p_mctpusb->binding.pkt_size    = MCTP_BODY_SIZE(MCTP_USB_MSGQ_MAX_FRAME_SIZE) - 16;
-    p_mctpusb->binding.pkt_header  = 0;
-    p_mctpusb->binding.pkt_trailer = 0;
+    p_defrag_lib->binding.name        = "USB";
+    p_defrag_lib->binding.version     = 1;
+    p_defrag_lib->binding.tx          = NULL;
+    p_defrag_lib->binding.pkt_size    = MCTP_BODY_SIZE(MCTP_USB_MSGQ_MAX_FRAME_SIZE) - 16;
+    p_defrag_lib->binding.pkt_header  = 0;
+    p_defrag_lib->binding.pkt_trailer = 0;
 
-    ret = mctp_register_bus(p_mctpusb->p_mctp, &p_mctpusb->binding, p_mctpusb->eid);
+    ret = mctp_register_bus(p_defrag_lib->p_mctp, &p_defrag_lib->binding, p_defrag_lib->eid);
     return ret;
 }

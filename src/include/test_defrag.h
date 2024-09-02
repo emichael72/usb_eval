@@ -1,13 +1,8 @@
-
 /**
   ******************************************************************************
-  * @file    test_defrag_mctplib.h
+  * @file    test_defrag.h
   * @author  IMCv2 Team
-  * @brief   A simple implementation for libmctp that creates USB device bindings.
-  * 
-  * This adaptation is purely for performance assessments, so no 'real USB' 
-  * driver is involved. The implementation is intended for benchmarking and 
-  * does not interact with actual USB hardware.
+  * @brief   Defragmentation flow with or without libmctp.
   * 
   ******************************************************************************
   * 
@@ -27,18 +22,18 @@
 
 /* Define to prevent recursive inclusion -------------------------------------*/
 
-#ifndef _TEST_MCTP_LIB_H_
-#define _TEST_MCTP_LIB_H_
+#ifndef _TEST_DEFRAG_H_
+#define _TEST_DEFRAG_H_
 
 /* Exported macro ------------------------------------------------------------*/
-/** @defgroup MCTP_USB_Exported_MACRO MCTP over USB Macros
+/** @defgroup DEFRAG_LIBMCTP_Exported_MACRO Defragmentation test definitions
   * @{
   */
 
 #define MCTP_USB_MSGQ_MAX_FRAME_SIZE     100  /**< Maximum size in bytes for each allocated buffer in the message queue */
 #define MCTP_USB_MSGQ_ALLOCATED_FRAMES   25   /**< Total number of allocated frames in the message queue */
-#define MCTP_USB_MAX_CONTEXT_SIZE        1600 /**< Used by context buffer, aqual to max Ethernet frame */
-#define MCTP_USB_MSGQ_ALLOCATED_CONTEXES 1    /**<  Count of context buffers */
+#define MCTP_USB_MAX_CONTEXT_SIZE        1600 /**< Used by context buffer, equal to max Ethernet frame */
+#define MCTP_USB_MSGQ_ALLOCATED_CONTEXTS 1    /**< Count of context buffers */
 #define MCTP_USB_SRC_EID                 9    /**< Dummy local end-point ID used by our test */
 #define MCTP_USB_DST_EID                 10   /**< Dummy remote end-point ID used by our test */
 
@@ -47,7 +42,21 @@
   */
 
 /* Exported API --------------------------------------------------------------*/
-/** @defgroup MCTP_USB_Exported_API MCTP over USB Exported API
+/** @defgroup DEFRAG_MCTPLIB Defragmentation test
+  * @{
+  */
+
+int   test_defrag_prolog(uintptr_t arg);
+void  test_exec_defrag(uintptr_t arg);
+char *test_defrag_desc(size_t description_type);
+int   test_defrag_init(uintptr_t arg);
+
+/**
+  * @}
+  */
+
+/* Exported API --------------------------------------------------------------*/
+/** @defgroup DEFRAG_MCTPLIB Defragmentation using libmctp
   * @{
   */
 
@@ -56,7 +65,6 @@
  * @return The message queue handle, or 0 if the module or message queue is not 
  *         initialized.
  */
-
 uintptr_t test_defrag_mctplib_get_handle(size_t type);
 
 /**
@@ -66,7 +74,6 @@ uintptr_t test_defrag_mctplib_get_handle(size_t type);
  * 
  * @param arg Unused argument, included for compatibility with function pointer expectations.
  */
-
 int   test_defrag_mctplib_prolog(uintptr_t arg);
 void  test_exec_defrag_mctplib(uintptr_t arg);
 char *test_defrag_mctplib_desc(size_t description_type);
@@ -84,11 +91,10 @@ char *test_defrag_mctplib_desc(size_t description_type);
  * @return 0 on success, 1 if initialization fails due to resource allocation errors,
  *         or if libmctp fails to initialize.
  */
-
 int test_defrag_mctplib_init(uintptr_t eid);
 
 /**
   * @}
   */
 
-#endif /* _TEST_MCTP_LIB_H_ */
+#endif /* _TEST_DEFRAG_H_ */

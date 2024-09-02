@@ -2,8 +2,8 @@
 
 #include <assert.h>
 #include <stdio.h>
-#include <hal.h>                 /* Intel: LX7 infrastructure */
-#include <test_defrag_mctplib.h> /* Intel : libmctop integrationm test */
+#include <hal.h>         /* Intel: LX7 infrastructure */
+#include <test_defrag.h> /* Intel : libmctop integrationm test */
 #include <hal_msgq.h>
 
 #include "libmctp.h"
