@@ -48,6 +48,7 @@
 
 int   test_defrag_prolog(uintptr_t arg);
 void  test_exec_defrag(uintptr_t arg);
+int   test_defrag_epilog(uintptr_t arg);
 char *test_defrag_desc(size_t description_type);
 int   test_defrag_init(uintptr_t arg);
 
