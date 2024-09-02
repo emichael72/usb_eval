@@ -41,6 +41,20 @@
 
 #include <stdint.h>
 
+/*
+ * Generic pointer / length structutre.
+ */
+
+typedef struct ptr_size_pair_t
+{
+    uintptr_t ptr;  /* Pointer stored as an unsigned integer type. */
+    size_t    size; /* Size associated with the pointer. */
+
+} ptr_size_pair;
+
+/* USB Tx callback handler */
+typedef void (*cb_on_usb_tx)(ptr_size_pair *pairs, size_t pairs_count);
+
 /**
  * @brief Performs the fragments test by processing and transmitting NC-SI 
  *        packet fragments.

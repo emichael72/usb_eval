@@ -22,6 +22,7 @@
 #include <hal.h>
 #include <hal_llist.h>
 #include <ncsi_packet.h>
+#include <test_frag,h>
 #include <stdint.h>
 
 #define MCTP_HEADER_SIZE             4
@@ -39,17 +40,6 @@
 
 /* Max NC-SI Ethernet frames chunks, each of which upto 68 bytes in size */
 #define MCTP_MAX_FRAGMENTS 25
-
-/*
- * Generic pointer / length structutre.
- */
-
-typedef struct ptr_size_pair_t
-{
-    uintptr_t ptr;  /* Pointer stored as an unsigned integer type. */
-    size_t    size; /* Size associated with the pointer. */
-
-} ptr_size_pair;
 
 /* MCTP standard header */
 typedef struct mctp_packet_t
@@ -98,6 +88,7 @@ typedef struct frag_test_t
     mctp_frag       *p_mctp_head;               /**< Head of the MCTP fragments list. */
     uint8_t         *p_ncsi_start;              /**< Pointer to the start of the NC-SI message. */
     ptr_size_pair    pairs[USB_MAX_POINTERS];   /**< Array of pointers for USB operations. */
+    cb_on_usb_tx     usb_tx_cb;                 /**< User defined - TX callkback */
     uint16_t         ncsi_packet_size;          /**< Size of the NC-SI packet in bytes. */
     uint8_t          version;                   /**< MCTP header version. */
     uint8_t          destination_eid;           /**< MCTP destination EID. */
@@ -254,6 +245,10 @@ static void test_frag_on_usb_tx(ptr_size_pair *pairs, size_t pairs_count)
 
     printf("\n");
 
+    /* Jump to user TX handler when specified */
+    if ( p_frag_test->usb_tx_cb != NULL )
+        p_frag_test->usb_tx_cb(pairs, pairs_count);
+
 #endif
 }
 
@@ -307,15 +302,19 @@ int test_frag_prolog(uintptr_t arg)
         /* Drop the packet , it's too big */
         p_frag_test->ncsi_expected_frags_count = 0;
 #ifdef DEBUG
-        printf("\n\tError: NC-`SI packet size results in too many fragments.\n");
+        if ( p_frag_test->usb_tx_cb == NULL )
+            printf("\n\tError: NC-`SI packet size results in too many fragments.\n");
 #endif
         return 1;
     }
 
 #ifdef DEBUG
-    printf("\n\tNC-SI inbound packet size: %d\n", p_frag_test->ncsi_packet_size);
-    printf("\tNC-SI expected fragments of up-to %d bytes: %d\n", MCTP_MAX_FRAGMNET_SIZE, p_frag_test->ncsi_expected_frags_count);
-    printf("\tExpected transmision: %u bytes.\n\n", p_frag_test->expected_tx_size);
+    if ( p_frag_test->usb_tx_cb == NULL )
+    {
+        printf("\n\tNC-SI inbound packet size: %d\n", p_frag_test->ncsi_packet_size);
+        printf("\tNC-SI expected fragments of up-to %d bytes: %d\n", MCTP_MAX_FRAGMNET_SIZE, p_frag_test->ncsi_expected_frags_count);
+        printf("\tExpected transmision: %u bytes.\n\n", p_frag_test->expected_tx_size);
+    }
 #endif
 
     return 0; /* NC-SI packet reday for frgmantation */
@@ -361,7 +360,8 @@ void test_exec_frag(uintptr_t arg)
             p_frag_test->usb_tx_operation_bytes = 0;
 
 #ifdef DEBUG
-            printf("\n");
+            if ( p_frag_test->usb_tx_cb == NULL )
+                printf("\n");
             p_frag_test->usb_tx_total_operations++;
             p_frag_test->usb_tx_operation_pointers = 0;
 #endif
@@ -382,7 +382,8 @@ void test_exec_frag(uintptr_t arg)
 #ifdef DEBUG
         p_frag_test->usb_tx_total_pointers += 2;
         p_frag_test->usb_tx_operation_pointers += 2;
-        printf("\tUSB adding TX pointer: size: %-3u, pointers %-2u\n", p_frag_test->usb_tx_operation_bytes, p_frag_test->usb_tx_operation_pointers);
+        if ( p_frag_test->usb_tx_cb == NULL )
+            printf("\tUSB adding TX pointer: size: %-3u, pointers %-2u\n", p_frag_test->usb_tx_operation_bytes, p_frag_test->usb_tx_operation_pointers);
 #endif
 
         /* Move to the next fragment */
@@ -396,14 +397,18 @@ void test_exec_frag(uintptr_t arg)
         test_frag_on_usb_tx(p_frag_test->pairs, pairs_count);
 #ifdef DEBUG
         p_frag_test->usb_tx_total_operations++;
-        printf("\n");
+        if ( p_frag_test->usb_tx_cb == NULL )
+            printf("\n");
 #endif
     }
 
 #ifdef DEBUG
-    printf("\n\n\tUSB total pointers: %d\n", p_frag_test->usb_tx_total_pointers);
-    printf("\tUSB total TX operations: %d\n", p_frag_test->usb_tx_total_operations);
-    printf("\tUSB total TX bytes: %d\n\n", p_frag_test->usb_raw_payload);
+    if ( p_frag_test->usb_tx_cb == NULL )
+    {
+        printf("\n\n\tUSB total pointers: %d\n", p_frag_test->usb_tx_total_pointers);
+        printf("\tUSB total TX operations: %d\n", p_frag_test->usb_tx_total_operations);
+        printf("\tUSB total TX bytes: %d\n\n", p_frag_test->usb_raw_payload);
+    }
 #endif
 }
 
@@ -476,6 +481,8 @@ int test_frag_init(uintptr_t arg)
     p_frag_test->source_eid      = 0x20;
     p_frag_test->p_mctp_head     = NULL;
 
+    if ( arg != 0 )
+        p_frag_test->usb_tx_cb = (cb_on_usb_tx) arg;
     /* 
      * Allocate all MCTP fragments and attch them to the session head pointer.
      * For now, feel as many fealds as posiiable to reduice setup clocks 
@@ -485,7 +492,8 @@ int test_frag_init(uintptr_t arg)
     {
 
         frag = hal_alloc(sizeof(mctp_frag));
-        assert(frag != NULL);
+        if ( frag == NULL )
+            return 1; /* Memory error */
 
         /* Initialize MCTP header */
         frag->mctp_header.version         = p_frag_test->version;
