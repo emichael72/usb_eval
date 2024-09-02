@@ -134,14 +134,20 @@ uint64_t test_launcher_execute(size_t test_index)
         if ( item->item_info->init )
         {
             if ( item->item_info->init(item->item_info->init_arg) )
-                break; /* Error: init function failed */
+            {
+                printf("Launcher error: init() function failed.\n");
+                break;
+            }
         }
 
         /* Execute the prolog function if it exists */
         if ( item->item_info->prolog )
         {
             if ( item->item_info->prolog(item->item_info->prolog_arg) )
-                break; /* Error: Prolog function failed */
+            {
+                printf("Launcher error: prolog() function failed.\n");
+                break;
+            }
         }
 
         /* Execute the test function the specified number of times */
@@ -154,7 +160,10 @@ uint64_t test_launcher_execute(size_t test_index)
         if ( item->item_info->epilogue )
         {
             if ( item->item_info->epilogue(item->item_info->epilogue_arg) )
-                break; /* Error: Epilogue function failed */
+            {
+                printf("Launcher error: epilogue() function failed.\n");
+                break;
+            }
         }
 
         ret = cycles_count; /* Success */

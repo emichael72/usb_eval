@@ -262,7 +262,7 @@ static int mctp_msg_ctx_add_pkt(struct mctp_msg_ctx *ctx, struct mctp_pktbuf *pk
 
     memcpy((uint8_t *) ctx->p_cur, MCTP_PKTBUF_DATA(pkt), len);
 
-    //  ctx->buf_size += len;
+    ctx->buf_size += len;
     ctx->free_bytes -= len;
     ctx->p_cur += len;
 

@@ -111,6 +111,7 @@ static void test_defrag_mctplib_dummy_rx(uint8_t eid, bool tag_owner, uint8_t ms
 void test_exec_defrag_mctplib(uintptr_t arg)
 {
     struct mctp_pktbuf *pkt;
+
     while ( (pkt = (struct mctp_pktbuf *) msgq_get_next(p_mctpusb->msgq_handle, 1, true)) != NULL )
     {
         mctp_bus_rx(&p_mctpusb->binding, pkt);
@@ -130,7 +131,7 @@ int test_defrag_mctplib_prolog(uintptr_t arg)
 {
     uint8_t             frgas_count = 0;
     char                color_byte  = 'A';
-    struct mctp_pktbuf *pkt;
+    struct mctp_pktbuf *pkt         = NULL;
     mctplib_packet     *p_mctp, *p_last_mctp = NULL;
 
     /* Pre-build about 25 MCTP messages */
@@ -216,18 +217,17 @@ int test_defrag_mctplib_init(uintptr_t arg)
     /* Pool for MCTP packets */
     p_mctpusb->msgq_handle = msgq_create(MCTP_USB_MSGQ_MAX_FRAME_SIZE, MCTP_USB_MSGQ_ALLOCATED_FRAMES);
     if ( p_mctpusb->msgq_handle == 0 )
-        ;
-    return 0;
+        return 0;
 
     /* Pool for MCTP context buffers */
     p_mctpusb->msgq_contex_handle = msgq_create(MCTP_USB_MAX_CONTEXT_SIZE, MCTP_USB_MSGQ_ALLOCATED_CONTEXES);
     if ( p_mctpusb->msgq_contex_handle == 0 )
-        ;
-    return 0;
+        return 0;
 
     /* Initialize libmctp, assert on error. */
     p_mctpusb->p_mctp = mctp_init();
-    assert(p_mctpusb->p_mctp != NULL);
+    if ( p_mctpusb->p_mctp == NULL )
+        return 0;
 
     p_mctpusb->eid      = (int) MCTP_USB_SRC_EID;
     p_mctpusb->dest_eid = (int) MCTP_USB_DST_EID;
