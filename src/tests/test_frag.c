@@ -451,6 +451,7 @@ char *test_frag_desc(size_t description_type)
 int test_frag_init(uintptr_t arg)
 {
     mctp_frag *frag      = NULL;
+    uint8_t    seq       = 0;
     int        msg_index = 0;
 
     if ( p_frag_test != NULL )
@@ -490,25 +491,20 @@ int test_frag_init(uintptr_t arg)
         frag->mctp_header.version         = p_frag_test->version;
         frag->mctp_header.destination_eid = p_frag_test->destination_eid;
         frag->mctp_header.source_eid      = p_frag_test->source_eid;
+        frag->mctp_header.end_of_message  = 0; /* Not End of Message */
         frag->mctp_header.message_tag     = 0;
         frag->mctp_header.tag_owner       = 1;
+        frag->mctp_header.packet_sequence = seq;
 
         if ( msg_index == 0 )
-        {
-            frag->mctp_header.packet_sequence  = 0;
             frag->mctp_header.start_of_message = 1; /* Start of Message */
-        }
         else
-        {
-            frag->mctp_header.packet_sequence++;
             frag->mctp_header.start_of_message = 0; /* Not Start of Message */
-        }
-
-        frag->mctp_header.end_of_message = 0; /* Not End of Message */
 
         /* Those are not set initially */
         frag->payload      = NULL;
         frag->payload_size = 0;
+        seq++;
 
         /* Attach to the galobal head pointert */
         LL_APPEND(p_frag_test->p_mctp_head, frag);

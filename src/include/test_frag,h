@@ -72,12 +72,6 @@ int test_frag_prolog(uintptr_t arg);
 void test_exec_frag(uintptr_t arg);
 char *test_frag_desc(size_t description_type);
 
-
-int test_frag_memcpy_prolog(uintptr_t arg);
-void test_exec_memcpy_frag(uintptr_t arg);
-char *test_frag_memcpy_desc(size_t description_type);
-
-
 /*
  * Initializes the module and allocates RAM for persistent variables.
  * 
@@ -87,7 +81,6 @@ char *test_frag_memcpy_desc(size_t description_type);
  */
 
 int test_frag_init(uintptr_t arg);
-int test_frag_memcpy_init(uintptr_t arg);
 
 #endif /* #define _TEST_FRAG_H_
  */
