@@ -62,11 +62,11 @@ struct client
 
 struct ctx
 {
-    struct mctp *   mctp;
+    struct mctp    *mctp;
     struct binding *binding;
     bool            verbose;
     int             local_eid;
-    void *          buf;
+    void           *buf;
     size_t          buf_size;
 
     int            sock;
@@ -110,7 +110,7 @@ static void client_remove_inactive(struct ctx *ctx)
 
 static void rx_message(uint8_t eid, bool tag_owner __unused, uint8_t msg_tag __unused, void *data, void *msg, size_t len)
 {
-    struct ctx *  ctx = data;
+    struct ctx   *ctx = data;
     struct iovec  iov[2];
     struct msghdr msghdr;
     bool          removed;
@@ -168,7 +168,7 @@ static int binding_null_init(struct mctp *mctp __unused, struct binding *binding
 static int binding_serial_init(struct mctp *mctp, struct binding *binding, mctp_eid_t eid, int n_params, char *const *params)
 {
     struct mctp_binding_serial *serial;
-    const char *                path;
+    const char                 *path;
     int                         rc;
 
     if ( n_params != 1 )
@@ -206,7 +206,7 @@ static int binding_serial_process(struct binding *binding)
 static int binding_astlpc_init(struct mctp *mctp, struct binding *binding, mctp_eid_t eid, int n_params, char *const *params __attribute__((unused)))
 {
     struct mctp_binding_astlpc *astlpc;
-    const char *                path;
+    const char                 *path;
 
     if ( n_params != 1 )
     {

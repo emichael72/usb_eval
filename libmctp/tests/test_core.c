@@ -39,7 +39,7 @@
 struct pktbuf
 {
     struct mctp_hdr hdr;
-    uint8_t *       payload;
+    uint8_t        *payload;
 };
 
 struct test_params
@@ -126,7 +126,7 @@ static void receive_two_fragment_message(struct mctp_binding_test *binding, uint
 
 static void mctp_core_test_simple_rx()
 {
-    struct mctp *             mctp    = NULL;
+    struct mctp              *mctp    = NULL;
     struct mctp_binding_test *binding = NULL;
     struct test_params        test_param;
     uint8_t                   test_payload[2 * MCTP_BTU];
@@ -153,7 +153,7 @@ static void mctp_core_test_simple_rx()
 
 static void mctp_core_test_receive_equal_length_fragments()
 {
-    struct mctp *             mctp    = NULL;
+    struct mctp              *mctp    = NULL;
     struct mctp_binding_test *binding = NULL;
     struct test_params        test_param;
     static uint8_t            test_payload[MAX_PAYLOAD_SIZE];
@@ -189,7 +189,7 @@ static void mctp_core_test_receive_equal_length_fragments()
 
 static void mctp_core_test_receive_unexpected_smaller_middle_fragment()
 {
-    struct mctp *             mctp    = NULL;
+    struct mctp              *mctp    = NULL;
     struct mctp_binding_test *binding = NULL;
     struct test_params        test_param;
     static uint8_t            test_payload[MAX_PAYLOAD_SIZE];
@@ -224,7 +224,7 @@ static void mctp_core_test_receive_unexpected_smaller_middle_fragment()
 
 static void mctp_core_test_receive_unexpected_bigger_middle_fragment()
 {
-    struct mctp *             mctp    = NULL;
+    struct mctp              *mctp    = NULL;
     struct mctp_binding_test *binding = NULL;
     struct test_params        test_param;
     static uint8_t            test_payload[MAX_PAYLOAD_SIZE];
@@ -259,7 +259,7 @@ static void mctp_core_test_receive_unexpected_bigger_middle_fragment()
 
 static void mctp_core_test_receive_smaller_end_fragment()
 {
-    struct mctp *             mctp    = NULL;
+    struct mctp              *mctp    = NULL;
     struct mctp_binding_test *binding = NULL;
     struct test_params        test_param;
     static uint8_t            test_payload[MAX_PAYLOAD_SIZE];
@@ -295,7 +295,7 @@ static void mctp_core_test_receive_smaller_end_fragment()
 
 static void mctp_core_test_receive_bigger_end_fragment()
 {
-    struct mctp *             mctp    = NULL;
+    struct mctp              *mctp    = NULL;
     struct mctp_binding_test *binding = NULL;
     struct test_params        test_param;
     static uint8_t            test_payload[MAX_PAYLOAD_SIZE];
@@ -330,7 +330,7 @@ static void mctp_core_test_receive_bigger_end_fragment()
 
 static void mctp_core_test_drop_large_fragments()
 {
-    struct mctp *             mctp    = NULL;
+    struct mctp              *mctp    = NULL;
     struct mctp_binding_test *binding = NULL;
     struct test_params        test_param;
     static uint8_t            test_payload[MAX_PAYLOAD_SIZE];
@@ -358,7 +358,7 @@ static void mctp_core_test_drop_large_fragments()
 
 static void mctp_core_test_exhaust_context_buffers()
 {
-    struct mctp *             mctp    = NULL;
+    struct mctp              *mctp    = NULL;
     struct mctp_binding_test *binding = NULL;
     struct test_params        test_param;
     static uint8_t            test_payload[MAX_PAYLOAD_SIZE];
@@ -408,7 +408,7 @@ static void mctp_core_test_exhaust_context_buffers()
 
 static void mctp_core_test_rx_with_tag()
 {
-    struct mctp *             mctp    = NULL;
+    struct mctp              *mctp    = NULL;
     struct mctp_binding_test *binding = NULL;
     struct test_params        test_param;
     static uint8_t            test_payload[MCTP_BTU];
@@ -443,7 +443,7 @@ static void mctp_core_test_rx_with_tag()
 
 static void mctp_core_test_rx_with_tag_multifragment()
 {
-    struct mctp *             mctp    = NULL;
+    struct mctp              *mctp    = NULL;
     struct mctp_binding_test *binding = NULL;
     struct test_params        test_param;
     static uint8_t            test_payload[MCTP_BTU];
@@ -491,7 +491,7 @@ static void mctp_core_test_rx_with_tag_multifragment()
  */
 static void mctp_core_test_rx_with_null_dst_eid()
 {
-    struct mctp *             mctp    = NULL;
+    struct mctp              *mctp    = NULL;
     struct mctp_binding_test *binding = NULL;
     struct test_params        test_param;
     uint8_t                   test_payload[2 * MCTP_BTU];
@@ -523,7 +523,7 @@ static void mctp_core_test_rx_with_null_dst_eid()
  */
 static void mctp_core_test_rx_with_broadcast_dst_eid()
 {
-    struct mctp *             mctp    = NULL;
+    struct mctp              *mctp    = NULL;
     struct mctp_binding_test *binding = NULL;
     struct test_params        test_param;
     uint8_t                   test_payload[2 * MCTP_BTU];

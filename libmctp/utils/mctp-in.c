@@ -26,7 +26,7 @@ static void rx_message(uint8_t eid __unused, bool tag_owner __unused, uint8_t ms
 int main(void)
 {
     struct mctp_binding_serial *serial;
-    struct mctp *               mctp;
+    struct mctp                *mctp;
     int                         rc;
 
     mctp = mctp_init();

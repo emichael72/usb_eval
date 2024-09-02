@@ -29,7 +29,7 @@ int main(void)
     mctp_eid_t                  eids[] = {8, 9};
     struct pollfd               pollfds[3];
     int                         rc, n, mctp_fds[2];
-    struct mctp *               mctp[2];
+    struct mctp                *mctp[2];
 
     mctp[0] = mctp_init();
     mctp[1] = mctp_init();

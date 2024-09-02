@@ -24,7 +24,7 @@ struct mctp_binding_bridge
 
 struct test_ctx
 {
-    struct mctp *               mctp;
+    struct mctp                *mctp;
     struct mctp_binding_bridge *bindings[2];
 };
 
@@ -42,8 +42,8 @@ static int mctp_binding_bridge_tx(struct mctp_binding *b, struct mctp_pktbuf *pk
 static void mctp_binding_bridge_rx(struct mctp_binding_bridge *binding, uint8_t key)
 {
     struct mctp_pktbuf *pkt;
-    struct mctp_hdr *   hdr;
-    uint8_t *           buf;
+    struct mctp_hdr    *hdr;
+    uint8_t            *buf;
 
     pkt = mctp_pktbuf_alloc(&binding->binding, sizeof(struct mctp_hdr) + 1);
     assert(pkt);

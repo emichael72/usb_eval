@@ -89,7 +89,7 @@ typedef struct mctp_frag_t
 typedef struct frag_memcpy_test_t
 {
     ncsi_eth_packet *p_ncsi_packet;    /**< Pointer to the currently handled  NC-SI Ethernet packet. */
-    mctp_frag *      p_mctp_head;      /**< Head pointer to the MCTP fragments list. */
+    mctp_frag       *p_mctp_head;      /**< Head pointer to the MCTP fragments list. */
     uint8_t          ncsi_frgas_count; /**< Count of MCTP fragments used to  encapsulate the NC-SI packet. */
     uint16_t         ncsi_packet_size; /**< Size of the inbound NC-SI packet in bytes. */
     uint8_t          version;          /**< MCTP header version. */
@@ -116,7 +116,7 @@ frag_memcpy_test *p_frag_memcpy_test = NULL;
 static void test_frag_memcpy_prep_fragments(void)
 {
     mctp_frag *frag            = p_frag_memcpy_test->p_mctp_head;
-    uint8_t *  p_payload       = (uint8_t *) p_frag_memcpy_test->p_ncsi_packet;
+    uint8_t   *p_payload       = (uint8_t *) p_frag_memcpy_test->p_ncsi_packet;
     size_t     remaining_bytes = p_frag_memcpy_test->ncsi_packet_size;
 
     /* Adjust the fragments list to the inbound NC-SI packet */

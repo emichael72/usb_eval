@@ -11,9 +11,16 @@ void mctp_prlog(int level, const char *fmt, ...) __attribute__((format(printf, 2
 #define pr_fmt(x) x
 #endif
 
+#ifdef DEBUG
 #define mctp_prerr(fmt, ...)   mctp_prlog(MCTP_LOG_ERR, pr_fmt(fmt), ##__VA_ARGS__)
 #define mctp_prwarn(fmt, ...)  mctp_prlog(MCTP_LOG_WARNING, pr_fmt(fmt), ##__VA_ARGS__)
 #define mctp_prinfo(fmt, ...)  mctp_prlog(MCTP_LOG_INFO, pr_fmt(fmt), ##__VA_ARGS__)
 #define mctp_prdebug(fmt, ...) mctp_prlog(MCTP_LOG_DEBUG, pr_fmt(fmt), ##__VA_ARGS__)
+#else
+#define mctp_prerr(fmt, ...)
+#define mctp_prwarn(fmt, ...)
+#define mctp_prinfo(fmt, ...)
+#define mctp_prdebug(fmt, ...)
 
+#endif
 #endif /* _LIBMCTP_LOG_H */

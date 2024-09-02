@@ -19,7 +19,7 @@
 
 struct test_ctx
 {
-    struct mctp *             mctp;
+    struct mctp              *mctp;
     struct mctp_binding_test *binding;
     int                       rx_count;
     uint8_t                   rx_data[4];

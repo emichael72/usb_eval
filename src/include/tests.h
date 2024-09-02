@@ -19,7 +19,7 @@
 
 #include <hal.h>
 #include <test_frag,h>
-#include <test_mctplib.h>
+#include <test_defrag_mctplib.h>
 
 /* Define to prevent recursive inclusion -------------------------------------*/
 
@@ -46,6 +46,7 @@ char *test_memcpy_desc_hal(size_t description_type);
  * @return None.
  */
 
+int   test_msgq_prolog(uintptr_t arg);
 void  test_exec_msgq(uintptr_t msgq_handle);
 char *test_msgq_desc(size_t description_type);
 

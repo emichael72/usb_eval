@@ -56,10 +56,10 @@ void capture_close(struct capture *cap)
 
 void capture_binding(struct mctp_pktbuf *pkt, bool outgoing, void *user)
 {
-    pcap_dumper_t *    dumper = user;
+    pcap_dumper_t     *dumper = user;
     struct pcap_pkthdr hdr;
     int                rc;
-    uint8_t *          pktbuf = NULL;
+    uint8_t           *pktbuf = NULL;
     size_t             size;
 
     if ( (rc = gettimeofday(&hdr.ts, NULL)) == -1 )
@@ -96,7 +96,7 @@ void capture_socket(pcap_dumper_t *dumper, const void *buf, size_t len, bool out
 {
     struct pcap_pkthdr hdr;
     int                rc;
-    uint8_t *          pktbuf = NULL;
+    uint8_t           *pktbuf = NULL;
     size_t             size;
 
     if ( (rc = gettimeofday(&hdr.ts, NULL)) == -1 )

@@ -1,7 +1,7 @@
 
 /**
   ******************************************************************************
-  * @file    test_mctplib.c
+  * @file    test_defrag_mctplib.c
   * @author  IMCv2 Team
   * @brief   A simple implementation for libmctp that creates a fake 
   *          'USB device' bindings.
@@ -19,89 +19,46 @@
   */
 
 #include <hal.h>
+#include <hal_llist.h>
 #include <hal_msgq.h>
-#include <test_mctplib.h>
+#include <test_defrag_mctplib.h>
 #include <libmctp-log.h>
 #include <string.h>
 
-#define SEQ(x) (x << MCTP_HDR_SEQ_SHIFT)
+#define member_size(type, member) (sizeof(((type *) 0)->member))
 
-/**
- * @brief The `test_mctplib_seq` structure is used to represent a sequence of 
- *        tests for the MCTP library. It encapsulates information about each test case, 
- *        including a description, the number of packets, expected outcomes, and relevant 
- *        flags or sequence tags.
- */
-
-typedef struct test_mctplib_seq_t
+/* MCTP standard packet along with 64 bytes payload  */
+typedef struct mctplib_packet_t
 {
-    char    name[64];           /**< Pointer to a string that describes the test case. */
-    int     n_packets;          /**< Number of packets involved in the test case. */
-    uint8_t flags_seq_tags[32]; /**< Array of 4 bytes representing flags and sequence
-                                    tags for the packets. Each byte controls the
-                                    behavior of the corresponding packet in the test.*/
-} test_mctplib_seq;
+    uint8_t version;              /* MCTP version */
+    uint8_t dest;                 /* Destination Endpoint ID */
+    uint8_t src;                  /* Source Endpoint ID */
+    uint8_t message_tag      : 3; /* Message Tag */
+    uint8_t tag_owner        : 1; /* Tag Owner */
+    uint8_t packet_sequence  : 2; /* Packet Sequence Number */
+    uint8_t end_of_message   : 1; /* End of Message Indicator */
+    uint8_t start_of_message : 1; /* Start of Message Indicator */
+    uint8_t payload[64];
 
-/* clang-format off */
-test_mctplib_seq seq_tests[] = {
-
-/*    Test description                         | n_packets | flags_seq_tags                                                              */
-/*  -------------------------------------------------------------------------------------------------------------------------------------*/
- //   { "Single packet",                                   1, { SEQ(1) | MCTP_HDR_FLAG_SOM | MCTP_HDR_FLAG_EOM }, },
- //   { "Two packets: one start, one end",                 2, { SEQ(1) | MCTP_HDR_FLAG_SOM, SEQ(2) | MCTP_HDR_FLAG_EOM }, },
-    { "Six packets: one start, 4 no flags, one end", 6, { SEQ(1) | MCTP_HDR_FLAG_SOM, SEQ(2), SEQ(3), SEQ(4),SEQ(5), SEQ(6) | MCTP_HDR_FLAG_EOM },    },
-  //  { "Two packets, wrapping sequence numbers",          2, { SEQ(3) | MCTP_HDR_FLAG_SOM, SEQ(0) | MCTP_HDR_FLAG_EOM }, },
-  //  { "Two packets, invalid sequence number",            2, { SEQ(1) | MCTP_HDR_FLAG_SOM, SEQ(3) | MCTP_HDR_FLAG_EOM }, }
-};
-/* clang-format on */
+} mctplib_packet;
 
 /**
  * @brief Holds all global variables for the module.
  */
-typedef struct test_mctplib_session_t
+
+typedef struct test_defrag_mctplib_session_t
 {
-    struct mctp *       p_mctp;             /* Pointer to the libmctp instance */
+    struct mctp        *p_mctp;             /* Pointer to the libmctp instance */
     struct mctp_binding binding;            /* libmctp binding container */
     mctp_eid_t          eid;                /* Our Endpoint ID */
+    mctp_eid_t          dest_eid;           /* Remote Endpoint ID */
     uintptr_t           msgq_handle;        /* Handle to the message queue */
     uintptr_t           msgq_contex_handle; /* Handle to the message queue dedicated for context buffers */
 
-} test_mctplib_session;
+} test_defrag_mctplib_session;
 
 /* Pointer to the module's session instance */
-test_mctplib_session *p_mctpusb = NULL;
-
-/* Dummy implementation of a real 'USB Tx' interface */
-static int test_mctplib_tx(struct mctp_binding *binding __attribute__((unused)), struct mctp_pktbuf *pkt __attribute__((unused)))
-{
-    /* Currently not expecting TX packets */
-    return 0;
-}
-
-/**
- * Pushes raw MCTP data to the 'USB RX' bus.
- *
- * This function allocates a new packet buffer from the pool and copies the 
- * provided data into the buffer as an MCTP packet. The buffer is then handed 
- * over to the MCTP core RX driver for further processing.
- *
- * @param buf Pointer to the data buffer containing the MCTP packet.
- * @param len Length of the data buffer.
- */
-
-void test_mctplib_rx(void *buf, size_t len)
-{
-    struct mctp_pktbuf *pkt;
-
-    pkt = mctp_pktbuf_alloc(&p_mctpusb->binding, len);
-    assert(pkt);
-
-    memcpy(mctp_pktbuf_hdr(pkt), buf, len);
-
-    xt_iss_profile_enable();
-    mctp_bus_rx(&p_mctpusb->binding, pkt);
-    xt_iss_profile_disable();
-}
+test_defrag_mctplib_session *p_mctpusb = NULL;
 
 /**
  * @brief Retrieves the handle to the message queue initialized by this module.
@@ -109,7 +66,7 @@ void test_mctplib_rx(void *buf, size_t len)
  *         initialized.
  */
 
-uintptr_t test_mctplib_get_handle(size_t type)
+uintptr_t test_defrag_mctplib_get_handle(size_t type)
 {
 #if ( HAL_PTR_SANITY_CHECKS > 0 )
     if ( p_mctpusb == NULL )
@@ -147,21 +104,7 @@ uintptr_t test_mctplib_get_handle(size_t type)
  * @return void
  */
 
-/* MCTP standard header */
-typedef struct mctplib_header_t
-{
-    uint8_t version;              /* MCTP version */
-    uint8_t dest;                 /* Destination Endpoint ID */
-    uint8_t src;                  /* Source Endpoint ID */
-    uint8_t message_tag      : 3; /* Message Tag */
-    uint8_t tag_owner        : 1; /* Tag Owner */
-    uint8_t packet_sequence  : 2; /* Packet Sequence Number */
-    uint8_t end_of_message   : 1; /* End of Message Indicator */
-    uint8_t start_of_message : 1; /* Start of Message Indicator */
-
-} mctplib_header;
-
-static void test_mctplib_dummy_rx(uint8_t eid, bool tag_owner, uint8_t msg_tag, void *data, void *msg, size_t len)
+static void test_defrag_mctplib_dummy_rx(uint8_t eid, bool tag_owner, uint8_t msg_tag, void *data, void *msg, size_t len)
 {
     /* Do not do anything here, the cycles are counting :) */
 #ifdef DEBUG
@@ -169,48 +112,51 @@ static void test_mctplib_dummy_rx(uint8_t eid, bool tag_owner, uint8_t msg_tag, 
 #endif
 }
 
-#define FRAG_SIZE   64
-#define FRAGS_COUNT 23
-
-typedef struct test_pkt_t
-{
-    mctplib_header hdr;
-    uint8_t        payload[FRAG_SIZE];
-} test_pkt;
-
-test_pkt         pktbuf     = {0};
-const mctp_eid_t remote_eid = 10;
-
-void test_exec_mctplib(uintptr_t ptr)
+void test_exec_defrag_mctplib(uintptr_t arg)
 {
 
-    xt_iss_profile_disable();
-
-    for ( int i = 0; i < FRAGS_COUNT; i++ )
+    struct mctp_pktbuf *pkt;
+    while ( (pkt = (struct mctp_pktbuf *) msgq_get_next(p_mctpusb->msgq_handle, 1, true)) != NULL )
     {
-
-        pktbuf.hdr.dest             = p_mctpusb->eid;
-        pktbuf.hdr.src              = remote_eid;
-        pktbuf.hdr.start_of_message = 0;
-        pktbuf.hdr.end_of_message   = 0;
-        pktbuf.payload[0]           = i;
-
-        if ( i == 0 )
-            pktbuf.hdr.start_of_message = 1;
-        if ( i == (FRAGS_COUNT - 1) )
-            pktbuf.hdr.end_of_message = 1;
-
-        test_mctplib_rx(&pktbuf, sizeof(pktbuf));
-
-        pktbuf.hdr.packet_sequence++;
+        mctp_bus_rx(&p_mctpusb->binding, pkt);
     }
 }
 
 /* libmctp integration prolog  */
-int test_mctplib_prolog(uintptr_t ptr)
+int test_defrag_mctplib_prolog(uintptr_t arg)
 {
+    uint8_t             frgas_count = 0;
+    char                color_byte  = 'A';
+    struct mctp_pktbuf *pkt;
+    mctplib_packet     *p_mctp, *p_last_mctp = NULL;
+
+    /* Pre build about 25 MCTP messages */
+    while ( (pkt = mctp_pktbuf_alloc(&p_mctpusb->binding, sizeof(mctplib_packet))) != NULL )
+    {
+
+        p_mctp                   = (mctplib_packet *) mctp_pktbuf_hdr(pkt);
+        p_mctp->dest             = p_mctpusb->eid;
+        p_mctp->src              = p_mctpusb->dest_eid;
+        p_mctp->packet_sequence  = frgas_count;
+        p_mctp->start_of_message = 0;
+        p_mctp->end_of_message   = 0;
+
+        if ( frgas_count == 0 )
+            p_mctp->start_of_message = 1; /* Mark MCTP start */
+
+        memset(p_mctp->payload, (int) color_byte, member_size(mctplib_packet, payload));
+        frgas_count++;
+        color_byte++;
+
+        /* Keep track of last frame */
+        p_last_mctp = p_mctp;
+    }
+
+    /* Mark last MCTP message */
+    p_last_mctp->end_of_message = 1;
+
     /* Register a dummy receiver */
-    return mctp_set_rx_all(p_mctpusb->p_mctp, test_mctplib_dummy_rx, NULL);
+    return mctp_set_rx_all(p_mctpusb->p_mctp, test_defrag_mctplib_dummy_rx, NULL);
 }
 
 /**
@@ -226,7 +172,7 @@ int test_mctplib_prolog(uintptr_t ptr)
  * @return A pointer to a string containing the description.
  */
 
-char *test_mctplib_desc(size_t description_type)
+char *test_defrag_mctplib_desc(size_t description_type)
 {
     if ( description_type == 0 )
     {
@@ -270,7 +216,7 @@ char *test_mctplib_desc(size_t description_type)
  * - Initialize libmctp and assert if initialization fails.
  */
 
-int test_mctplib_init(uintptr_t eid)
+int test_defrag_mctplib_init(uintptr_t arg)
 {
     int ret;
 
@@ -278,7 +224,7 @@ int test_mctplib_init(uintptr_t eid)
         return 1;
 
     /* Request RAM for this module, assert on failure */
-    p_mctpusb = hal_alloc(sizeof(test_mctplib_session));
+    p_mctpusb = hal_alloc(sizeof(test_defrag_mctplib_session));
     assert(p_mctpusb != NULL);
 
     /* 
@@ -287,9 +233,11 @@ int test_mctplib_init(uintptr_t eid)
      * managed by the 'msgq' module.
      */
 
+    /* Pool for MCTP packets */
     p_mctpusb->msgq_handle = msgq_create(MCTP_USB_MSGQ_MAX_FRAME_SIZE, MCTP_USB_MSGQ_ALLOCATED_FRAMES);
     assert(p_mctpusb->msgq_handle != 0);
 
+    /* Pool for MCTP context buffers */
     p_mctpusb->msgq_contex_handle = msgq_create(MCTP_USB_MAX_CONTEXT_SIZE, MCTP_USB_MSGQ_ALLOCATED_CONTEXES);
     assert(p_mctpusb->msgq_contex_handle != 0);
 
@@ -297,7 +245,9 @@ int test_mctplib_init(uintptr_t eid)
     p_mctpusb->p_mctp = mctp_init();
     assert(p_mctpusb->p_mctp != NULL);
 
-    p_mctpusb->eid = (int) eid;
+    p_mctpusb->eid      = (int) MCTP_USB_SRC_EID;
+    p_mctpusb->dest_eid = (int) MCTP_USB_DST_EID;
+
     mctp_set_max_message_size(p_mctpusb->p_mctp, MCTP_USB_MSGQ_MAX_FRAME_SIZE);
 
 #ifdef DEBUG
@@ -307,12 +257,12 @@ int test_mctplib_init(uintptr_t eid)
     /* Binding */
     p_mctpusb->binding.name        = "USB";
     p_mctpusb->binding.version     = 1;
-    p_mctpusb->binding.tx          = test_mctplib_tx;
+    p_mctpusb->binding.tx          = NULL;
     p_mctpusb->binding.pkt_size    = MCTP_BODY_SIZE(MCTP_USB_MSGQ_MAX_FRAME_SIZE) - 16;
     p_mctpusb->binding.pkt_header  = 0;
     p_mctpusb->binding.pkt_trailer = 0;
 
-    ret = mctp_register_bus(p_mctpusb->p_mctp, &p_mctpusb->binding, eid);
+    ret = mctp_register_bus(p_mctpusb->p_mctp, &p_mctpusb->binding, p_mctpusb->eid);
     assert(ret == 0);
 
     return ret;

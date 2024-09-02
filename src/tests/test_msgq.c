@@ -19,7 +19,9 @@
 
 #include <hal.h>
 #include <hal_msgq.h>
-#include <test_mctplib.h>
+
+uintptr_t g_msgq_handle = 0;
+
 /**
  * @brief Measures the number of cycles spent when requesting and releasing buffers
  *        from the message queue using `hal_measure_cycles()`.
@@ -32,7 +34,6 @@
 void test_exec_msgq(uintptr_t unused)
 {
     const int frames_count = 1;
-    uintptr_t msgq_handle  = test_mctplib_get_handle(0);
 
     void *p_bufs[1];
     int   ret_val;
@@ -40,16 +41,35 @@ void test_exec_msgq(uintptr_t unused)
     /* Request n frames */
     for ( int i = 0; i < frames_count; i++ )
     {
-        p_bufs[i] = msgq_request(msgq_handle, 16);
+        p_bufs[i] = msgq_request(g_msgq_handle, 16);
         assert(p_bufs[i] != NULL);
     }
 
     /* Release frames */
     for ( int i = 0; i < frames_count; i++ )
     {
-        ret_val = msgq_release(msgq_handle, p_bufs[i]);
+        ret_val = msgq_release(g_msgq_handle, p_bufs[i]);
         assert(ret_val == 0);
     }
+}
+
+/**
+ * @brief Create a dummy message Q for this test.
+ * @param unussed
+ * @return 1 on error.
+ */
+
+int test_msgq_prolog(uintptr_t arg)
+{
+    /* Pool 32 messages of 32 bytes */
+    if ( g_msgq_handle == 0 )
+    {
+        g_msgq_handle = msgq_create(32, 32);
+        if ( g_msgq_handle != 0 )
+            return 0;
+    }
+
+    return 1; /* Error */
 }
 
 /**

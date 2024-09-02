@@ -9,8 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <hal.h>          /* Intel: LX7 infrastructure */
-#include <test_mctplib.h> /* Intel : libmctop integrationm test */
+#include <hal.h>                 /* Intel: LX7 infrastructure */
+#include <test_defrag_mctplib.h> /* Intel : libmctop integrationm test */
 
 #undef pr_fmt
 #define pr_fmt(fmt) "libMCTP: " fmt
@@ -48,7 +48,7 @@ struct mctp_msg_ctx
     uint8_t  dest;
     uint8_t  tag;
     uint8_t  last_seq;
-    void *   buf;
+    void    *buf;
     uint8_t *p_cur;
     size_t   free_bytes;
     size_t   buf_size;
@@ -63,16 +63,16 @@ struct mctp
 
     /* Message RX callback */
     mctp_rx_fn message_rx;
-    void *     message_rx_data;
+    void      *message_rx_data;
 
     /* Packet capture callback */
     mctp_capture_fn capture;
-    void *          capture_data;
+    void           *capture_data;
 
     /* Message reassembly.
 	 * @todo: flexible context count
 	 */
-    struct mctp_msg_ctx msg_ctxs[16];
+    struct mctp_msg_ctx msg_ctxs[1];
 
     enum
     {
@@ -227,7 +227,14 @@ static struct mctp_msg_ctx *mctp_msg_ctx_create(struct mctp *mctp, uint8_t src, 
     ctx->src  = src;
     ctx->dest = dest;
     ctx->tag  = tag;
-    ctx->buf  = NULL;
+
+    if ( ctx->buf == NULL )
+    {
+        ctx->buf        = __mctp_alloc_context(MCTP_USB_MAX_CONTEXT_SIZE);
+        ctx->p_cur      = ctx->buf;
+        ctx->buf_size   = 0;
+        ctx->free_bytes = MCTP_USB_MAX_CONTEXT_SIZE;
+    }
 
     return ctx;
 }
@@ -260,22 +267,12 @@ static int mctp_msg_ctx_add_pkt(struct mctp_msg_ctx *ctx, struct mctp_pktbuf *pk
 
     len = mctp_pktbuf_size(pkt) - sizeof(struct mctp_hdr);
 
-    if ( ctx->buf == NULL )
-    {
-        ctx->buf        = __mctp_alloc_context(MCTP_USB_MAX_CONTEXT_SIZE);
-        ctx->p_cur      = ctx->buf;
-        ctx->buf_size   = 0;
-        ctx->free_bytes = MCTP_USB_MAX_CONTEXT_SIZE;
-    }
-
     /* No buffer - drop the message */
-    if ( ctx->free_bytes < len )
-    {
-        __mctp_free_context(ctx->buf);
+    if ( ctx->buf == NULL || ctx->free_bytes < len )
         return -1;
-    }
 
     memcpy((uint8_t *) ctx->p_cur, mctp_pktbuf_data(pkt), len);
+
     ctx->buf_size += len;
     ctx->free_bytes -= len;
     ctx->p_cur += len;
@@ -320,7 +317,7 @@ static void mctp_bus_destroy(struct mctp_bus *bus)
         struct mctp_pktbuf *curr = bus->tx_queue_head;
 
         bus->tx_queue_head = curr->next;
-        mctp_pktbuf_free(curr);
+        __mctp_free(curr);
     }
 }
 
@@ -543,15 +540,17 @@ static void mctp_rx(struct mctp *mctp, struct mctp_bus *bus, mctp_eid_t src, mct
 
 void mctp_bus_rx(struct mctp_binding *binding, struct mctp_pktbuf *pkt)
 {
-    struct mctp_bus *    bus  = binding->bus;
-    struct mctp *        mctp = binding->mctp;
+    struct mctp_bus     *bus  = binding->bus;
+    struct mctp         *mctp = binding->mctp;
     uint8_t              flags, exp_seq, seq, tag;
     struct mctp_msg_ctx *ctx;
-    struct mctp_hdr *    hdr;
+    struct mctp_hdr     *hdr;
     bool                 tag_owner;
     size_t               len;
-    void *               p;
+    void                *p;
     int                  rc;
+
+#ifdef DEBUG
 
     assert(bus);
 
@@ -561,6 +560,7 @@ void mctp_bus_rx(struct mctp_binding *binding, struct mctp_pktbuf *pkt)
 
     if ( mctp->capture )
         mctp->capture(pkt, MCTP_MESSAGE_CAPTURE_INCOMING, mctp->capture_data);
+#endif
 
     hdr = mctp_pktbuf_hdr(pkt);
 
@@ -681,7 +681,7 @@ void mctp_bus_rx(struct mctp_binding *binding, struct mctp_pktbuf *pkt)
             rc = mctp_msg_ctx_add_pkt(ctx, pkt, mctp->max_message_size);
             if ( rc )
             {
-                mctp_msg_ctx_drop(ctx);
+                mctp_prdebug("Could not append frgament to coontext, dropping context");
                 goto out;
             }
             ctx->last_seq = seq;
@@ -689,7 +689,7 @@ void mctp_bus_rx(struct mctp_binding *binding, struct mctp_pktbuf *pkt)
             break;
     }
 out:
-    mctp_pktbuf_free(pkt);
+    __mctp_free(pkt);
 }
 
 static int mctp_packet_tx(struct mctp_bus *bus, struct mctp_pktbuf *pkt)
@@ -780,7 +780,7 @@ static int mctp_message_tx_on_bus(struct mctp_bus *bus, mctp_eid_t src, mctp_eid
 {
     size_t              max_payload_len, payload_len, p;
     struct mctp_pktbuf *pkt;
-    struct mctp_hdr *   hdr;
+    struct mctp_hdr    *hdr;
     int                 i;
 
     if ( bus->state == mctp_bus_state_constructed )

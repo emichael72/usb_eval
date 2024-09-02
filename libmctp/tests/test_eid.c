@@ -15,7 +15,7 @@
 
 struct test_ctx
 {
-    struct mctp *             mctp;
+    struct mctp              *mctp;
     struct mctp_binding_test *binding;
     int                       rx_count;
     mctp_eid_t                src_eid;

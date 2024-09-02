@@ -31,6 +31,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+void *msgq_get_next(uintptr_t msgq_handle, int list_type, bool order);
+
 /**
  * @brief Requests a data pointer from the queue, moving the item to the busy list.
  * @param msgq_handle Handle to the storage instance.

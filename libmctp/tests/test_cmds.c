@@ -37,7 +37,7 @@ struct callback_data
 static void control_message_transport_callback(mctp_eid_t src __unused, bool tag_owner __unused, uint8_t msg_tag __unused, void *data, void *buf,
                                                size_t len __unused)
 {
-    struct callback_data *    ctx     = data;
+    struct callback_data     *ctx     = data;
     struct mctp_ctrl_msg_hdr *msg_hdr = buf;
     printf("Transport control message received - command code: 0x%X\n", msg_hdr->command_code);
     ctx->invoked++;
@@ -73,7 +73,7 @@ static void setup_test_binding(struct mctp_binding *test_binding, struct mctp *t
 
 static void send_transport_control_message(void)
 {
-    struct mctp *                   endpoint = mctp_init();
+    struct mctp                    *endpoint = mctp_init();
     struct mctp_binding             binding;
     struct callback_data            ctx;
     static const struct msg_payload send_control_message_payload = {

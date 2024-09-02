@@ -70,7 +70,7 @@ struct mctp_binding_serial
     unsigned long       bus_id;
 
     mctp_serial_tx_fn tx_fn;
-    void *            tx_fn_data;
+    void             *tx_fn_data;
 
     /* receive buffer and state */
     uint8_t             rxbuf[1024];
@@ -144,9 +144,9 @@ static size_t mctp_serial_pkt_escape(struct mctp_pktbuf *pkt, uint8_t *buf)
 static int mctp_binding_serial_tx(struct mctp_binding *b, struct mctp_pktbuf *pkt)
 {
     struct mctp_binding_serial *serial = binding_to_serial(b);
-    struct mctp_serial_header * hdr;
+    struct mctp_serial_header  *hdr;
     struct mctp_serial_trailer *tlr;
-    uint8_t *                   buf;
+    uint8_t                    *buf;
     size_t                      len;
     uint16_t                    fcs;
 

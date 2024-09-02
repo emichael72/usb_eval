@@ -127,7 +127,7 @@ struct mctp_binding_astlpc
 {
     struct mctp_binding binding;
 
-    void *                    lpc_map;
+    void                     *lpc_map;
     struct mctp_astlpc_layout layout;
 
     uint8_t  mode;
@@ -137,7 +137,7 @@ struct mctp_binding_astlpc
 
     /* direct ops data */
     struct mctp_binding_astlpc_ops ops;
-    void *                         ops_data;
+    void                          *ops_data;
 
     /* fileio ops data */
     int     kcs_fd;
@@ -225,7 +225,7 @@ void astlpc_pktbuf_protect_v3(struct mctp_pktbuf *pkt)
 bool astlpc_pktbuf_validate_v3(struct mctp_pktbuf *pkt)
 {
     uint32_t code;
-    void *   check;
+    void    *check;
 
     code = be32toh(crc32(mctp_pktbuf_hdr(pkt), mctp_pktbuf_size(pkt) - 4));
     mctp_prdebug("%s: 0x%" PRIx32, __func__, code);
@@ -785,7 +785,7 @@ static int mctp_binding_astlpc_tx(struct mctp_binding *b, struct mctp_pktbuf *pk
 {
     struct mctp_binding_astlpc *astlpc = binding_to_astlpc(b);
     uint32_t                    len, len_be;
-    struct mctp_hdr *           hdr;
+    struct mctp_hdr            *hdr;
     int                         rc;
 
     hdr = mctp_pktbuf_hdr(pkt);
@@ -945,7 +945,7 @@ static void mctp_astlpc_init_channel(struct mctp_binding_astlpc *astlpc)
 static void mctp_astlpc_rx_start(struct mctp_binding_astlpc *astlpc)
 {
     struct mctp_pktbuf *pkt;
-    struct mctp_hdr *   hdr;
+    struct mctp_hdr    *hdr;
     uint32_t            body, packet;
 
     mctp_astlpc_lpc_read(astlpc, &body, astlpc->layout.rx.offset, sizeof(body));
@@ -1280,7 +1280,7 @@ static int mctp_astlpc_init_fileio_lpc(struct mctp_binding_astlpc *astlpc)
                                           .addr        = 0,
                                           .offset      = 0,
                                           .size        = 0};
-    void *                         lpc_map_base;
+    void                          *lpc_map_base;
     int                            fd, rc;
 
     fd = open(lpc_path, O_RDWR | O_SYNC);

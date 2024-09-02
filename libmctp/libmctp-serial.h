@@ -4,7 +4,8 @@
 #define _LIBMCTP_SERIAL_H
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 #include <libmctp.h>

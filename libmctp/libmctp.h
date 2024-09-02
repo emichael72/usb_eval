@@ -4,7 +4,8 @@
 #define _LIBMCTP_H
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 #include <stdarg.h>
@@ -62,13 +63,13 @@ struct mctp_binding;
 
 struct mctp_pktbuf *mctp_pktbuf_alloc(struct mctp_binding *hw, size_t len);
 void                mctp_pktbuf_free(struct mctp_pktbuf *pkt);
-struct mctp_hdr *   mctp_pktbuf_hdr(struct mctp_pktbuf *pkt);
-void *              mctp_pktbuf_data(struct mctp_pktbuf *pkt);
+struct mctp_hdr    *mctp_pktbuf_hdr(struct mctp_pktbuf *pkt);
+void               *mctp_pktbuf_data(struct mctp_pktbuf *pkt);
 size_t              mctp_pktbuf_size(struct mctp_pktbuf *pkt);
-void *              mctp_pktbuf_alloc_start(struct mctp_pktbuf *pkt, size_t size);
-void *              mctp_pktbuf_alloc_end(struct mctp_pktbuf *pkt, size_t size);
+void               *mctp_pktbuf_alloc_start(struct mctp_pktbuf *pkt, size_t size);
+void               *mctp_pktbuf_alloc_end(struct mctp_pktbuf *pkt, size_t size);
 int                 mctp_pktbuf_push(struct mctp_pktbuf *pkt, void *data, size_t len);
-void *              mctp_pktbuf_pop(struct mctp_pktbuf *pkt, size_t len);
+void               *mctp_pktbuf_pop(struct mctp_pktbuf *pkt, size_t len);
 
 /* MCTP core */
 struct mctp;
@@ -116,17 +117,17 @@ int mctp_message_tx(struct mctp *mctp, mctp_eid_t eid, bool tag_owner, uint8_t m
  */
 struct mctp_binding
 {
-    const char *     name;
+    const char      *name;
     uint8_t          version;
     struct mctp_bus *bus;
-    struct mctp *    mctp;
+    struct mctp     *mctp;
     size_t           pkt_size;
     size_t           pkt_header;
     size_t           pkt_trailer;
     int (*start)(struct mctp_binding *binding);
     int (*tx)(struct mctp_binding *binding, struct mctp_pktbuf *pkt);
     mctp_rx_fn control_rx;
-    void *     control_rx_data;
+    void      *control_rx_data;
 };
 
 void mctp_binding_set_tx_enabled(struct mctp_binding *binding, bool enable);
@@ -153,6 +154,15 @@ void mctp_set_log_custom(void (*fn)(int, const char *, va_list));
 #define MCTP_LOG_NOTICE  5
 #define MCTP_LOG_INFO    6
 #define MCTP_LOG_DEBUG   7
+
+/* Macro to retrieve a pointer to the MCTP header within a packet buffer */
+#define MCTP_PKTBUF_HDR(pkt) ((mctp_hdr *) ((pkt)->data + (pkt)->mctp_hdr_off))
+
+/* Macro to retrieve a pointer to the data following the MCTP header */
+#define MCTP_PKTBUF_DATA(pkt) ((void *) ((pkt)->data + (pkt)->mctp_hdr_off + sizeof(mctp_hdr)))
+
+/* Macro to calculate the size of the packet based on start and end offsets */
+#define MCTP_PKTBUF_SIZE(pkt) ((pkt)->end - (pkt)->start)
 
 #ifdef __cplusplus
 }

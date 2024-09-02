@@ -48,8 +48,8 @@ struct mctp_binding_astlpc_mmio
 struct astlpc_endpoint
 {
     struct mctp_binding_astlpc_mmio mmio;
-    struct mctp_binding_astlpc *    astlpc;
-    struct mctp *                   mctp;
+    struct mctp_binding_astlpc     *astlpc;
+    struct mctp                    *mctp;
 };
 
 struct astlpc_test
@@ -57,9 +57,9 @@ struct astlpc_test
     struct astlpc_endpoint bmc;
     struct astlpc_endpoint host;
     uint8_t                kcs[2];
-    uint8_t *              lpc_mem;
+    uint8_t               *lpc_mem;
 
-    void *  msg;
+    void   *msg;
     uint8_t count;
 };
 
@@ -85,7 +85,7 @@ static int mctp_astlpc_mmio_kcs_read(void *data, enum mctp_binding_astlpc_kcs_re
 static int mctp_astlpc_mmio_kcs_write(void *data, enum mctp_binding_astlpc_kcs_reg reg, uint8_t val)
 {
     struct mctp_binding_astlpc_mmio *mmio = binding_to_mmio(data);
-    uint8_t *                        regp;
+    uint8_t                         *regp;
 
     assert(reg == MCTP_ASTLPC_KCS_REG_DATA || reg == MCTP_ASTLPC_KCS_REG_STATUS);
 
@@ -223,7 +223,7 @@ static void network_destroy(struct astlpc_test *ctx)
 static void astlpc_assert_tx_packet(struct astlpc_endpoint *src, const void *expected, size_t len)
 {
     const size_t tx_body = src->astlpc->layout.tx.offset + 4 + 4;
-    const void * test    = ((char *) src->astlpc->lpc_map) + tx_body;
+    const void  *test    = ((char *) src->astlpc->lpc_map) + tx_body;
     assert(! memcmp(test, expected, len));
 }
 
@@ -353,9 +353,9 @@ static void astlpc_test_simple_message_bmc_to_host(void)
 static void astlpc_test_host_before_bmc(void)
 {
     struct mctp_binding_astlpc_mmio mmio = {0};
-    struct mctp_binding_astlpc *    astlpc;
+    struct mctp_binding_astlpc     *astlpc;
     uint8_t                         kcs[2] = {0};
-    struct mctp *                   mctp;
+    struct mctp                    *mctp;
     int                             rc;
 
     mctp = mctp_init();
@@ -408,7 +408,7 @@ static void astlpc_test_version_host_fails_negotiation(void)
     struct astlpc_endpoint  bmc, host;
     struct mctp_lpcmap_hdr *hdr;
     uint8_t                 kcs[2] = {0};
-    void *                  lpc_mem;
+    void                   *lpc_mem;
     int                     rc;
 
     /* Test harness initialisation */
@@ -437,7 +437,7 @@ static void astlpc_test_version_bmc_fails_negotiation(void)
     struct astlpc_endpoint  bmc, host;
     struct mctp_lpcmap_hdr *hdr;
     uint8_t                 kcs[2] = {0};
-    void *                  lpc_mem;
+    void                   *lpc_mem;
     int                     rc;
 
     /* Test harness initialisation */
@@ -473,7 +473,7 @@ static void astlpc_test_simple_init(void)
 {
     struct astlpc_endpoint bmc, host;
     uint8_t                kcs[2] = {0};
-    void *                 lpc_mem;
+    void                  *lpc_mem;
     int                    rc;
 
     /* Test harness initialisation */
@@ -629,7 +629,7 @@ static void astlpc_test_poll_not_ready(void)
 {
     struct astlpc_endpoint bmc;
     uint8_t                kcs[2] = {0};
-    void *                 lpc_mem;
+    void                  *lpc_mem;
     int                    rc;
 
     /* Test harness initialisation */
@@ -654,7 +654,7 @@ static void astlpc_test_undefined_command(void)
 {
     struct astlpc_endpoint bmc;
     uint8_t                kcs[2] = {0};
-    void *                 lpc_mem;
+    void                  *lpc_mem;
     int                    rc;
 
     /* Test harness initialisation */
@@ -809,7 +809,7 @@ static void astlpc_test_buffers_bad_host_proposal(void)
     struct astlpc_endpoint  bmc, host;
     struct mctp_lpcmap_hdr *hdr;
     uint8_t                 kcs[2] = {0};
-    void *                  lpc_mem;
+    void                   *lpc_mem;
     int                     rc;
 
     /* Test harness initialisation */
@@ -846,7 +846,7 @@ static void astlpc_test_buffers_bad_bmc_proposal(void)
     struct astlpc_endpoint  bmc, host;
     struct mctp_lpcmap_hdr *hdr;
     uint8_t                 kcs[2] = {0};
-    void *                  lpc_mem;
+    void                   *lpc_mem;
     int                     rc;
 
     /* Test harness initialisation */
@@ -878,7 +878,7 @@ static void astlpc_test_buffers_bad_bmc_negotiation(void)
     struct astlpc_endpoint  bmc, host;
     struct mctp_lpcmap_hdr *hdr;
     uint8_t                 kcs[2] = {0};
-    void *                  lpc_mem;
+    void                   *lpc_mem;
     int                     rc;
 
     /* Test harness initialisation */
@@ -914,7 +914,7 @@ static void astlpc_test_buffers_bad_host_init(void)
 {
     struct astlpc_endpoint host;
     uint8_t                kcs[2] = {0};
-    void *                 lpc_mem;
+    void                  *lpc_mem;
     int                    rc;
 
     /* Test harness initialisation */
@@ -941,7 +941,7 @@ static void astlpc_test_negotiate_increased_mtu(void)
 {
     struct astlpc_endpoint bmc, host;
     uint8_t                kcs[2] = {0};
-    void *                 lpc_mem;
+    void                  *lpc_mem;
     int                    rc;
 
     /* Test harness initialisation */
@@ -972,7 +972,7 @@ static void astlpc_test_negotiate_mtu_low_high(void)
     struct astlpc_endpoint bmc, host;
     uint8_t                kcs[2] = {0};
     uint32_t               bmtu, hmtu;
-    void *                 lpc_mem;
+    void                  *lpc_mem;
     int                    rc;
 
     /* Test harness initialisation */
@@ -1031,7 +1031,7 @@ static void astlpc_test_send_large_packet(void)
     struct astlpc_test      ctx;
     uint8_t                 kcs[2] = {0};
     uint8_t                 tag    = 0;
-    void *                  lpc_mem;
+    void                   *lpc_mem;
     int                     rc;
 
     host = &ctx.host;
@@ -1192,7 +1192,7 @@ static void astlpc_test_tx_before_channel_init(void)
     uint8_t                 kcs[2] = {0};
     uint8_t                 msg[MCTP_BTU];
     uint8_t                 tag = 0;
-    void *                  lpc_mem;
+    void                   *lpc_mem;
     int                     rc;
 
     bmc = &ctx.bmc;
@@ -1229,7 +1229,7 @@ static void astlpc_test_corrupt_host_tx(void)
     uint32_t                offset;
     uint8_t                 tag = 0;
     uint32_t                code;
-    uint8_t *               tlr;
+    uint8_t                *tlr;
     int                     rc;
 
     /* Test harness initialisation */
@@ -1282,7 +1282,7 @@ static void astlpc_test_corrupt_bmc_tx(void)
     uint32_t                offset;
     uint8_t                 tag = 0;
     uint32_t                code;
-    uint8_t *               tlr;
+    uint8_t                *tlr;
     int                     rc;
 
     /* Test harness initialisation */

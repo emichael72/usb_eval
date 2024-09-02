@@ -74,13 +74,56 @@ typedef struct __attribute__((packed)) __msgq_buf_t
 /*! @brief The message queue storage descriptor */
 typedef struct _msgq_storage_t
 {
-    msgq_buf *busy;        /*!< List of busy (in use) elements */
-    msgq_buf *free;        /*!< List of free (available) elements */
-    uint16_t  item_size;   /*!< Size of a single element in the queue */
-    uint16_t  items_count; /*!< Total number of elements in the queue */
-    uint32_t  magic;       /*!< Memory protection marker */
+    msgq_buf *busy;          /*!< List of busy (in use) elements */
+    msgq_buf *free;          /*!< List of free (available) elements */
+    msgq_buf *last_accessed; /*!< Pointer to the last accessed message buffer. */
+    uint16_t  item_size;     /*!< Size of a single element in the queue */
+    uint16_t  items_count;   /*!< Total number of elements in the queue */
+    uint32_t  magic;         /*!< Memory protection marker */
 
 } msgq_storage;
+
+/**
+ * Retrieves the next element from the specified message queue list, either busy or free,
+ * and optionally switches its state depending on the 'readonly' flag.
+ * 
+ * @param msgq_handle Handle to the message queue storage.
+ * @param list_type Specifies the list to traverse: 0 for free list, 1 for busy list.
+ * @param order Set to true for natural order (next), or false for reversed order (prev).
+ * @param readonly If true, the function does not alter the list or item statuses; it only reads data.
+ * @return Pointer to the next message buffer data or NULL if there are no more elements or an error occurs.
+ */
+
+void *msgq_get_next(uintptr_t msgq_handle, int list_type, bool order)
+{
+    msgq_storage *storage = (msgq_storage *) msgq_handle;
+    if ( ! storage || storage->magic != HAL_MSGQ_MAGIC_VAL )
+    {
+        return NULL;
+    }
+
+    msgq_buf *current  = NULL;
+    msgq_buf *selected = (list_type == 0) ? storage->free : storage->busy;
+
+    if ( storage->last_accessed && ((storage->last_accessed->bits.status && list_type == 1) || (! storage->last_accessed->bits.status && list_type == 0)) )
+    {
+        current = order ? storage->last_accessed->next : storage->last_accessed->prev;
+    }
+
+    if ( ! current )
+    {
+        current = selected;
+    }
+
+    if ( ! current )
+    {
+        return NULL;
+    }
+
+    storage->last_accessed = current;
+
+    return current->data;
+}
 
 /**
  * @brief Requests a data pointer from the queue, moving the item to the busy list.
@@ -91,17 +134,17 @@ typedef struct _msgq_storage_t
 
 void *msgq_request(uintptr_t msgq_handle, size_t size)
 {
-    msgq_buf *    p_buf = NULL;
+    msgq_buf     *p_buf = NULL;
     msgq_storage *pfs   = (msgq_storage *) msgq_handle; /* Handle to pointer */
 
 #if ( HAL_MSGQ_SANITY_CHECKS == 1 )
 
     if ( pfs == NULL || pfs->magic != HAL_MSGQ_MAGIC_VAL | pfs->free == NULL )
-        assert(0);
+        return NULL;
 
     /* If we got size, use it for vliadation */
     if ( size && pfs->item_size < size )
-        assert(0);
+        return NULL;
 
 #endif
 
@@ -146,19 +189,19 @@ void *msgq_request(uintptr_t msgq_handle, size_t size)
 
 int msgq_release(uintptr_t msgq_handle, void *data)
 {
-    msgq_buf *    p_buf = NULL;
+    msgq_buf     *p_buf = NULL;
     msgq_storage *pfs   = (msgq_storage *) msgq_handle; /* Handle to pointer */
 
-    // Calculate the offset of p_data within msgq_buf
+    /* Calculate the offset of p_data within msgq_buf */
     size_t offset = offsetof(msgq_buf, data);
 
-    // Subtract the offset from the data_ptr to get the msgq_buf pointer
+    /* Subtract the offset from the data_ptr to get the msgq_buf pointer */
     p_buf = (msgq_buf *) ((uint8_t *) data - offset);
 
 #if ( HAL_MSGQ_SANITY_CHECKS == 1 )
     if ( pfs == NULL || pfs->magic != HAL_MSGQ_MAGIC_VAL || p_buf == NULL || p_buf->bits.marker != HAL_MSGQ_MINI_MAGIC_VAL )
     {
-        assert(0); /* Error releasing item to storage */
+        return 1; /* Error releasing item to storage */
     }
 #endif
 
@@ -190,7 +233,7 @@ uintptr_t msgq_create(size_t item_size, size_t items_count)
 {
 
     size_t        q_item_size = 0;
-    msgq_buf *    p_buf       = NULL;
+    msgq_buf     *p_buf       = NULL;
     msgq_storage *p_storage   = NULL;
 
     if ( item_size == 0 || items_count == 0 )

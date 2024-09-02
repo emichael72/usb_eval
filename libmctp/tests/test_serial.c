@@ -67,7 +67,7 @@ static void rx_message(uint8_t eid __unused, bool tag_owner, uint8_t msg_tag, vo
 struct serial_test
 {
     struct mctp_binding_serial_pipe binding;
-    struct mctp *                   mctp;
+    struct mctp                    *mctp;
 };
 
 int main(void)

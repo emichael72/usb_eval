@@ -14,16 +14,16 @@
 #include <pcap/pcap.h>
 
 #else
-typedef void      pcap_t;
-typedef void      pcap_dumper_t;
+typedef void pcap_t;
+typedef void pcap_dumper_t;
 #endif
 
 #define CAPTURE_LINKTYPE_LINUX_SLL2 276
 
 struct capture
 {
-    const char *   path;
-    pcap_t *       pcap;
+    const char    *path;
+    pcap_t        *pcap;
     pcap_dumper_t *dumper;
 };
 

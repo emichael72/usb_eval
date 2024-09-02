@@ -3,7 +3,8 @@
 #define _LIBMCTP_CMDS_H
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 #include "libmctp.h"

@@ -46,8 +46,8 @@
 
 typedef struct _hal_session_t
 {
-    char **   argv;                 /**< Array of input arguments passed to the emulator */
-    uint8_t * initial_thread_stack; /**< Pointer to the stack of the initial thread */
+    char    **argv;                 /**< Array of input arguments passed to the emulator */
+    uint8_t  *initial_thread_stack; /**< Pointer to the stack of the initial thread */
     uintptr_t pool_ctx;             /**< Context for the global memory pool */
     uint64_t  ticks;                /**< System ticks since the epoch */
     uint64_t  overhead_cycles;      /**< Pre calculated overhead cycles related to the ISS */
@@ -383,7 +383,7 @@ void *hal_zero_buf(void *dest, size_t n)
 #endif
 
     uintptr_t *word_ptr = (uintptr_t *) dest;
-    uint8_t *  byte_ptr;
+    uint8_t   *byte_ptr;
     size_t     num_words       = n / word_size;
     size_t     remaining_bytes = n % word_size;
 
@@ -746,6 +746,5 @@ __attribute__((noreturn)) void hal_sys_init(XosThreadFunc startThread, int _argc
     /* Start Kernel which will block. */
     xos_start(0);
 
-    while ( 1 )
-        ;
+    while ( 1 );
 }

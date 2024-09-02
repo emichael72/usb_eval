@@ -51,8 +51,8 @@ static void rx_message(uint8_t eid, uint8_t msg_tag, bool tag_owner, void *data,
 int main(void)
 {
     struct mctp_binding_astlpc *astlpc;
-    struct mctp *               mctp;
-    struct ctx *                ctx, _ctx;
+    struct mctp                *mctp;
+    struct ctx                 *ctx, _ctx;
     int                         rc;
 
     mctp = mctp_init();

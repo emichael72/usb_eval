@@ -89,18 +89,18 @@
     (60000) /**< Auto exit emulator after n 
                                                      milliseconds */
 #define HAL_MEM_SANITY_CHECKS \
-    1 /**< Enable sanity checks in 
+    0 /**< Enable sanity checks in 
                                                      hal_memcpy() */
 #define HAL_BRK_ALLOC_ZERO_MEM \
     1 /**< Initialize allocated memory 
                                                      to zero */
 #define HAL_MSGQ_USE_CRITICAL \
-    1 /**< Enables critical sections 
+    0 /**< Enables critical sections 
                                                      in the message queue to 
                                                      ensure thread-safe operation 
                                                      across multiple contexts */
 #define HAL_MSGQ_SANITY_CHECKS \
-    1 /**< Enable sanity checks when requesting
+    0 /**< Enable sanity checks when requesting
                                                      and releasing messages */
 
 #define HAL_PTR_SANITY_CHECKS 1 /**< Enable generic pointers checks */

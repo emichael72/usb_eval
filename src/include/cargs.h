@@ -86,7 +86,8 @@
 #endif
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /**
@@ -111,14 +112,14 @@ typedef struct cag_option_context
     const struct cag_option *options;
     size_t                   option_count;
     int                      argc;
-    char **                  argv;
+    char                   **argv;
     int                      index;
     int                      inner_index;
     int                      error_index;
     char                     error_letter;
     bool                     forced_end;
     char                     identifier;
-    char *                   value;
+    char                    *value;
 } cag_option_context;
 
 /**

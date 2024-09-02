@@ -41,13 +41,13 @@ static test_launcher_item_info tests_info[] = {
 
     /* Init                    Prolog                   Test function           Epilogue        Description     Args               Repetitions */
     /* ------------------------------------------------------------------------------------------------------------------------------------------ */
-    { NULL,                     NULL,                     hal_useless_function,   NULL, test_useless_desc,       0,     0,  0,  0,  1           },
-    { NULL,                     NULL,                     test_exec_memcpy,       NULL, test_memcpy_desc_xtensa, 0,     0,  0,  0,  1           },
-    { NULL,                     NULL,                     test_exec_memcpy,       NULL, test_memcpy_desc_hal,    0,     0,  1,  0,  1           },
-    { NULL,                     NULL,                     test_exec_msgq,         NULL, test_msgq_desc,          MCTP_USB__DEST_EID,    0,  0,  0,  1 },
-    { test_mctplib_init,        test_mctplib_prolog,      test_exec_mctplib,      NULL, test_mctplib_desc,       0,     0,  0,  0,  1           },
-    { test_frag_init,           test_frag_prolog,         test_exec_frag,         NULL, test_frag_desc,          0,     0,  0,  0,  1           },
-    { test_frag_memcpy_init,    test_frag_memcpy_prolog,  test_exec_memcpy_frag,  NULL, test_frag_memcpy_desc,   0,     0,  0,  0,  1           },
+    { NULL,                         NULL,                       hal_useless_function,       NULL, test_useless_desc,            0,     0,  0,  0,  1           },
+    { NULL,                         NULL,                       test_exec_memcpy,           NULL, test_memcpy_desc_xtensa,      0,     0,  0,  0,  1           },
+    { NULL,                         NULL,                       test_exec_memcpy,           NULL, test_memcpy_desc_hal,         0,     0,  1,  0,  1           },
+    { NULL,                         test_msgq_prolog,           test_exec_msgq,             NULL, test_msgq_desc,               0,     0,  0,  0,  1           },
+    { test_defrag_mctplib_init,     test_defrag_mctplib_prolog, test_exec_defrag_mctplib,   NULL, test_defrag_mctplib_desc,     0,     0,  0,  0,  1           },
+    { test_frag_init,               test_frag_prolog,           test_exec_frag,             NULL, test_frag_desc,               0,     0,  0,  0,  1           },
+    { test_frag_memcpy_init,        test_frag_memcpy_prolog,    test_exec_memcpy_frag,      NULL, test_frag_memcpy_desc,        0,     0,  0,  0,  1           },
 
 };
 /* clang-format on */
@@ -110,15 +110,15 @@ static int init_thread(void *arg, int32_t unused)
     uint64_t           measured_cycles = 0;     /* Cycles related to any of our tests */
     cag_option_context context         = {0};   /* libcargs context */
     int                argc            = 0;     /* Arguments count passed to main() */
-    char **            argv            = NULL;  /* Arguments array passed to main() */
+    char             **argv            = NULL;  /* Arguments array passed to main() */
     char               identifier      = 0;     /* libcargs identifier */
     bool               run_and_exit    = true;  /* Specify to terminate immediately */
     bool               got_command     = false; /* Have we got any command to execute? */
-    const char *       value           = NULL;  /* Points to an extrcated argumnet */
+    const char        *value           = NULL;  /* Points to an extrcated argumnet */
     int                test_index      = -1;    /* Local argumnet */
     bool               cgi_mode        = false; /* Local argumnet */
     bool               exit_fetch      = false; /* Exit the arguments fearch loop */
-    char *             test_desc       = NULL;  /* Test descriptive test */
+    char              *test_desc       = NULL;  /* Test descriptive test */
 
     HAL_UNUSED(arg);
     HAL_UNUSED(unused);
