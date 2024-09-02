@@ -24,8 +24,6 @@
 #include <test_defrag.h>
 #include <string.h>
 
-#define member_size(type, member) (sizeof(((type *) 0)->member))
-
 /* MCTP standard packet along with 64 bytes payload  */
 typedef struct mctp_packet_t
 {
@@ -94,7 +92,7 @@ test_defrag_session *p_defrag = NULL;
  * @param pairs_count The number of pairs in the array.
  */
 
-static void test_defragfrag_on_usb_tx(ptr_size_pair *pairs, size_t pairs_count)
+void test_defrag_on_usb_tx(ptr_size_pair *pairs, size_t pairs_count)
 {
     /* Collect all fragments into long USB frames, each containing multiple MCTP frames.
        These frames will serve as the inputs for the defragmentation test.
@@ -255,6 +253,7 @@ char *test_defrag_desc(size_t description_type)
 
 int test_defrag_init(uintptr_t arg)
 {
+    int ret;
 
     if ( p_defrag != NULL )
         return 1;
@@ -265,5 +264,7 @@ int test_defrag_init(uintptr_t arg)
         return 1;
 
     /* Init the 'frag' test with our 'USB TX hanlder' */
-    return test_frag_init((uintptr_t) test_defragfrag_on_usb_tx);
+    ret = test_frag_init((uintptr_t) test_defrag_on_usb_tx);
+
+    return ret;
 }

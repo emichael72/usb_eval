@@ -242,14 +242,13 @@ static void test_frag_on_usb_tx(ptr_size_pair *pairs, size_t pairs_count)
         hal_hexdump((void *) pairs[i].ptr, pairs[i].size, false, "\t");
         p_frag_test->usb_raw_payload += pairs[i].size;
     }
-
     printf("\n");
+
+#endif
 
     /* Jump to user TX handler when specified */
     if ( p_frag_test->usb_tx_cb != NULL )
         p_frag_test->usb_tx_cb(pairs, pairs_count);
-
-#endif
 }
 
 /**
@@ -302,19 +301,15 @@ int test_frag_prolog(uintptr_t arg)
         /* Drop the packet , it's too big */
         p_frag_test->ncsi_expected_frags_count = 0;
 #ifdef DEBUG
-        if ( p_frag_test->usb_tx_cb == NULL )
-            printf("\n\tError: NC-`SI packet size results in too many fragments.\n");
+        printf("\n\tError: NC-`SI packet size results in too many fragments.\n");
 #endif
         return 1;
     }
 
 #ifdef DEBUG
-    if ( p_frag_test->usb_tx_cb == NULL )
-    {
-        printf("\n\tNC-SI inbound packet size: %d\n", p_frag_test->ncsi_packet_size);
-        printf("\tNC-SI expected fragments of up-to %d bytes: %d\n", MCTP_MAX_FRAGMNET_SIZE, p_frag_test->ncsi_expected_frags_count);
-        printf("\tExpected transmision: %u bytes.\n\n", p_frag_test->expected_tx_size);
-    }
+    printf("\n\tNC-SI inbound packet size: %d\n", p_frag_test->ncsi_packet_size);
+    printf("\tNC-SI expected fragments of up-to %d bytes: %d\n", MCTP_MAX_FRAGMNET_SIZE, p_frag_test->ncsi_expected_frags_count);
+    printf("\tExpected transmision: %u bytes.\n\n", p_frag_test->expected_tx_size);
 #endif
 
     return 0; /* NC-SI packet reday for frgmantation */
@@ -360,8 +355,7 @@ void test_exec_frag(uintptr_t arg)
             p_frag_test->usb_tx_operation_bytes = 0;
 
 #ifdef DEBUG
-            if ( p_frag_test->usb_tx_cb == NULL )
-                printf("\n");
+            printf("\n");
             p_frag_test->usb_tx_total_operations++;
             p_frag_test->usb_tx_operation_pointers = 0;
 #endif
@@ -382,8 +376,7 @@ void test_exec_frag(uintptr_t arg)
 #ifdef DEBUG
         p_frag_test->usb_tx_total_pointers += 2;
         p_frag_test->usb_tx_operation_pointers += 2;
-        if ( p_frag_test->usb_tx_cb == NULL )
-            printf("\tUSB adding TX pointer: size: %-3u, pointers %-2u\n", p_frag_test->usb_tx_operation_bytes, p_frag_test->usb_tx_operation_pointers);
+        printf("\tUSB adding TX pointer: size: %-3u, pointers %-2u\n", p_frag_test->usb_tx_operation_bytes, p_frag_test->usb_tx_operation_pointers);
 #endif
 
         /* Move to the next fragment */
@@ -397,18 +390,14 @@ void test_exec_frag(uintptr_t arg)
         test_frag_on_usb_tx(p_frag_test->pairs, pairs_count);
 #ifdef DEBUG
         p_frag_test->usb_tx_total_operations++;
-        if ( p_frag_test->usb_tx_cb == NULL )
-            printf("\n");
+        printf("\n");
 #endif
     }
 
 #ifdef DEBUG
-    if ( p_frag_test->usb_tx_cb == NULL )
-    {
-        printf("\n\n\tUSB total pointers: %d\n", p_frag_test->usb_tx_total_pointers);
-        printf("\tUSB total TX operations: %d\n", p_frag_test->usb_tx_total_operations);
-        printf("\tUSB total TX bytes: %d\n\n", p_frag_test->usb_raw_payload);
-    }
+    printf("\n\n\tUSB total pointers: %d\n", p_frag_test->usb_tx_total_pointers);
+    printf("\tUSB total TX operations: %d\n", p_frag_test->usb_tx_total_operations);
+    printf("\tUSB total TX bytes: %d\n\n", p_frag_test->usb_raw_payload);
 #endif
 }
 
@@ -473,7 +462,8 @@ int test_frag_init(uintptr_t arg)
      */
 
     p_frag_test = hal_alloc(sizeof(frag_test));
-    assert(p_frag_test != NULL);
+    if ( p_frag_test == NULL )
+        return 1;
 
     /* Sets MCTP defaults */
     p_frag_test->version         = 1;
@@ -483,6 +473,7 @@ int test_frag_init(uintptr_t arg)
 
     if ( arg != 0 )
         p_frag_test->usb_tx_cb = (cb_on_usb_tx) arg;
+
     /* 
      * Allocate all MCTP fragments and attch them to the session head pointer.
      * For now, feel as many fealds as posiiable to reduice setup clocks 
@@ -493,7 +484,7 @@ int test_frag_init(uintptr_t arg)
 
         frag = hal_alloc(sizeof(mctp_frag));
         if ( frag == NULL )
-            return 1; /* Memory error */
+            return 1;
 
         /* Initialize MCTP header */
         frag->mctp_header.version         = p_frag_test->version;
