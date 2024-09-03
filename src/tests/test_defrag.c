@@ -1,4 +1,3 @@
-
 /**
   ******************************************************************************
   * @file    test_defrag_mctplib.c
@@ -26,6 +25,17 @@
 
 #define DEFRAG_PERFORM_SEQ_VALIDATION       (1)
 #define DEFRAG_PERFORM_FIRSTBYTE_VALIDATION (1)
+
+/* Macro to check if a pointer is 1 byte offset from the nearest 
+   4-byte aligned address (i.e., unaligned address) */
+#define DEFRAG_CHECK_OPTIMIZED_OFFSET(ptr)                                                                             \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        if ( ((uintptr_t) (ptr) &0x3) != 0x1 )                                                                         \
+        {                                                                                                              \
+            assert(! "Pointer is not 1 byte offset from the nearest aligned address. Please check the optimization."); \
+        }                                                                                                              \
+    } while ( 0 )
 
 /* MCTP standard packet along with 64 bytes payload  */
 typedef struct mctp_packet_t
@@ -65,14 +75,14 @@ typedef struct _usb_packet_t
  */
 typedef struct test_defrag_session_t
 {
-    uint8_t *        p_ncsi_start;  /**< Pointer to the start of the NC-SI message buffer. */
-    usb_packet *     p_usb_packets; /**< Head pointer to the linked list of USB packet fragments. */
-    char *           error;
+    uint8_t *        p_ncsi_start;      /**< Pointer to the start of the NC-SI message buffer. */
+    usb_packet *     p_usb_packets;     /**< Head pointer to the linked list of USB packet fragments. */
+    char *           error;             /**< Simple method to set error message from within the tested function */
     uint8_t          usb_packets_count; /**< Number of USB packet fragments received. */
     uint16_t         ncsi_packet_size;  /**< Expected size of the complete NC-SI packet in bytes. */
     uint16_t         rx_raw_size;       /**< Total size of the received raw data after defragmentation. */
     uint16_t         usb_raw_size;      /**< Total size of the raw data received from USB packets. */
-    uint16_t         usb_offset;        /**<  Offset to track position in the buffer */
+    uint16_t         usb_offset;        /**< Offset to track position in the buffer */
     ncsi_eth_packet *p_ncsi_packet;     /**< Pointer to the current NC-SI Ethernet packet. */
     ncsi_eth_packet  ncsi_packet;       /**< Buffer to store the assembled NC-SI Ethernet packet. */
 
@@ -95,9 +105,10 @@ test_defrag_session *p_defrag = NULL;
 
 void test_defrag_on_usb_tx(ptr_size_pair *pairs, size_t pairs_count)
 {
-    /* Collect all fragments into long USB frames, each containing multiple MCTP frames.
-       These frames will serve as the inputs for the defragmentation test.
-    */
+    /* Collect all fragments into long USB frames, each containing multiple 
+     * MCTP frames. These frames will serve as the inputs for the 
+     * fragmentation test.*/
+
     usb_packet *packet;
     size_t      total_size = 0;
     size_t      offset     = 0;
@@ -112,7 +123,7 @@ void test_defrag_on_usb_tx(ptr_size_pair *pairs, size_t pairs_count)
     /* Get the total size of all the data included with the pairs */
     for ( int i = 0; i < pairs_count; i++ ) total_size += pairs[i].size;
 
-    p_defrag->usb_raw_size += total_size; /*  Get the total sizer ofd all chunks */
+    p_defrag->usb_raw_size += total_size; /* Get the total size of all chunks */
 
     packet->data = hal_alloc(total_size);
     assert(packet->data != NULL);
@@ -157,10 +168,33 @@ int test_defrag_prolog(uintptr_t arg)
     p_defrag->usb_offset        = 0;
     p_defrag->error             = NULL;
     p_defrag->p_ncsi_packet     = &p_defrag->ncsi_packet;
-    p_defrag->p_ncsi_start      = (uint8_t *) (&(p_defrag->p_ncsi_packet->extra_byte[1]));
 
-    /* Make use of the 'frag' test ability to create MCTP fragments */
-    /* Call the 'frag' test prolog */
+    /* Optimization:
+     * 
+     * The following line is designed to optimize memory access for large NC-SI packets by 
+     * utilizing Xtensa's ability to efficiently copy 16 bytes at a time, provided the 
+     * source, destination, and length are aligned. */
+
+    p_defrag->p_ncsi_start = (uint8_t *) (&(p_defrag->p_ncsi_packet->extra_byte[1]));
+    DEFRAG_CHECK_OPTIMIZED_OFFSET(p_defrag->p_ncsi_start);
+
+    /* How it works:
+     * 
+     * 1. We prepend a 32-bit `extra_byte` to the NC-SI packet, then set the start pointer 
+     *    to an unaligned offset of 1 byte ahead, at `0x0001`.
+     * 
+     * 2. The first read of 63 bytes starts at an unaligned address (`0x0001`), incurring 
+     *    a small performance penalty.
+     * 
+     * 3. After reading the initial 63 bytes, the next packet begins at an aligned 
+     *    offset of 64 bytes, allowing the processor to use optimized 16-byte memory copy 
+     *    instructions for the rest of the data.
+     * 
+     * 4. This approach ensures that, after the initial small penalty, all subsequent memory 
+     *    operations are aligned, resulting in significantly faster processing and fewer cycles.
+     */
+
+    /* Use the 'frag' test ability to create MCTP fragments */
     if ( test_frag_prolog(0) != 0 )
         return 1;
 
@@ -217,7 +251,8 @@ int test_defrag_epilog(uintptr_t arg)
  * It validates the MCTP sequence numbers and assembles the MCTP payloads into
  * a contiguous buffer. The first packet is treated specially, where a byte '3'
  * is skipped after the MCTP header.
- *
+ *  
+ * 
  * @param arg Unused parameter, provided for compatibility with the calling
  *            convention.
  */
