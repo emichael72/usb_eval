@@ -18,7 +18,7 @@
 
 #include <hal.h>
 #include <hal_llist.h>
-#include <ncsi_packet.h>
+#include <ncsi.h>
 #include <test_frag,h>
 #include <test_defrag.h>
 #include <string.h>
@@ -77,14 +77,14 @@ typedef struct test_defrag_session_t
 {
     uint8_t *        p_ncsi_start;      /**< Pointer to the start of the NC-SI message buffer. */
     usb_packet *     p_usb_packets;     /**< Head pointer to the linked list of USB packet fragments. */
+    ncsi_eth_packet *p_ncsi_packet;     /**< Pointer to the current NC-SI Ethernet packet. */
     char *           error;             /**< Simple method to set error message from within the tested function */
-    uint8_t          usb_packets_count; /**< Number of USB packet fragments received. */
-    uint16_t         ncsi_packet_size;  /**< Expected size of the complete NC-SI packet in bytes. */
+    size_t           ncsi_packet_size;  /**< Size of the complete NC-SI packet in bytes. */
+    size_t           req_packet_size;   /**< Externaly set NC-SI packet size. */
+    uint16_t         usb_packets_count; /**< Number of USB packet fragments received. */
     uint16_t         rx_raw_size;       /**< Total size of the received raw data after defragmentation. */
     uint16_t         usb_raw_size;      /**< Total size of the raw data received from USB packets. */
     uint16_t         usb_offset;        /**< Offset to track position in the buffer */
-    ncsi_eth_packet *p_ncsi_packet;     /**< Pointer to the current NC-SI Ethernet packet. */
-    ncsi_eth_packet  ncsi_packet;       /**< Buffer to store the assembled NC-SI Ethernet packet. */
 
 } test_defrag_session;
 
@@ -133,7 +133,7 @@ void test_defrag_on_usb_tx(ptr_size_pair *pairs, size_t pairs_count)
     /* Append each pairs->ptr to packet->data */
     for ( int i = 0; i < pairs_count; i++ )
     {
-        memcpy(packet->data + offset, (void *) pairs[i].ptr, pairs[i].size);
+        memcpy((uint8_t *) packet->data + offset, (void *) pairs[i].ptr, pairs[i].size);
         offset += pairs[i].size;
     }
 
@@ -167,7 +167,18 @@ int test_defrag_prolog(uintptr_t arg)
     p_defrag->usb_raw_size      = 0;
     p_defrag->usb_offset        = 0;
     p_defrag->error             = NULL;
-    p_defrag->p_ncsi_packet     = &p_defrag->ncsi_packet;
+    p_defrag->ncsi_packet_size  = (size_t) arg;
+
+    if ( p_defrag->ncsi_packet_size == 0 )
+        p_defrag->ncsi_packet_size = p_defrag->req_packet_size;
+
+    if ( p_defrag->ncsi_packet_size <= NCSI_HEADERS_SIZE || p_defrag->ncsi_packet_size > NCSI_PACKET_MAX_SIZE )
+        return 1;
+
+    /* Allocate buffer for the assembled packet */
+    p_defrag->p_ncsi_packet = (ncsi_eth_packet *) hal_alloc(p_defrag->ncsi_packet_size);
+    if ( p_defrag->p_ncsi_packet == NULL )
+        return 1;
 
     /* Optimization:
      * 
@@ -195,7 +206,7 @@ int test_defrag_prolog(uintptr_t arg)
      */
 
     /* Use the 'frag' test ability to create MCTP fragments */
-    if ( test_frag_prolog(0) != 0 )
+    if ( test_frag_prolog((uintptr_t) p_defrag->ncsi_packet_size) != 0 )
         return 1;
 
     test_exec_frag(0); /* Trigger MCTP fragments generation */
@@ -206,8 +217,8 @@ int test_defrag_prolog(uintptr_t arg)
     if ( p_defrag->usb_packets_count == 0 )
         return 1; /* No data */
 
-    p_defrag->ncsi_packet_size = sizeof(ncsi_eth_packet) - 3;
-    p_defrag->rx_raw_size      = 0;
+    p_defrag->ncsi_packet_size -= 3;
+    p_defrag->rx_raw_size = 0;
 
     printf("Input: %d USB buffers, total %d bytes.\n", p_defrag->usb_packets_count, p_defrag->usb_raw_size);
 
@@ -232,13 +243,14 @@ int test_defrag_epilog(uintptr_t arg)
     /* Final size validation */
     if ( p_defrag->usb_offset != p_defrag->ncsi_packet_size )
     {
-        printf("Error: The assembled packet size does not match the expected size.\n");
+        printf("Error: The assembled packet size (%d) does not match the expected size (%d).\n", p_defrag->usb_offset, p_defrag->ncsi_packet_size);
         if ( p_defrag->error )
             printf("%s", p_defrag->error);
     }
     else
     {
-        printf("Success: Assembled packet passed all tests.\n");
+        printf("Success: Assembled packet (%d total, %d payload) passed all tests.\n", p_defrag->ncsi_packet_size,
+               NCSI_GET_PAYLOAD_CLEAN(p_defrag->ncsi_packet_size));
     }
 
     return 0;
@@ -390,6 +402,8 @@ int test_defrag_init(uintptr_t arg)
     p_defrag = hal_alloc(sizeof(test_defrag_session));
     if ( p_defrag == NULL )
         return 1;
+
+    p_defrag->req_packet_size = NCSI_PACKET_MAX_SIZE;
 
     /* Init the 'frag' test with our 'USB TX handler' */
     ret = test_frag_init((uintptr_t) test_defrag_on_usb_tx);

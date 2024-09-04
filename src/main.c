@@ -19,6 +19,7 @@
   */
 
 #include <hal.h>
+#include <ncsi.h>
 #include <test_launcher.h>
 #include <tests.h>
 #include <stdio.h>
@@ -30,6 +31,7 @@
 static struct cag_option options[] =
 {
     {.identifier = 't', .access_letters = "t",  .access_name = "test",  .value_name = "VALUE",  .description = "Execute a cycle test."},
+    {.identifier = 'p', .access_letters = "p",  .access_name = "packet",.value_name = "VALUE",  .description = "Set pcket size in bytes."},
     {.identifier = 'v', .access_letters = "v",  .access_name = "ver",   .value_name = NULL,     .description = "Print the version and exit."},
     {.identifier = 'c', .access_letters = "c",  .access_name = "cgi",   .value_name = NULL,     .description = "Enable web CGI mode."},
     {.identifier = 'h', .access_letters = "h?", .access_name = "help",  .value_name = NULL,     .description = "Print usage."},
@@ -39,15 +41,15 @@ static struct cag_option options[] =
 /* clang-format off */ 
 static test_launcher_item_info tests_info[] = {
 
-    /* Init                    Prolog                           Test function           Epilogue        Description     Args               Repetitions */
-    /* ------------------------------------------------------------------------------------------------------------------------------------------ */
-    { NULL,                         NULL,                       hal_useless_function,       NULL, test_useless_desc,            0,     0,  0,  0,  1    },
-    { NULL,                         NULL,                       test_exec_memcpy,           NULL, test_memcpy_desc_xtensa,      0,     0,  0,  0,  1    },
-    { NULL,                         NULL,                       test_exec_memcpy,           NULL, test_memcpy_desc_hal,         0,     0,  1,  0,  1    },
-    { NULL,                         test_msgq_prolog,           test_exec_msgq,             NULL, test_msgq_desc,               0,     0,  0,  0,  1    },
-    { test_defrag_init,             test_defrag_prolog,         test_exec_defrag,           test_defrag_epilog, test_defrag_desc,             0,     0,  0,  0,  1    },
-    { test_defrag_mctplib_init,     test_defrag_mctplib_prolog, test_exec_defrag_mctplib,   NULL, test_defrag_mctplib_desc,     0,     0,  0,  0,  1    },
-    { test_frag_init,               test_frag_prolog,           test_exec_frag,             NULL, test_frag_desc,               0,     0,  0,  0,  1    }
+    /*   Init                       Prolog                      Test function               Epilogue            Description                 Args            Repetitions */
+    /* ---------------------------------------------------------------------------------------------------------------------------------------------------------------- */
+/* 0 */ { NULL,                     NULL,                       hal_useless_function,       NULL,               test_useless_desc,          0,     0,       0,  0,  1    },
+/* 1 */ { NULL,                     NULL,                       test_exec_memcpy,           NULL,               test_memcpy_desc_xtensa,    0,     0,       0,  0,  1    },
+/* 2 */ { NULL,                     NULL,                       test_exec_memcpy,           NULL,               test_memcpy_desc_hal,       0,     0,       1,  0,  1    },
+/* 3 */ { NULL,                     test_msgq_prolog,           test_exec_msgq,             NULL,               test_msgq_desc,             0,     0,       0,  0,  1    },
+/* 4 */ { test_defrag_init,         test_defrag_prolog,         test_exec_defrag,           test_defrag_epilog, test_defrag_desc,           0,     1500,    0,  0,  1    },
+/* 5 */ { test_defrag_mctplib_init, test_defrag_mctplib_prolog, test_exec_defrag_mctplib,   NULL,               test_defrag_mctplib_desc,   0,     0,       0,  0,  1    },
+/* 6 */ { test_frag_init,           test_frag_prolog,           test_exec_frag,             NULL,               test_frag_desc,             0,     1500,    0,  0,  1    }
 
 };
 /* clang-format on */
@@ -116,6 +118,7 @@ static int init_thread(void *arg, int32_t unused)
     bool               got_command     = false; /* Have we got any command to execute? */
     const char *       value           = NULL;  /* Points to an extrcated argumnet */
     int                test_index      = -1;    /* Local argumnet */
+    int                packet_size     = -1;    /* External forced packet size */
     bool               cgi_mode        = false; /* Local argumnet */
     bool               exit_fetch      = false; /* Exit the arguments fearch loop */
     char *             test_desc       = NULL;  /* Test descriptive test */
@@ -155,6 +158,22 @@ static int init_thread(void *arg, int32_t unused)
                         if ( isdigit(*value) )
                             test_index = atol(value);
                         got_command = true;
+                    }
+                    break;
+
+                case 'p': /* Sets NC-SI packet size for frag / defga tests */
+                    value = cag_option_get_value(&context);
+                    if ( value != NULL )
+                    {
+                        if ( isdigit(*value) )
+                        {
+                            packet_size = atol(value);
+
+                            /* Patch the test table with the forced values, 
+                             * compensating for the addition of the 32-bit extra bytes */
+                            tests_info[4].prolog_arg = packet_size + (NCSI_INTEL_PRE_BYTE - 1);
+                            tests_info[6].prolog_arg = packet_size + (NCSI_INTEL_PRE_BYTE - 1);
+                        }
                     }
                     break;
 

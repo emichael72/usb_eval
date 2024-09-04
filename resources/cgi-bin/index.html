@@ -72,6 +72,9 @@
         <div class="form-group" style="font-size: 14px;">
             <label for="test-number">Enter test number:</label>
             <input type="text" id="test-number" name="test-number" value="?" style="width: 25px;" placeholder="Enter test number" pattern="[0-9?]*" title="Only decimals and '?' are allowed">
+            
+            <label for="packet-size" style="margin-left: 20px;">Packet size:</label>
+            <input type="number" id="packet-size" name="packet-size" value="1500" style="width: 60px;" min="1">
         </div>
         <div class="form-group" style="font-size: 14px;">
             <label>
@@ -111,13 +114,14 @@
             runForm.addEventListener('submit', function(event) {
                 event.preventDefault();
                 const testNumber = document.getElementById('test-number').value;
+                const packetSize = document.getElementById('packet-size').value;
                 const includeSummary = document.getElementById('include-summary').checked ? 'yes' : 'no';
                 const debug = document.getElementById('debug').checked ? 'yes' : 'no';
 
                 // Show "Running..." message in the terminal box
                 outputElement.innerHTML = '<span style="color: yellow;">Running...</span>';
 
-                fetch(`/cgi-bin/runemu.cgi?arg=-c-t=${encodeURIComponent(testNumber)}&summary=${includeSummary}&debug=${debug}`)
+                fetch(`/cgi-bin/runemu.cgi?arg=-c-t=${encodeURIComponent(testNumber)} -p=${encodeURIComponent(packetSize)}&summary=${includeSummary}&debug=${debug}`)
                     .then(response => {
                         const reader = response.body.getReader();
                         const decoder = new TextDecoder();

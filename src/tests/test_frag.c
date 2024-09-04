@@ -21,7 +21,7 @@
 
 #include <hal.h>
 #include <hal_llist.h>
-#include <ncsi_packet.h>
+#include <ncsi.h>
 #include <test_frag,h>
 #include <stdint.h>
 
@@ -42,7 +42,7 @@
 #define MCTP_MAX_FRAGMENTS 25
 
 /* MCTP standard header */
-typedef struct mctp_packet_t
+typedef struct __attribute__((packed)) mctp_packet_t
 {
     uint8_t version;              /* MCTP version */
     uint8_t destination_eid;      /* Destination Endpoint ID */
@@ -87,17 +87,18 @@ typedef struct frag_test_t
     ncsi_eth_packet *p_ncsi_packet;             /**< Pointer to the current NC-SI Ethernet packet. */
     mctp_frag *      p_mctp_head;               /**< Head of the MCTP fragments list. */
     uint8_t *        p_ncsi_start;              /**< Pointer to the start of the NC-SI message. */
-    ptr_size_pair    pairs[USB_MAX_POINTERS];   /**< Array of pointers for USB operations. */
     cb_on_usb_tx     usb_tx_cb;                 /**< User defined - TX callkback */
-    uint16_t         ncsi_packet_size;          /**< Size of the NC-SI packet in bytes. */
+    ptr_size_pair    pairs[USB_MAX_POINTERS];   /**< Array of pointers for USB operations. */
+    size_t           ncsi_packet_size;          /**< Size of the NC-SI packet in bytes. */
+    size_t           req_packet_size;           /**< Externaly set NC-SI packet size. */
     uint8_t          version;                   /**< MCTP header version. */
     uint8_t          destination_eid;           /**< MCTP destination EID. */
     uint8_t          source_eid;                /**< MCTP source EID. */
     uint8_t          ncsi_expected_frags_count; /**< Number of MCTP fragments for the NC-SI packet. */
-    uint16_t         expected_tx_size;          /**< Total size in bytes for transmission. */
     uint8_t          usb_tx_total_pointers;     /**< Total pointers used in all USB transmissions. */
     uint8_t          usb_tx_total_operations;   /**< Total USB transmission operations. */
-    uint8_t          usb_tx_operation_pointers; /**< Pointers used in the current USB operation. */
+    uint16_t         usb_tx_operation_pointers; /**< Pointers used in the current USB operation. */
+    uint16_t         expected_tx_size;          /**< Total size in bytes for transmission. */
     uint16_t         usb_tx_operation_bytes;    /**< Bytes transmitted in the current USB operation. */
     uint16_t         usb_raw_payload;           /**< Total raw payload size in bytes, excluding MCTP headers. */
 
@@ -267,6 +268,11 @@ int test_frag_prolog(uintptr_t arg)
     if ( p_frag_test == NULL )
         return 1; /* Module not initalized */
 
+    if ( arg != 0 )
+        p_frag_test->ncsi_packet_size = (size_t) arg;
+    else
+        p_frag_test->ncsi_packet_size = p_frag_test->req_packet_size;
+
     p_frag_test->p_ncsi_packet = ncsi_request_packet(&p_frag_test->ncsi_packet_size);
     if ( p_frag_test->p_ncsi_packet == NULL || p_frag_test->ncsi_packet_size == 0 )
         return 1;
@@ -339,7 +345,7 @@ void test_exec_frag(uintptr_t arg)
     test_frag_adjust_pointers();
 
     /* Iterate over the fragments and send them in batches */
-    while ( frag != NULL )
+    while ( frag != NULL && frag->payload_size > 0 )
     {
         size_t current_pair_size = header_size + frag->payload_size;
 
@@ -470,6 +476,7 @@ int test_frag_init(uintptr_t arg)
     p_frag_test->destination_eid = 0x10;
     p_frag_test->source_eid      = 0x20;
     p_frag_test->p_mctp_head     = NULL;
+    p_frag_test->req_packet_size = NCSI_PACKET_MAX_SIZE;
 
     if ( arg != 0 )
         p_frag_test->usb_tx_cb = (cb_on_usb_tx) arg;
