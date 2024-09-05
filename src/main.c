@@ -105,7 +105,7 @@ void exec_multi_size(size_t test_index, size_t min, size_t max)
     printf("// Packet size %d:%d\n", min, max);
     printf("let cyclesArray = [\n");
 
-    for ( i = min; i < max; i++ )
+    for ( i = 1302; i < max; i++ )
     {
         tests_info[4].prologue_arg = i + (NCSI_INTEL_PRE_BYTE - 1);
         tests_info[6].prologue_arg = i + (NCSI_INTEL_PRE_BYTE - 1);
