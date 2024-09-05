@@ -26,7 +26,7 @@
 #ifndef _TEST_ALL_H_
 #define _TEST_ALL_H_
 
-#define TEST_CONTINUOUS_MODE 1
+#define TEST_CONTINUOUS_MODE 0
 
 /**
  * @brief Measures the number of cycles spent on memory copying operations.
