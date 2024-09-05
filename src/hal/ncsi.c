@@ -23,9 +23,6 @@
 #include <string.h>
 #include <ncsi.h>
 
-/* Global instance of the NC-SI Ethernet packet */
-static ncsi_eth_packet *p_ncsi = NULL;
-
 /**
  * @brief Converts a 16-bit value from host byte order to network byte order.
  * @param hostshort The 16-bit value in host byte order.
@@ -49,18 +46,19 @@ static uint16_t ncsi_htons(uint16_t hostshort)
 
 ncsi_eth_packet *ncsi_request_packet(size_t *packet_size)
 {
-    int payload_size = 0;
-    int total_size   = 0;
+    int              payload_size = 0;
+    int              total_size   = 0;
+    ncsi_eth_packet *p_ncsi       = NULL; /* Instance of the NC-SI Ethernet packet */
 
     /* Test only, allocation once */
-    if ( p_ncsi != NULL || packet_size == NULL || *packet_size <= NCSI_HEADERS_SIZE || *packet_size > NCSI_PACKET_MAX_SIZE )
+    if ( packet_size == NULL || *packet_size <= NCSI_HEADERS_SIZE || *packet_size > NCSI_PACKET_MAX_SIZE )
         return NULL;
 
     payload_size = NCSI_GET_PAYLOAD_SIZE(*packet_size);
     total_size   = *packet_size;
     *packet_size = 0;
 
-    p_ncsi = (ncsi_eth_packet *) hal_alloc(total_size);
+    p_ncsi = (ncsi_eth_packet *) malloc(total_size + 8);
     if ( p_ncsi == NULL )
         return NULL;
 
@@ -104,10 +102,6 @@ void ncsi_release_packet(ncsi_eth_packet *pkt)
 {
     if ( pkt != NULL )
     {
-        /* Placeholder: no action needed since we're using a statically installed packet 
-         * rather than dynamically generating it.
-         */
-
-        hal_zero_buf(pkt, sizeof(ncsi_eth_packet));
+        free(pkt);
     }
 }

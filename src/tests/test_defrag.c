@@ -21,6 +21,7 @@
 #include <ncsi.h>
 #include <test_frag,h>
 #include <test_defrag.h>
+#include <tests.h>
 #include <string.h>
 
 #define DEFRAG_PERFORM_SEQ_VALIDATION       (1)
@@ -73,6 +74,7 @@ typedef struct _usb_packet_t
  * packets, and relevant size and count metrics for effective processing and
  * validation.
  */
+
 typedef struct test_defrag_session_t
 {
     uint8_t *        p_ncsi_start;      /**< Pointer to the start of the NC-SI message buffer. */
@@ -89,7 +91,7 @@ typedef struct test_defrag_session_t
 } test_defrag_session;
 
 /* Pointer to the module's session instance */
-test_defrag_session *p_defrag = NULL;
+test_defrag_session *p_defrag_test = NULL;
 
 /**
  * @brief Dummy function to simulate USB transmission of pointer-size pairs.
@@ -116,16 +118,17 @@ void test_defrag_on_usb_tx(ptr_size_pair *pairs, size_t pairs_count)
     if ( pairs == NULL || pairs_count == 0 )
         assert(0);
 
-    /* Create 'USB' list item */
-    packet = hal_alloc(sizeof(usb_packet));
+    /* Create 'USB' list item, ToDo: switch to message q*/
+    packet = (usb_packet *) malloc(sizeof(usb_packet));
     assert(packet != NULL);
 
     /* Get the total size of all the data included with the pairs */
     for ( int i = 0; i < pairs_count; i++ ) total_size += pairs[i].size;
 
-    p_defrag->usb_raw_size += total_size; /* Get the total size of all chunks */
+    p_defrag_test->usb_raw_size += total_size; /* Get the total size of all chunks */
 
-    packet->data = hal_alloc(total_size);
+    /* ToDo : Switch to fixed size message Q */
+    packet->data = malloc(total_size);
     assert(packet->data != NULL);
 
     packet->size = total_size;
@@ -138,91 +141,7 @@ void test_defrag_on_usb_tx(ptr_size_pair *pairs, size_t pairs_count)
     }
 
     /* Attach the aggregated packet to the packets list */
-    LL_APPEND(p_defrag->p_usb_packets, packet);
-}
-
-/**
- * @brief Prepares the defragmentation module and generates MCTP fragments.
- *
- * This function initializes the defragmentation module, invokes the fragment
- * generation process, and counts the received frames. It also prepares the
- * necessary structures for defragmentation and ensures the module is ready
- * for further processing.
- *
- * @param arg Unused parameter, provided for compatibility with the calling
- *            convention.
- *
- * @return 0 if the module is ready, 1 if initialization failed or no data was
- *         received.
- */
-
-int test_defrag_prolog(uintptr_t arg)
-{
-    usb_packet *packet;
-
-    if ( p_defrag == NULL )
-        return 1; /* Module not initialized */
-
-    p_defrag->usb_packets_count = 0;
-    p_defrag->usb_raw_size      = 0;
-    p_defrag->usb_offset        = 0;
-    p_defrag->error             = NULL;
-    p_defrag->ncsi_packet_size  = (size_t) arg;
-
-    if ( p_defrag->ncsi_packet_size == 0 )
-        p_defrag->ncsi_packet_size = p_defrag->req_packet_size;
-
-    if ( p_defrag->ncsi_packet_size <= NCSI_HEADERS_SIZE || p_defrag->ncsi_packet_size > NCSI_PACKET_MAX_SIZE )
-        return 1;
-
-    /* Allocate buffer for the assembled packet */
-    p_defrag->p_ncsi_packet = (ncsi_eth_packet *) hal_alloc(p_defrag->ncsi_packet_size);
-    if ( p_defrag->p_ncsi_packet == NULL )
-        return 1;
-
-    /* Optimization:
-     * 
-     * The following line is designed to optimize memory access for large NC-SI packets by 
-     * utilizing Xtensa's ability to efficiently copy 16 bytes at a time, provided the 
-     * source, destination, and length are aligned. */
-
-    p_defrag->p_ncsi_start = (uint8_t *) (&(p_defrag->p_ncsi_packet->extra_byte[1]));
-    DEFRAG_CHECK_OPTIMIZED_OFFSET(p_defrag->p_ncsi_start);
-
-    /* How it works:
-     * 
-     * 1. We prepend a 32-bit `extra_byte` to the NC-SI packet, then set the start pointer 
-     *    to an unaligned offset of 1 byte ahead, at `0x0001`.
-     * 
-     * 2. The first read of 63 bytes starts at an unaligned address (`0x0001`), incurring 
-     *    a small performance penalty.
-     * 
-     * 3. After reading the initial 63 bytes, the next packet begins at an aligned 
-     *    offset of 64 bytes, allowing the processor to use optimized 16-byte memory copy 
-     *    instructions for the rest of the data.
-     * 
-     * 4. This approach ensures that, after the initial small penalty, all subsequent memory 
-     *    operations are aligned, resulting in significantly faster processing and fewer cycles.
-     */
-
-    /* Use the 'frag' test ability to create MCTP fragments */
-    if ( test_frag_prolog((uintptr_t) p_defrag->ncsi_packet_size) != 0 )
-        return 1;
-
-    test_exec_frag(0); /* Trigger MCTP fragments generation */
-
-    /* Count received frames */
-    LL_COUNT(p_defrag->p_usb_packets, packet, p_defrag->usb_packets_count);
-
-    if ( p_defrag->usb_packets_count == 0 )
-        return 1; /* No data */
-
-    p_defrag->ncsi_packet_size -= 3;
-    p_defrag->rx_raw_size = 0;
-
-    printf("Input: %d USB buffers, total %d bytes.\n", p_defrag->usb_packets_count, p_defrag->usb_raw_size);
-
-    return 0; /* Ready! */
+    LL_APPEND(p_defrag_test->p_usb_packets, packet);
 }
 
 /**
@@ -240,20 +159,54 @@ int test_defrag_prolog(uintptr_t arg)
 
 int test_defrag_epilog(uintptr_t arg)
 {
-    /* Final size validation */
-    if ( p_defrag->usb_offset != p_defrag->ncsi_packet_size )
+    usb_packet *packet, *tmp;
+
+/* Final size validation */
+#if ( TEST_CONTINUOUS_MODE == 0 )
+    if ( p_defrag_test->usb_offset != p_defrag_test->ncsi_packet_size )
     {
-        printf("Error: The assembled packet size (%d) does not match the expected size (%d).\n", p_defrag->usb_offset, p_defrag->ncsi_packet_size);
-        if ( p_defrag->error )
-            printf("%s", p_defrag->error);
+        printf("Error: The assembled packet size (%d) does not match the expected size (%d).\n", p_defrag_test->usb_offset, p_defrag_test->ncsi_packet_size);
+        if ( p_defrag_test->error )
+            printf("%s", p_defrag_test->error);
     }
     else
     {
-        printf("Success: Assembled packet (%d total, %d payload) passed all tests.\n", p_defrag->ncsi_packet_size,
-               NCSI_GET_PAYLOAD_CLEAN(p_defrag->ncsi_packet_size));
+        printf("Success: Assembled packet (%d total, %d payload) passed all tests.\n", p_defrag_test->ncsi_packet_size,
+               NCSI_GET_PAYLOAD_CLEAN(p_defrag_test->ncsi_packet_size));
+    }
+#endif
+    /* Reset state and pointers for being able to measure continuously*/
+    if ( p_defrag_test->p_ncsi_packet != NULL )
+        free(p_defrag_test->p_ncsi_packet);
+
+    /* Free USB buffers - temporary solution for POC only. */
+    LL_FOREACH_SAFE(p_defrag_test->p_usb_packets, packet, tmp)
+    {
+        if ( packet != NULL )
+        {
+            if ( packet->data != NULL )
+                free(packet->data);
+
+            /* List detach */
+            LL_DELETE(p_defrag_test->p_usb_packets, packet);
+
+            free(packet);
+        }
     }
 
-    return 0;
+    p_defrag_test->req_packet_size   = NCSI_PACKET_MAX_SIZE;
+    p_defrag_test->p_usb_packets     = NULL;
+    p_defrag_test->p_ncsi_start      = NULL;
+    p_defrag_test->usb_packets_count = 0;
+    p_defrag_test->usb_raw_size      = 0;
+    p_defrag_test->usb_offset        = 0;
+    p_defrag_test->error             = NULL;
+    p_defrag_test->ncsi_packet_size  = 0;
+
+    /* Call the 'frga' epilog since we've been using it in ther background to
+       generate all the fragments */
+
+    return test_frag_epilog(0);
 }
 
 /**
@@ -271,8 +224,8 @@ int test_defrag_epilog(uintptr_t arg)
 
 void test_exec_defrag(uintptr_t arg)
 {
-    usb_packet *packet          = p_defrag->p_usb_packets; /* Point to head */
-    uint8_t *   ncsi_packet_ptr = p_defrag->p_ncsi_start;
+    usb_packet *packet          = p_defrag_test->p_usb_packets; /* Point to head */
+    uint8_t *   ncsi_packet_ptr = p_defrag_test->p_ncsi_start;
 
 #if ( DEFRAG_PERFORM_SEQ_VALIDATION > 0 )
     uint8_t expected_sequence = 0; /* Expected MCTP sequence number */
@@ -294,29 +247,29 @@ void test_exec_defrag(uintptr_t arg)
 #if ( DEFRAG_PERFORM_SEQ_VALIDATION > 0 )
             if ( mctp->packet_sequence != expected_sequence )
             {
-                p_defrag->error = "Error: packet dropped, sequence number mismatch.\n";
+                p_defrag_test->error = "Error: packet dropped, sequence number mismatch.\n";
                 return;
             }
 #endif
 
             /* Handle the first packet differently */
-            if ( packet == p_defrag->p_usb_packets && packet_offset == 0 )
+            if ( packet == p_defrag_test->p_usb_packets && packet_offset == 0 )
             {
 #if ( DEFRAG_PERFORM_FIRSTBYTE_VALIDATION > 0 )
                 /* Validate and skip the first byte after the MCTP header */
                 if ( mctp->payload[0] != 3 )
                 {
-                    p_defrag->error = "Error: first byte after the MCTP header must be 3.\n";
+                    p_defrag_test->error = "Error: first byte after the MCTP header must be 3.\n";
                     return;
                 }
 #endif
 
                 /* Calculate and copy the first packet's payload */
                 payload_size = (mctp->end_of_message) ? (remaining_size - header_size) : 63;
-                memcpy(ncsi_packet_ptr + p_defrag->usb_offset, mctp->payload, payload_size);
+                memcpy(ncsi_packet_ptr + p_defrag_test->usb_offset, mctp->payload, payload_size);
 
                 /* Update offsets */
-                p_defrag->usb_offset += payload_size;
+                p_defrag_test->usb_offset += payload_size;
                 packet_offset += header_size + 63; /* 4 bytes header + 63 bytes payload */
                 remaining_size -= header_size + 63;
             }
@@ -326,10 +279,10 @@ void test_exec_defrag(uintptr_t arg)
                 payload_size = (mctp->end_of_message) ? (remaining_size - header_size) : 64;
 
                 /* Copy the payload directly */
-                memcpy(ncsi_packet_ptr + p_defrag->usb_offset, mctp->payload, payload_size);
+                memcpy(ncsi_packet_ptr + p_defrag_test->usb_offset, mctp->payload, payload_size);
 
                 /* Update offsets */
-                p_defrag->usb_offset += payload_size;
+                p_defrag_test->usb_offset += payload_size;
                 packet_offset += header_size + payload_size;
                 remaining_size -= header_size + payload_size;
             }
@@ -343,6 +296,91 @@ void test_exec_defrag(uintptr_t arg)
         /* Move to the next packet only after the current one is fully processed */
         packet = packet->next;
     }
+}
+
+/**
+ * @brief Prepares the defragmentation module and generates MCTP fragments.
+ *
+ * This function initializes the defragmentation module, invokes the fragment
+ * generation process, and counts the received frames. It also prepares the
+ * necessary structures for defragmentation and ensures the module is ready
+ * for further processing.
+ *
+ * @param arg Unused parameter, provided for compatibility with the calling
+ *            convention.
+ *
+ * @return 0 if the module is ready, 1 if initialization failed or no data was
+ *         received.
+ */
+
+int test_defrag_prologue(uintptr_t arg)
+{
+    usb_packet *packet;
+
+    if ( p_defrag_test == NULL )
+        return 1; /* Module not initialized */
+
+    p_defrag_test->usb_packets_count = 0;
+    p_defrag_test->usb_raw_size      = 0;
+    p_defrag_test->usb_offset        = 0;
+    p_defrag_test->error             = NULL;
+    p_defrag_test->ncsi_packet_size  = (size_t) arg;
+
+    if ( p_defrag_test->ncsi_packet_size == 0 )
+        p_defrag_test->ncsi_packet_size = p_defrag_test->req_packet_size;
+
+    if ( p_defrag_test->ncsi_packet_size <= NCSI_HEADERS_SIZE || p_defrag_test->ncsi_packet_size > NCSI_PACKET_MAX_SIZE )
+        return 1;
+
+    /* Allocate buffer for the assembled packet */
+    p_defrag_test->p_ncsi_packet = (ncsi_eth_packet *) malloc(p_defrag_test->ncsi_packet_size);
+    if ( p_defrag_test->p_ncsi_packet == NULL )
+        return 1;
+
+    /* Optimization:
+     * 
+     * The following line is designed to optimize memory access for large NC-SI packets by 
+     * utilizing Xtensa's ability to efficiently copy 16 bytes at a time, provided the 
+     * source, destination, and length are aligned. */
+
+    p_defrag_test->p_ncsi_start = (uint8_t *) (&(p_defrag_test->p_ncsi_packet->extra_byte[1]));
+    DEFRAG_CHECK_OPTIMIZED_OFFSET(p_defrag_test->p_ncsi_start);
+
+    /* How it works:
+     * 
+     * 1. We prepend a 32-bit `extra_byte` to the NC-SI packet, then set the start pointer 
+     *    to an unaligned offset of 1 byte ahead, at `0x0001`.
+     * 
+     * 2. The first read of 63 bytes starts at an unaligned address (`0x0001`), incurring 
+     *    a small performance penalty.
+     * 
+     * 3. After reading the initial 63 bytes, the next packet begins at an aligned 
+     *    offset of 64 bytes, allowing the processor to use optimized 16-byte memory copy 
+     *    instructions for the rest of the data.
+     * 
+     * 4. This approach ensures that, after the initial small penalty, all subsequent memory 
+     *    operations are aligned, resulting in significantly faster processing and fewer cycles.
+     */
+
+    /* Use the 'frag' test ability to create MCTP fragments */
+    if ( test_frag_prologue((uintptr_t) p_defrag_test->ncsi_packet_size) != 0 )
+        return 1;
+
+    test_exec_frag(0); /* Trigger MCTP fragments generation */
+
+    /* Count received frames */
+    LL_COUNT(p_defrag_test->p_usb_packets, packet, p_defrag_test->usb_packets_count);
+
+    if ( p_defrag_test->usb_packets_count == 0 )
+        return 1; /* No data */
+
+    p_defrag_test->ncsi_packet_size -= 3;
+    p_defrag_test->rx_raw_size = 0;
+
+#if ( TEST_CONTINUOUS_MODE == 0 )
+    printf("Input: %d USB buffers, total %d bytes.\n", p_defrag_test->usb_packets_count, p_defrag_test->usb_raw_size);
+#endif
+    return 0; /* Ready! */
 }
 
 /**
@@ -363,7 +401,7 @@ char *test_defrag_desc(size_t description_type)
 {
     if ( description_type == 0 )
     {
-        return "Defragmentation test: Assembles MCTP fragments.";
+        return "'defrag' local implementation.";
     }
     else
     {
@@ -395,15 +433,15 @@ int test_defrag_init(uintptr_t arg)
 {
     int ret;
 
-    if ( p_defrag != NULL )
-        return 1; /* Module already initialized */
+    if ( p_defrag_test != NULL )
+        return 0; /* Module already initialized */
 
     /* Request RAM for this module, assert on failure */
-    p_defrag = hal_alloc(sizeof(test_defrag_session));
-    if ( p_defrag == NULL )
+    p_defrag_test = hal_alloc(sizeof(test_defrag_session));
+    if ( p_defrag_test == NULL )
         return 1;
 
-    p_defrag->req_packet_size = NCSI_PACKET_MAX_SIZE;
+    p_defrag_test->req_packet_size = NCSI_PACKET_MAX_SIZE;
 
     /* Init the 'frag' test with our 'USB TX handler' */
     ret = test_frag_init((uintptr_t) test_defrag_on_usb_tx);

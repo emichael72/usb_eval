@@ -41,15 +41,15 @@ static struct cag_option options[] =
 /* clang-format off */ 
 static test_launcher_item_info tests_info[] = {
 
-    /*   Init                       Prolog                      Test function               Epilogue            Description                 Args            Repetitions */
+    /*   Init                       Prolog                          Test function               Epilogue            Description                 Args            Repetitions */
     /* ---------------------------------------------------------------------------------------------------------------------------------------------------------------- */
-/* 0 */ { NULL,                     NULL,                       hal_useless_function,       NULL,               test_useless_desc,          0,     0,       0,  0,  1    },
-/* 1 */ { NULL,                     NULL,                       test_exec_memcpy,           NULL,               test_memcpy_desc_xtensa,    0,     0,       0,  0,  1    },
-/* 2 */ { NULL,                     NULL,                       test_exec_memcpy,           NULL,               test_memcpy_desc_hal,       0,     0,       1,  0,  1    },
-/* 3 */ { NULL,                     test_msgq_prolog,           test_exec_msgq,             NULL,               test_msgq_desc,             0,     0,       0,  0,  1    },
-/* 4 */ { test_defrag_init,         test_defrag_prolog,         test_exec_defrag,           test_defrag_epilog, test_defrag_desc,           0,     1500,    0,  0,  1    },
-/* 5 */ { test_defrag_mctplib_init, test_defrag_mctplib_prolog, test_exec_defrag_mctplib,   NULL,               test_defrag_mctplib_desc,   0,     0,       0,  0,  1    },
-/* 6 */ { test_frag_init,           test_frag_prolog,           test_exec_frag,             NULL,               test_frag_desc,             0,     1500,    0,  0,  1    }
+/* 0 */ { NULL,                     NULL,                           hal_useless_function,       NULL,               test_useless_desc,          0,     0,       0,  0,  1    },
+/* 1 */ { NULL,                     NULL,                           test_exec_memcpy,           NULL,               test_memcpy_desc_xtensa,    0,     0,       0,  0,  1    },
+/* 2 */ { NULL,                     NULL,                           test_exec_memcpy,           NULL,               test_memcpy_desc_hal,       0,     0,       1,  0,  1    },
+/* 3 */ { NULL,                     test_msgq_prologue,             test_exec_msgq,             NULL,               test_msgq_desc,             0,     0,       0,  0,  1    },
+/* 4 */ { test_defrag_init,         test_defrag_prologue,           test_exec_defrag,           test_defrag_epilog, test_defrag_desc,           0,     1500,    0,  0,  1    },
+/* 5 */ { test_defrag_mctplib_init, test_defrag_mctplib_prologue,   test_exec_defrag_mctplib,   NULL,               test_defrag_mctplib_desc,   0,     0,       0,  0,  1    },
+/* 6 */ { test_frag_init,           test_frag_prologue,             test_exec_frag,             test_frag_epilog,   test_frag_desc,             0,     1500,    0,  0,  1    }
 
 };
 /* clang-format on */
@@ -90,6 +90,38 @@ static int init_register_tests(void)
 }
 
 /**
+ * @brief ToDo
+ * @return none
+ */
+
+void exec_multi_size(size_t test_index, size_t min, size_t max)
+{
+
+    uint64_t measured_cycles;
+    int      i;
+    char *   test_desc = test_launcher_get_desc(test_index, 0);
+
+    printf("// Test #%d: %s\n", test_index, test_desc);
+    printf("// Packet size %d:%d\n", min, max);
+    printf("let cyclesArray = [\n");
+
+    for ( i = min; i < max; i++ )
+    {
+        tests_info[4].prologue_arg = i + (NCSI_INTEL_PRE_BYTE - 1);
+        tests_info[6].prologue_arg = i + (NCSI_INTEL_PRE_BYTE - 1);
+
+        test_launcher_update_test(4, &tests_info[4]);
+        test_launcher_update_test(6, &tests_info[6]);
+
+        measured_cycles = test_launcher_execute(test_index);
+        printf("       [%-6u],\t// %d bytes\n", (size_t) measured_cycles, i);
+        xos_thread_sleep(10);
+    }
+
+    printf("];\n");
+}
+
+/**
  * @brief Initial startup thread that initializes the system and processes 
  *        command-line arguments.
  *
@@ -109,19 +141,18 @@ static int init_register_tests(void)
 
 static int init_thread(void *arg, int32_t unused)
 {
-    uint64_t           measured_cycles = 0;     /* Cycles related to any of our tests */
-    cag_option_context context         = {0};   /* libcargs context */
-    int                argc            = 0;     /* Arguments count passed to main() */
-    char **            argv            = NULL;  /* Arguments array passed to main() */
-    char               identifier      = 0;     /* libcargs identifier */
-    bool               run_and_exit    = true;  /* Specify to terminate immediately */
-    bool               got_command     = false; /* Have we got any command to execute? */
-    const char *       value           = NULL;  /* Points to an extrcated argumnet */
-    int                test_index      = -1;    /* Local argumnet */
-    int                packet_size     = -1;    /* External forced packet size */
-    bool               cgi_mode        = false; /* Local argumnet */
-    bool               exit_fetch      = false; /* Exit the arguments fearch loop */
-    char *             test_desc       = NULL;  /* Test descriptive test */
+
+    cag_option_context context      = {0};   /* libcargs context */
+    int                argc         = 0;     /* Arguments count passed to main() */
+    char **            argv         = NULL;  /* Arguments array passed to main() */
+    char               identifier   = 0;     /* libcargs identifier */
+    bool               run_and_exit = true;  /* Specify to terminate immediately */
+    bool               got_command  = false; /* Have we got any command to execute? */
+    const char *       value        = NULL;  /* Points to an extrcated argumnet */
+    int                test_index   = -1;    /* Local argumnet */
+    int                packet_size  = -1;    /* External forced packet size */
+    bool               cgi_mode     = false; /* Local argumnet */
+    bool               exit_fetch   = false; /* Exit the arguments fearch loop */
 
     HAL_UNUSED(arg);
     HAL_UNUSED(unused);
@@ -171,8 +202,8 @@ static int init_thread(void *arg, int32_t unused)
 
                             /* Patch the test table with the forced values, 
                              * compensating for the addition of the 32-bit extra bytes */
-                            tests_info[4].prolog_arg = packet_size + (NCSI_INTEL_PRE_BYTE - 1);
-                            tests_info[6].prolog_arg = packet_size + (NCSI_INTEL_PRE_BYTE - 1);
+                            tests_info[4].prologue_arg = packet_size + (NCSI_INTEL_PRE_BYTE - 1);
+                            tests_info[6].prologue_arg = packet_size + (NCSI_INTEL_PRE_BYTE - 1);
                         }
                     }
                     break;
@@ -211,7 +242,14 @@ static int init_thread(void *arg, int32_t unused)
                 /* Now initilize the tets launcher module*/
                 init_register_tests();
 
+#if ( TEST_CONTINUOUS_MODE > 0 )
+                exec_multi_size(test_index, 24, 1500);
+#else
+                char *   test_desc       = NULL; /* Test descriptive test */
+                uint64_t measured_cycles = 0;    /* Cycles related to any of our tests */
+
                 measured_cycles = test_launcher_execute(test_index);
+
                 if ( measured_cycles > 0 )
                 {
                     test_desc = test_launcher_get_desc(test_index, 0);
@@ -235,6 +273,8 @@ static int init_thread(void *arg, int32_t unused)
                     if ( test_desc != NULL )
                         printf("Description:\n%s\n", test_desc);
                 }
+
+#endif /* TEST_CONTIMUOS_MODE */
             }
         }
     }
@@ -249,7 +289,7 @@ static int init_thread(void *arg, int32_t unused)
     cgi_set_color(cgi_mode, "white");
 
     if ( run_and_exit == true )
-        hal_terminate_simulation(EXIT_SUCCESS);
+        exit(EXIT_SUCCESS);
 
 #ifdef HAL_START_XOS_KERNAL
 
@@ -261,7 +301,7 @@ static int init_thread(void *arg, int32_t unused)
     }
 #endif
 
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 /**

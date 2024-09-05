@@ -23,6 +23,8 @@
 #include <hal_llist.h>
 #include <ncsi.h>
 #include <test_frag,h>
+#include <tests.h>
+#include <string.h>
 #include <stdint.h>
 
 #define MCTP_HEADER_SIZE             4
@@ -135,13 +137,13 @@ static int test_frag_calculate_ncsi_fragments(void)
     {
         /* Drop the packet, it's too big */
         p_frag_test->ncsi_expected_frags_count = 0;
-#ifdef DEBUG
+#if defined(DEBUG) && (TEST_CONTINUOUS_MODE == 0)
         printf("\n\tError: NC-SI packet size results in too many fragments.\n");
 #endif
         return 1;
     }
 
-#ifdef DEBUG
+#if defined(DEBUG) && (TEST_CONTINUOUS_MODE == 0)
     /* Calculate the total number of bytes to transmit */
     p_frag_test->expected_tx_size = 0;
 
@@ -233,7 +235,7 @@ static void test_frag_adjust_pointers(void)
 static void test_frag_on_usb_tx(ptr_size_pair *pairs, size_t pairs_count)
 {
 /* Implementation of USB transmission would go here. */
-#ifdef DEBUG
+#if defined(DEBUG) && (TEST_CONTINUOUS_MODE == 0)
 
     printf("\n\tUSB op. # %u:\n", p_frag_test->usb_tx_total_operations);
 
@@ -253,6 +255,148 @@ static void test_frag_on_usb_tx(ptr_size_pair *pairs, size_t pairs_count)
 }
 
 /**
+ * @brief Perform final validation after the test measurement is completed.
+ * @param arg Unused parameter, provided for compatibility with the calling
+ *            convention.
+ *
+ * @return 0 if the validation process completes successfully.
+ */
+
+int test_frag_epilog(uintptr_t arg)
+{
+
+    mctp_frag *frag;
+    uint8_t    seq = 0;
+
+    LL_FOREACH(p_frag_test->p_mctp_head, frag)
+    {
+
+        /* Initialize MCTP header */
+        frag->mctp_header.version         = p_frag_test->version;
+        frag->mctp_header.destination_eid = p_frag_test->destination_eid;
+        frag->mctp_header.source_eid      = p_frag_test->source_eid;
+        frag->mctp_header.end_of_message  = 0; /* Not End of Message */
+        frag->mctp_header.message_tag     = 0;
+        frag->mctp_header.tag_owner       = 1;
+        frag->mctp_header.packet_sequence = seq;
+
+        if ( seq == 0 )
+            frag->mctp_header.start_of_message = 1; /* Start of Message */
+        else
+            frag->mctp_header.start_of_message = 0; /* Not Start of Message */
+
+        /* Those are not set initially */
+        frag->payload      = NULL;
+        frag->payload_size = 0;
+        seq++;
+    }
+
+    memset(&p_frag_test->pairs, 0, sizeof(p_frag_test->pairs));
+
+    if ( p_frag_test->p_ncsi_packet != NULL )
+        ncsi_release_packet(p_frag_test->p_ncsi_packet);
+
+    p_frag_test->p_ncsi_packet             = NULL;
+    p_frag_test->p_ncsi_start              = NULL;
+    p_frag_test->ncsi_packet_size          = 0;
+    p_frag_test->usb_raw_payload           = 0;
+    p_frag_test->usb_tx_total_pointers     = 0;
+    p_frag_test->usb_tx_total_operations   = 0;
+    p_frag_test->usb_tx_operation_bytes    = 0;
+    p_frag_test->usb_tx_operation_pointers = 0;
+
+    return 0;
+}
+
+/**
+ * @brief Performs the fragments test by processing and transmitting NC-SI 
+ *        packet fragments.
+ * 
+ * <  Cycles mesurmett entry point>
+ * 
+ * This function is executed when a new NC-SI packet is available. It adjusts 
+ * the fragment pointers using `test_frag_adjust_pointers()`, and then iterates 
+ * through the fragments, preparing batches of MCTP headers and their 
+ * corresponding payloads. These batches are sent to the USB hardware while
+ * packing as many pairs as possible, ensuring that the total size does not 
+ * exceed `MCTP_MAX_FRAGMENT_PAYLOAD_SIZE`. Each MCTP header must be transmitted 
+ * with its corresponding payload in the same USB batch.
+ *
+ * @param arg Unused parameter, reserved for future use.
+ */
+
+void test_exec_frag(uintptr_t arg)
+{
+    mctp_frag *frag        = p_frag_test->p_mctp_head;
+    size_t     pairs_count = 0;
+    size_t     header_size = sizeof(frag->mctp_header);
+
+    /* By now, we trust that there is a pending NC-SI packet */
+    test_frag_adjust_pointers();
+
+    /* Iterate over the fragments and send them in batches */
+    while ( frag != NULL && frag->payload_size > 0 )
+    {
+        size_t current_pair_size = header_size + frag->payload_size;
+
+        /* Check if adding the current fragment would exceed the max payload size */
+        if ( (p_frag_test->usb_tx_operation_bytes + current_pair_size > USB_MAX_PAYLOAD_SIZE) || (pairs_count + 2 > USB_MAX_POINTERS) )
+        {
+            /* Send the current batch to the USB hardware */
+            test_frag_on_usb_tx(p_frag_test->pairs, pairs_count);
+
+            /* Reset counters */
+            pairs_count                         = 0;
+            p_frag_test->usb_tx_operation_bytes = 0;
+
+#if defined(DEBUG) && (TEST_CONTINUOUS_MODE == 0)
+            printf("\n");
+            p_frag_test->usb_tx_total_operations++;
+            p_frag_test->usb_tx_operation_pointers = 0;
+#endif
+        }
+
+        /* Add the MCTP header and its size */
+        p_frag_test->pairs[pairs_count].ptr  = (uintptr_t) &frag->mctp_header;
+        p_frag_test->pairs[pairs_count].size = header_size;
+        pairs_count++;
+
+        /* Add the payload pointer and its size */
+        p_frag_test->pairs[pairs_count].ptr  = (uintptr_t) frag->payload;
+        p_frag_test->pairs[pairs_count].size = frag->payload_size;
+        pairs_count++;
+
+        p_frag_test->usb_tx_operation_bytes += current_pair_size;
+
+#if defined(DEBUG) && (TEST_CONTINUOUS_MODE == 0)
+        p_frag_test->usb_tx_total_pointers += 2;
+        p_frag_test->usb_tx_operation_pointers += 2;
+        printf("\tUSB adding TX pointer: size: %-3u, pointers %-2u\n", p_frag_test->usb_tx_operation_bytes, p_frag_test->usb_tx_operation_pointers);
+#endif
+
+        /* Move to the next fragment */
+        frag = frag->next;
+    }
+
+    /* If there's remaining data to send, send it now */
+    if ( pairs_count > 0 )
+    {
+
+        test_frag_on_usb_tx(p_frag_test->pairs, pairs_count);
+#if defined(DEBUG) && (TEST_CONTINUOUS_MODE == 0)
+        p_frag_test->usb_tx_total_operations++;
+        printf("\n");
+#endif
+    }
+
+#if defined(DEBUG) && (TEST_CONTINUOUS_MODE == 0)
+    printf("\n\n\tUSB total pointers: %d\n", p_frag_test->usb_tx_total_pointers);
+    printf("\tUSB total TX operations: %d\n", p_frag_test->usb_tx_total_operations);
+    printf("\tUSB total TX bytes: %d\n\n", p_frag_test->usb_raw_payload);
+#endif
+}
+
+/**
  * @brief Obtain a fake Ethernet NC-SI frame along with its size.
  *
  * In a real-world scenario, this frame would be placed in a designated RAM 
@@ -262,7 +406,7 @@ static void test_frag_on_usb_tx(ptr_size_pair *pairs, size_t pairs_count)
  * @return 0 on success, 1 on failure.
  */
 
-int test_frag_prolog(uintptr_t arg)
+int test_frag_prologue(uintptr_t arg)
 {
 
     if ( p_frag_test == NULL )
@@ -305,105 +449,19 @@ int test_frag_prolog(uintptr_t arg)
     {
         /* Drop the packet , it's too big */
         p_frag_test->ncsi_expected_frags_count = 0;
-#ifdef DEBUG
+#if defined(DEBUG) && (TEST_CONTINUOUS_MODE == 0)
         printf("\n\tError: NC-`SI packet size results in too many fragments.\n");
 #endif
         return 1;
     }
 
-#ifdef DEBUG
+#if defined(DEBUG) && (TEST_CONTINUOUS_MODE == 0)
     printf("\n\tNC-SI inbound packet size: %d\n", p_frag_test->ncsi_packet_size);
     printf("\tNC-SI expected fragments of up-to %d bytes: %d\n", MCTP_MAX_FRAGMNET_SIZE, p_frag_test->ncsi_expected_frags_count);
     printf("\tExpected transmision: %u bytes.\n\n", p_frag_test->expected_tx_size);
 #endif
 
     return 0; /* NC-SI packet reday for frgmantation */
-}
-
-/**
- * @brief Performs the fragments test by processing and transmitting NC-SI 
- *        packet fragments.
- *
- * This function is executed when a new NC-SI packet is available. It adjusts 
- * the fragment pointers using `test_frag_adjust_pointers()`, and then iterates 
- * through the fragments, preparing batches of MCTP headers and their 
- * corresponding payloads. These batches are sent to the USB hardware while
- * packing as many pairs as possible, ensuring that the total size does not 
- * exceed `MCTP_MAX_FRAGMENT_PAYLOAD_SIZE`. Each MCTP header must be transmitted 
- * with its corresponding payload in the same USB batch.
- *
- * @param arg Unused parameter, reserved for future use.
- */
-
-void test_exec_frag(uintptr_t arg)
-{
-    mctp_frag *frag        = p_frag_test->p_mctp_head;
-    size_t     pairs_count = 0;
-    size_t     header_size = sizeof(frag->mctp_header);
-
-    /* By now, we trust that there is a pending NC-SI packet */
-    test_frag_adjust_pointers();
-
-    /* Iterate over the fragments and send them in batches */
-    while ( frag != NULL && frag->payload_size > 0 )
-    {
-        size_t current_pair_size = header_size + frag->payload_size;
-
-        /* Check if adding the current fragment would exceed the max payload size */
-        if ( (p_frag_test->usb_tx_operation_bytes + current_pair_size > USB_MAX_PAYLOAD_SIZE) || (pairs_count + 2 > USB_MAX_POINTERS) )
-        {
-            /* Send the current batch to the USB hardware */
-            test_frag_on_usb_tx(p_frag_test->pairs, pairs_count);
-
-            /* Reset counters */
-            pairs_count                         = 0;
-            p_frag_test->usb_tx_operation_bytes = 0;
-
-#ifdef DEBUG
-            printf("\n");
-            p_frag_test->usb_tx_total_operations++;
-            p_frag_test->usb_tx_operation_pointers = 0;
-#endif
-        }
-
-        /* Add the MCTP header and its size */
-        p_frag_test->pairs[pairs_count].ptr  = (uintptr_t) &frag->mctp_header;
-        p_frag_test->pairs[pairs_count].size = header_size;
-        pairs_count++;
-
-        /* Add the payload pointer and its size */
-        p_frag_test->pairs[pairs_count].ptr  = (uintptr_t) frag->payload;
-        p_frag_test->pairs[pairs_count].size = frag->payload_size;
-        pairs_count++;
-
-        p_frag_test->usb_tx_operation_bytes += current_pair_size;
-
-#ifdef DEBUG
-        p_frag_test->usb_tx_total_pointers += 2;
-        p_frag_test->usb_tx_operation_pointers += 2;
-        printf("\tUSB adding TX pointer: size: %-3u, pointers %-2u\n", p_frag_test->usb_tx_operation_bytes, p_frag_test->usb_tx_operation_pointers);
-#endif
-
-        /* Move to the next fragment */
-        frag = frag->next;
-    }
-
-    /* If there's remaining data to send, send it now */
-    if ( pairs_count > 0 )
-    {
-
-        test_frag_on_usb_tx(p_frag_test->pairs, pairs_count);
-#ifdef DEBUG
-        p_frag_test->usb_tx_total_operations++;
-        printf("\n");
-#endif
-    }
-
-#ifdef DEBUG
-    printf("\n\n\tUSB total pointers: %d\n", p_frag_test->usb_tx_total_pointers);
-    printf("\tUSB total TX operations: %d\n", p_frag_test->usb_tx_total_operations);
-    printf("\tUSB total TX bytes: %d\n\n", p_frag_test->usb_raw_payload);
-#endif
 }
 
 /**
@@ -423,7 +481,7 @@ char *test_frag_desc(size_t description_type)
 {
     if ( description_type == 0 )
     {
-        return "NC-SI to MCTP packet fragmentation flow using zero-copy method.";
+        return "'frag' using zero-copy method.";
     }
     else
     {
@@ -460,7 +518,9 @@ int test_frag_init(uintptr_t arg)
     int        msg_index = 0;
 
     if ( p_frag_test != NULL )
-        return 1; /* Must initialize only once */
+    {
+        return 0; /* Must initialize only once */
+    }
 
     /* 
      * The following operations are performed once and do not count as 

@@ -127,7 +127,7 @@ void test_exec_defrag_mctplib(uintptr_t arg)
  * @return Status of the operation, 0 on success, non-zero on failure.
  */
 
-int test_defrag_mctplib_prolog(uintptr_t arg)
+int test_defrag_mctplib_prologue(uintptr_t arg)
 {
     uint8_t             frgas_count = 0;
     char                color_byte  = 'A';
@@ -177,7 +177,7 @@ char *test_defrag_mctplib_desc(size_t description_type)
 {
     if ( description_type == 0 )
     {
-        return "Defragmentation test using 'libmctp'.";
+        return "'defrag' using libmctp.";
     }
     else
     {

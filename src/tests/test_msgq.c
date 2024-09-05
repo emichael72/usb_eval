@@ -59,7 +59,7 @@ void test_exec_msgq(uintptr_t unused)
  * @return 1 on error.
  */
 
-int test_msgq_prolog(uintptr_t arg)
+int test_msgq_prologue(uintptr_t arg)
 {
     /* Pool 32 messages of 32 bytes */
     if ( g_msgq_handle == 0 )

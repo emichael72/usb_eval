@@ -58,29 +58,15 @@ typedef void (*cb_on_usb_tx)(ptr_size_pair *pairs, size_t pairs_count);
 /**
  * @brief Performs the fragments test by processing and transmitting NC-SI 
  *        packet fragments.
- *
- * This function is executed when a new NC-SI packet is available. It adjusts 
- * the fragment pointers using `frag_test_adjust_pointers()`, and then iterates 
- * through the fragments, preparing batches of MCTP headers and their 
- * corresponding payloads. These batches are then sent to the USB hardware 
- * in groups of up to 4 fragments (2 pairs of header and payload).
- *
- * @param arg Unused parameter, reserved for future use.
+ * @param arg - per step.
  */
 
-int test_frag_prolog(uintptr_t arg);
-void test_exec_frag(uintptr_t arg);
+int   test_frag_epilog(uintptr_t arg);
+void  test_exec_frag(uintptr_t arg);
+int   test_frag_prologue(uintptr_t arg);
 char *test_frag_desc(size_t description_type);
+int   test_frag_init(uintptr_t arg);
 
-/*
- * Initializes the module and allocates RAM for persistent variables.
- * 
- * Note: All fragments that we are allowed to use will be allocated during
- * initialization and populated with default values. Any allocation failure 
- * will result in an assertion.
- */
-
-int test_frag_init(uintptr_t arg);
 
 #endif /* #define _TEST_FRAG_H_
  */

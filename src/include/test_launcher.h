@@ -37,12 +37,12 @@ typedef char *(*test_launcher_get_description)(size_t description_type);
 typedef struct test_launcher_item_info_t
 {
     test_launcher_func            init;
-    test_launcher_func            prolog;       /**< Logic to execute prior to the actual measured function, can be NULL */
+    test_launcher_func            prologue;     /**< Logic to execute prior to the actual measured function, can be NULL */
     hal_sim_func                  test_func;    /**< Measured function, must not be NULL */
     test_launcher_func            epilogue;     /**< Logic to execute after the measured function, can be NULL */
     test_launcher_get_description desc;         /**< Rerives test decription NULL */
-    uintptr_t                     init_arg;     /**< Parameter to pass to the 'prolog' function */
-    uintptr_t                     prolog_arg;   /**< Parameter to pass to the 'prolog' function */
+    uintptr_t                     init_arg;     /**< Parameter to pass to the 'prologue' function */
+    uintptr_t                     prologue_arg; /**< Parameter to pass to the 'prologue' function */
     uintptr_t                     test_arg;     /**< Parameter to pass to the measured function */
     uintptr_t                     epilogue_arg; /**< Parameter to pass to the 'epilogue' function */
     uint8_t                       repetitions;  /**< Number of repetitions, 1 -> 100 */
@@ -74,6 +74,15 @@ char *test_launcher_get_desc(size_t test_index, size_t type);
  */
 
 int test_launcher_help(void);
+
+/**
+ * @brief Updates a test which si allready registered.
+ * @param test_index The index of the test to update.
+ * @param item_info A pointer to the test item to be updated.
+ * @return int Returns 0 on success, 1 on error.
+ */
+
+int test_launcher_update_test(size_t test_index, test_launcher_item_info *item_info);
 
 /**
  * @brief Registers a test item to the launcher.

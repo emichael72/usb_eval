@@ -50,6 +50,51 @@ typedef struct _test_launcher_session_t
 static test_launcher_session *p_launcher = NULL;
 
 /**
+ * @brief Updates a test which si allready registered.
+ * @param test_index The index of the test to update.
+ * @param item_info A pointer to the test item to be updated.
+ * @return int Returns 0 on success, 1 on error.
+ */
+
+int test_launcher_update_test(size_t test_index, test_launcher_item_info *item_info)
+{
+    launched_item *item = NULL;
+    int            i    = 0;
+    uint64_t       ret  = 0;
+
+    do
+    {
+        if ( p_launcher == NULL )
+            break; /* Module not initialized */
+
+        if ( test_index >= p_launcher->items_count )
+        {
+            test_launcher_help();
+            break; /* Error: Invalid test index */
+        }
+
+        /* Finds list item at the specified index */
+        LL_FOREACH(p_launcher->items_head, item)
+        {
+            if ( i == test_index )
+                break;
+            i++;
+        }
+
+        if ( item == NULL )
+            break;
+
+        /* Copy the test item to the allocated memory */
+        memcpy(item->item_info, item_info, sizeof(test_launcher_item_info));
+
+        ret = 0;
+
+    } while ( 0 );
+
+    return ret;
+}
+
+/**
  * @brief Registers a test item with the launcher.
  * @param item_info A pointer to the test item to be registered.
  * @return int Returns 0 on success, 1 on error.
@@ -140,12 +185,12 @@ uint64_t test_launcher_execute(size_t test_index)
             }
         }
 
-        /* Execute the prolog function if it exists */
-        if ( item->item_info->prolog )
+        /* Execute the prologue function if it exists */
+        if ( item->item_info->prologue )
         {
-            if ( item->item_info->prolog(item->item_info->prolog_arg) )
+            if ( item->item_info->prologue(item->item_info->prologue_arg) )
             {
-                printf("Launcher error: prolog() function failed.\n");
+                printf("Launcher error: prologue() function failed.\n");
                 break;
             }
         }

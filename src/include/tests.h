@@ -26,6 +26,8 @@
 #ifndef _TEST_ALL_H_
 #define _TEST_ALL_H_
 
+#define TEST_CONTINUOUS_MODE 1
+
 /**
  * @brief Measures the number of cycles spent on memory copying operations.
  * @param use_hal If 1, the function will use `hal_memcpy()`. Otherwise, it 
@@ -46,7 +48,7 @@ char *test_memcpy_desc_hal(size_t description_type);
  * @return None.
  */
 
-int   test_msgq_prolog(uintptr_t arg);
+int   test_msgq_prologue(uintptr_t arg);
 void  test_exec_msgq(uintptr_t msgq_handle);
 char *test_msgq_desc(size_t description_type);
 
